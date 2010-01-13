@@ -25,20 +25,20 @@ class Setting:
         self.name    = name
         self.cmdline = cmdline
         
-class Jobspec:
+class Job:
     def __init__(self, name, timeout, runs):
         self.name    = name
         self.timeout = timeout
         self.runs    = runs
         
-class SeqJobspec(Jobspec):
+class Seqjob(Job):
     def __init__(self, name, timeout, runs, parallel):
-        Jobspec.__init__(self, name, timeout, runs)
+        Job.__init__(self, name, timeout, runs)
         self.parallel = parallel
            
-class PbsJobspec(Jobspec):
+class Pbsjob(Job):
     def __init__(self, name, timeout, runs, ppn, procs, script_mode, walltime):
-        Jobspec.__init__(self, name, timeout, runs)
+        Job.__init__(self, name, timeout, runs)
         self.ppn         = ppn
         self.procs       = procs
         self.script_mode = script_mode
@@ -81,17 +81,17 @@ class Runscript:
         self.runspecs   = {}
         self.machines   = {}
         self.systems    = {}
-        self.jobspecs   = {} 
+        self.jobs       = {} 
         self.configs    = {} 
         self.benchmarks = {}
     
     
-    def addRunspec(self, name, machine, system, version, setting, config, jobspec, benchmark):
+    def addRunspec(self, name, machine, system, version, setting, config, job, benchmark):
         runspec = Runspec(name,
                           self.machines[machine],
                           self.systems[(system,version)].settings[setting], 
                           self.configs[config], 
-                          self.jobspecs[jobspec], 
+                          self.jobs[job], 
                           self.benchmarks[benchmark])
         self.runspecs[runspec.name] = runspec
     
@@ -101,8 +101,8 @@ class Runscript:
     def addSystem(self, system):
         self.systems[(system.name, system.version)] = system
         
-    def addJobspec(self, jobspec):
-        self.jobspecs[jobspec.name] = jobspec
+    def addJob(self, job):
+        self.jobs[job.name] = job
         
     def addConfig(self, config):
         self.configs[config.name] = config
@@ -126,7 +126,8 @@ class RunscriptParser:
             <xs:element name="machine" type="machineType"/>
             <xs:element name="system" type="systemType"/>
             <xs:element name="setting" type="settingType"/>
-            <xs:element name="jobspec" type="jobspecType"/>
+            <xs:element name="pbsjob" type="pbsjobType"/>
+            <xs:element name="seqjob" type="seqjobType"/>
             <xs:element name="config" type="configType"/>
             <xs:element name="benchmark" type="benchmarkType"/>
             <xs:element name="runspec" type="runspecType"/>
@@ -154,40 +155,37 @@ class RunscriptParser:
         <xs:attribute name="cmdline" type="xs:string" use="required"/>
     </xs:complexType>
     
-    <!-- a jobspec -->
-    <xs:complexType name="jobspecType">
-        <xs:choice>
-            <xs:element name="sequential">
-                <xs:complexType>
-                    <xs:attribute name="parallel" type="xs:positiveInteger" use="required"/>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="pbs">
-                <xs:complexType>
-                    <xs:attribute name="ppn" type="xs:positiveInteger" use="required"/>
-                    <xs:attribute name="procs" use="required">
-                        <xs:simpleType>
-                            <xs:list itemType="xs:integer"/>
-                         </xs:simpleType>
-                    </xs:attribute>
-                    <xs:attribute name="script_mode" use="required">
-                        <xs:simpleType>
-                            <xs:restriction base="xs:string">
-                                <xs:enumeration value="single"/>
-                                <xs:enumeration value="multi"/>
-                                <xs:enumeration value="timeout"/>
-                            </xs:restriction>
-                         </xs:simpleType>
-                    </xs:attribute>
-                    <xs:attribute name="walltime" type="timeType" use="required"/>
-                </xs:complexType>
-            </xs:element>
-        </xs:choice>
+    <!-- a seqjob -->
+    <xs:complexType name="seqjobType">
         <xs:attribute name="name" type="xs:Name" use="required"/>
         <xs:attribute name="timeout" type="timeType" use="required"/>
         <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
+        <xs:attribute name="parallel" type="xs:positiveInteger" use="required"/>
     </xs:complexType>
-
+    
+    <!-- a pbsjob -->
+    <xs:complexType name="pbsjobType">
+        <xs:attribute name="name" type="xs:Name" use="required"/>
+        <xs:attribute name="timeout" type="timeType" use="required"/>
+        <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
+        <xs:attribute name="ppn" type="xs:positiveInteger" use="required"/>
+        <xs:attribute name="procs" use="required">
+            <xs:simpleType>
+                <xs:list itemType="xs:integer"/>
+             </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="script_mode" use="required">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="single"/>
+                    <xs:enumeration value="multi"/>
+                    <xs:enumeration value="timeout"/>
+                </xs:restriction>
+             </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="walltime" type="timeType" use="required"/>
+    </xs:complexType>
+    
     <!-- a config -->
     <xs:complexType name="configType">
         <xs:attribute name="name" type="xs:Name" use="required"/>
@@ -230,7 +228,7 @@ class RunscriptParser:
         <xs:attribute name="machine" type="xs:Name" use="required"/>
         <xs:attribute name="config" type="xs:Name" use="required"/>
         <xs:attribute name="benchmark" type="xs:Name" use="required"/>
-        <xs:attribute name="jobspec" type="xs:Name" use="required"/>
+        <xs:attribute name="job" type="xs:Name" use="required"/>
     </xs:complexType>
 
     <!-- simple types used througout the above definitions -->
@@ -297,13 +295,13 @@ class RunscriptParser:
             <xs:selector xpath="config"/>
             <xs:field xpath="@name"/>
         </xs:key>
-        <!-- jobspec keys -->
-        <xs:keyref name="jobspecRef" refer="jobspecKey">
+        <!-- job keys -->
+        <xs:keyref name="jobRef" refer="jobKey">
             <xs:selector xpath="runspec"/>
-            <xs:field xpath="@jobspec"/>
+            <xs:field xpath="@job"/>
         </xs:keyref>
-        <xs:key name="jobspecKey">
-            <xs:selector xpath="jobspec"/>
+        <xs:key name="jobKey">
+            <xs:selector xpath="seqjob|pbsjob"/>
             <xs:field xpath="@name"/>
         </xs:key>
         <!-- runspec names have to be unique -->
@@ -332,18 +330,13 @@ class RunscriptParser:
                 system.addSetting(setting)
             run.addSystem(system)
             
-        for node in doc.getroot().xpath("./jobspec"):
-            name    = node.get("name")
-            timeout = node.get("timeout")
-            runs    = node.get("runs")
-            pbs = node.xpath("./pbs")
-            if len(pbs) > 0:
-                child = pbs[0]
-                jobspec = PbsJobspec(name, timeout, runs, child.get("ppn"), child.get("procs"), child.get("script_mode"), child.get("walltime"))
-            else:
-                child = node.xpath("./sequential")[0]
-                jobspec = SeqJobspec(name, timeout, runs, child.get("parallel"))
-            run.addJobspec(jobspec)
+        for node in doc.getroot().xpath("./pbsjob"):
+            job = Pbsjob(node.get("name"), node.get("timeout"), node.get("runs"), node.get("ppn"), node.get("procs"), node.get("script_mode"), node.get("walltime"))
+            run.addJob(job)
+
+        for node in doc.getroot().xpath("./seqjob"):
+            job = Seqjob(node.get("name"), node.get("timeout"), node.get("runs"), node.get("parallel"))
+            run.addJob(job)
         
         for node in doc.getroot().xpath("./config"):
             config = Config(node.get("name"), node.get("template"), node.get("output"))
@@ -368,5 +361,5 @@ class RunscriptParser:
                            node.get("version"), 
                            node.get("setting"), 
                            node.get("config"), 
-                           node.get("jobspec"), 
+                           node.get("job"),
                            node.get("benchmark"))
