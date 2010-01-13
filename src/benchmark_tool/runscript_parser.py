@@ -155,19 +155,22 @@ class RunscriptParser:
         <xs:attribute name="cmdline" type="xs:string" use="required"/>
     </xs:complexType>
     
-    <!-- a seqjob -->
-    <xs:complexType name="seqjobType">
+    <!-- generic attributes for jobs-->
+    <xs:attributeGroup name="jobAttr">
         <xs:attribute name="name" type="xs:Name" use="required"/>
         <xs:attribute name="timeout" type="timeType" use="required"/>
         <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
+    </xs:attributeGroup>
+    
+    <!-- a seqjob -->
+    <xs:complexType name="seqjobType">
+        <xs:attributeGroup ref="jobAttr"/>
         <xs:attribute name="parallel" type="xs:positiveInteger" use="required"/>
     </xs:complexType>
     
     <!-- a pbsjob -->
     <xs:complexType name="pbsjobType">
-        <xs:attribute name="name" type="xs:Name" use="required"/>
-        <xs:attribute name="timeout" type="timeType" use="required"/>
-        <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
+        <xs:attributeGroup ref="jobAttr"/>
         <xs:attribute name="ppn" type="xs:positiveInteger" use="required"/>
         <xs:attribute name="procs" use="required">
             <xs:simpleType>
