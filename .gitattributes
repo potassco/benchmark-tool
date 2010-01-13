@@ -1,0 +1,5 @@
+* text=auto !eol
+runscripts/runscript-skel.xml -text
+src/benchmark_tool/__init__.py -text
+src/benchmark_tool/runscript_parser.py -text
+src/bgen.py -text
