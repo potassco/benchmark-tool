@@ -45,10 +45,9 @@ class Pbsjob(Job):
         self.walltime    = walltime
 
 class Config:
-    def __init__(self, name, template, output):
+    def __init__(self, name, template):
         self.name     = name
         self.template = template
-        self.output   = output 
 
 class Benchmark:
     def __init__(self, name):
@@ -69,36 +68,40 @@ class Files:
         self.ignores.add(ignore)
 
 class Runspec:
-    def __init__(self, name, machine, setting, config, jobspec, benchmark):
+    def __init__(self, name, machine, setting, jobspec, benchmark):
         self.name    = name 
         self.machine = machine
         self.setting = setting
-        self.config  = config
         self.jobspec = jobspec
 
 class Runscript:
-    def __init__(self):
-        self.runspecs   = {}
+    def __init__(self, output):
+        self.output     = output
+        self.runspecs   = []
         self.machines   = {}
         self.systems    = {}
         self.jobs       = {} 
         self.configs    = {} 
         self.benchmarks = {}
     
-    
-    def addRunspec(self, name, machine, system, version, setting, config, job, benchmark):
+    def addRunall(self, name, machine, job, benchmark):
+        for system in self.systems.values():
+            for setting in system.settings.values():
+                self.addRunspec(name, machine, system.name, system.version, setting.name, job, benchmark) 
+        
+    def addRunspec(self, name, machine, system, version, setting, job, benchmark):
         runspec = Runspec(name,
                           self.machines[machine],
                           self.systems[(system,version)].settings[setting], 
-                          self.configs[config], 
                           self.jobs[job], 
                           self.benchmarks[benchmark])
-        self.runspecs[runspec.name] = runspec
+        self.runspecs.append(runspec)
     
     def addMachine(self, machine):
         self.machines[machine.name] = machine
     
-    def addSystem(self, system):
+    def addSystem(self, system, config):
+        system.config = self.configs[config]
         self.systems[(system.name, system.version)] = system
         
     def addJob(self, job):
@@ -118,20 +121,29 @@ class RunscriptParser:
         from lxml import etree
         from StringIO import StringIO
         
-        schemadoc = etree.parse(StringIO("""
+        schemadoc = etree.parse(StringIO("""\
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <!-- the runscript -->
     <xs:complexType name="runscriptType">
         <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name="machine" type="machineType"/>
-            <xs:element name="system" type="systemType"/>
-            <xs:element name="setting" type="settingType"/>
+            <xs:element name="system" type="systemType">
+                <!-- setting keys have to be unique per system/version-->
+                <!-- unfortunately i have found no way to create a link between settings and systems -->
+                <!-- schematron should be able to do this but the lxml implementation seems to be incomplete-->
+                <xs:unique name="settingKey">
+                    <xs:selector xpath="setting"/>
+                    <xs:field xpath="@name"/>
+                </xs:unique>
+            </xs:element>
             <xs:element name="pbsjob" type="pbsjobType"/>
             <xs:element name="seqjob" type="seqjobType"/>
             <xs:element name="config" type="configType"/>
             <xs:element name="benchmark" type="benchmarkType"/>
             <xs:element name="runspec" type="runspecType"/>
+            <xs:element name="runall" type="runallType"/>
         </xs:choice>
+        <xs:attribute name="output" type="xs:string" use="required"/>
     </xs:complexType>
 
     <!-- a machine -->
@@ -143,23 +155,26 @@ class RunscriptParser:
 
     <!-- a system -->
     <xs:complexType name="systemType">
+        <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:element name="setting">
+                <xs:complexType>
+                    <xs:attribute name="name" type="xs:Name" use="required"/>
+                    <xs:attribute name="cmdline" type="xs:string" use="required"/>
+                </xs:complexType>
+            </xs:element>
+        </xs:choice>
         <xs:attribute name="name" type="xs:Name" use="required"/>
         <xs:attribute name="version" type="versionType" use="required"/>
         <xs:attribute name="measures" type="xs:Name" use="required"/>
+        <xs:attribute name="config" type="xs:Name" use="required"/>
     </xs:complexType>
 
-    <!-- per system settings -->
-    <xs:complexType name="settingType">
-        <xs:attribute name="name" type="xs:Name" use="required"/>
-        <xs:attribute name="system" type="xs:Name" use="required"/>
-        <xs:attribute name="cmdline" type="xs:string" use="required"/>
-    </xs:complexType>
-    
     <!-- generic attributes for jobs-->
     <xs:attributeGroup name="jobAttr">
         <xs:attribute name="name" type="xs:Name" use="required"/>
         <xs:attribute name="timeout" type="timeType" use="required"/>
         <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
+        <xs:anyAttribute processContents="lax"/>
     </xs:attributeGroup>
     
     <!-- a seqjob -->
@@ -193,7 +208,6 @@ class RunscriptParser:
     <xs:complexType name="configType">
         <xs:attribute name="name" type="xs:Name" use="required"/>
         <xs:attribute name="template" type="xs:string" use="required"/>
-        <xs:attribute name="output" type="xs:string" use="required"/>
     </xs:complexType>
     
     <!-- a benchmark -->
@@ -229,11 +243,18 @@ class RunscriptParser:
         <xs:attribute name="version" type="versionType" use="required"/>
         <xs:attribute name="setting" type="xs:Name" use="required"/>
         <xs:attribute name="machine" type="xs:Name" use="required"/>
-        <xs:attribute name="config" type="xs:Name" use="required"/>
         <xs:attribute name="benchmark" type="xs:Name" use="required"/>
         <xs:attribute name="job" type="xs:Name" use="required"/>
     </xs:complexType>
-
+    
+    <!-- a runall -->
+    <xs:complexType name="runallType">
+        <xs:attribute name="name" type="xs:Name" use="required"/>
+        <xs:attribute name="machine" type="xs:Name" use="required"/>
+        <xs:attribute name="benchmark" type="xs:Name" use="required"/>
+        <xs:attribute name="job" type="xs:Name" use="required"/>
+    </xs:complexType>
+    
     <!-- simple types used througout the above definitions -->
     <xs:simpleType name="versionType">
         <xs:restriction base="xs:string">
@@ -278,20 +299,9 @@ class RunscriptParser:
             <xs:field xpath="@name"/>
             <xs:field xpath="@version"/>
         </xs:key>
-        <!-- setting keys -->
-        <xs:keyref name="settingRef" refer="settingKey">
-            <xs:selector xpath="runspec"/>
-            <xs:field xpath="@system"/>
-            <xs:field xpath="@setting"/>
-        </xs:keyref>
-        <xs:key name="settingKey">
-            <xs:selector xpath="setting"/>
-            <xs:field xpath="@system"/>
-            <xs:field xpath="@name"/>
-        </xs:key>
         <!-- config keys -->
         <xs:keyref name="configRef" refer="configKey">
-            <xs:selector xpath="runspec"/>
+            <xs:selector xpath="system"/>
             <xs:field xpath="@config"/>
         </xs:keyref>
         <xs:key name="configKey">
@@ -307,9 +317,9 @@ class RunscriptParser:
             <xs:selector xpath="seqjob|pbsjob"/>
             <xs:field xpath="@name"/>
         </xs:key>
-        <!-- runspec names have to be unique -->
-        <xs:unique name="runspecKey">
-            <xs:selector xpath="runspec"/>
+        <!-- runspec/runall names have to be unique -->
+        <xs:unique name="runKey">
+            <xs:selector xpath="runspec|runall"/>
             <xs:field xpath="@name"/>
         </xs:unique>
     </xs:element>
@@ -320,18 +330,22 @@ class RunscriptParser:
         doc = etree.parse(open(fileName))
         schema.assertValid(doc)
         
-        run = Runscript()
+        run = Runscript(doc.getroot().get("output"))
         
         for node in doc.getroot().xpath("./machine"):
             machine = Machine(node.get("name"), node.get("cpu"), node.get("memory"))
             run.addMachine(machine)
+
+        for node in doc.getroot().xpath("./config"):
+            config = Config(node.get("name"), node.get("template"))
+            run.addConfig(config)
     
         for node in doc.getroot().xpath("./system"):
             system = System(node.get("name"), node.get("version"), node.get("measures"))
-            for child in doc.getroot().xpath("./setting[@system='" + system.name + "']"):
+            for child in node.xpath("setting"):
                 setting = Setting(child.get("name"), child.get("cmdline"))
                 system.addSetting(setting)
-            run.addSystem(system)
+            run.addSystem(system, node.get("config"))
             
         for node in doc.getroot().xpath("./pbsjob"):
             job = Pbsjob(node.get("name"), node.get("timeout"), node.get("runs"), node.get("ppn"), node.get("procs"), node.get("script_mode"), node.get("walltime"))
@@ -340,10 +354,6 @@ class RunscriptParser:
         for node in doc.getroot().xpath("./seqjob"):
             job = Seqjob(node.get("name"), node.get("timeout"), node.get("runs"), node.get("parallel"))
             run.addJob(job)
-        
-        for node in doc.getroot().xpath("./config"):
-            config = Config(node.get("name"), node.get("template"), node.get("output"))
-            run.addConfig(config)
         
         for node in doc.getroot().xpath("./benchmark"):
             benchmark = Benchmark(node.get("name"))
@@ -363,6 +373,12 @@ class RunscriptParser:
                            node.get("system"), 
                            node.get("version"), 
                            node.get("setting"), 
-                           node.get("config"), 
                            node.get("job"),
                            node.get("benchmark"))
+            
+        for node in doc.getroot().xpath("./runspec"):
+            run.addRunall(node.get("name"),
+                          node.get("machine"), 
+                          node.get("job"),
+                          node.get("benchmark"))
+

@@ -1,0 +1,40 @@
+<runscript output="output">
+
+	<machine name="zuse" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
+	
+	<!-- an example configuration for claspar -->
+
+	<system name="claspar" version="0.0.1" measures="claspar" config="claspar">
+		<setting name="one-as" cmdline="--stats 1"/>
+		<setting name="all-as" cmdline="--stats 0"/>
+	</system>
+
+	<pbsjob 
+		name="claspar" timeout="10" runs="1" 
+		ppn="8" procs="1 2 4 8" script_mode="multi" walltime="23:59:00"/>
+
+	<config name="claspar" template="templates/claspar-mpich2.pyratemp" />
+
+	<!-- an example benchmark for both clasp and claspar -->
+
+	<benchmark name="default">
+		<files path="Benchmarks">
+			<ignore prefix="Pigeonhole"/>
+			<ignore prefix="BlockedN-QueensCompetition"/>
+			<ignore prefix="RandomNonTight"/>
+		</files>
+		<file path="classname/instance.sm"/>
+	</benchmark>
+
+	<!-- example job -->
+	<runspec 
+		name="claspar-example" 
+		machine="zuse"
+		system="claspar" 
+		version="0.0.1" 
+		setting="one-as"
+		job="claspar"
+		benchmark="default"/>
+
+</runscript>
+
