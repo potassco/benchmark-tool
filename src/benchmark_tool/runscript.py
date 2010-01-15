@@ -6,6 +6,7 @@ Created on Jan 15, 2010
 
 import tools
 import os
+import stat
 
 class Machine:
     def __init__(self, name, cpu, memory):
@@ -37,17 +38,53 @@ class Job:
 
 class SeqScriptGen:
     def __init__(self, seqJob):
-        self.seqJob = seqJob
+        self.seqJob     = seqJob
+        self.startfiles = []
     
     def addToScript(self, runspec, instance):
         for run in range(1, self.seqJob.runs + 1):
             path = os.path.join(runspec.path(), instance.classname, instance.instance, "run%d" % run)
             tools.mkdir_p(path)
+            startpath = os.path.join(path, "start.sh")
+            startfile = open(startpath, 'w')
+            #TODO: add content
+            startfile.close()
+            self.startfiles.append((path, "start.sh"))
+            startstat = os.stat(startpath)
+            os.chmod(startpath, startstat[0] | stat.S_IXUSR)
     
     def genStartScript(self, path):
         tools.mkdir_p(path)
-        print "implement me: generate start script!"
+        startfile = open(os.path.join(path, "start.py"), 'w')
+        queue = ""
+        comma = False
+        for (instpath, instname) in self.startfiles:
+            relpath = os.path.relpath(instpath, path)
+            if comma: queue += ","
+            else: comma  = True
+            queue+= 'r"""' + os.path.join(relpath, instname) + '"""'
+        startfile.write("""\
+#!/usr/bin/python
+
+import multiprocessing
+import subprocess
+import os
+import sys
+
+os.chdir(os.path.dirname(sys.argv[0]))
+
+queue = [%s]
         
+def run(cmd):
+    path, script = os.path.split(cmd)
+    subprocess.Popen(["bash", script], cwd=path, shell=True).wait()
+    
+pool = multiprocessing.Pool(processes=%d)
+pool.map(run, queue)
+""" % (queue, self.seqJob.parallel))
+        startfile.close()
+        startstat = os.stat(os.path.join(path, "start.py"))
+        os.chmod(os.path.join(path, "start.py"), startstat[0] | stat.S_IXUSR)
     
 class SeqJob(Job):
     def __init__(self, name, timeout, runs, parallel):
@@ -148,7 +185,7 @@ class Runspec:
     
     def path(self):
         name = self.setting.system.name + "-" + self.setting.system.version + "-" + self.setting.name
-        return os.path.join(self.project.path(), "results", self.benchmark.name, name)
+        return os.path.join(self.project.path(), self.machine.name, "results", self.benchmark.name, name)
     
     def genScripts(self, scriptGen):
         self.benchmark.init()
@@ -222,7 +259,7 @@ class Project:
             scriptGen = self.job.scriptGen()
             for runspec in runspecs:
                 runspec.genScripts(scriptGen)
-            scriptGen.genStartScript(self.path())
+            scriptGen.genStartScript(os.path.join(self.path(), machine))
 
 class TagDisj:
     """Represents tags in form of a disjunctive normal form."""
