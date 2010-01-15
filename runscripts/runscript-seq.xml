@@ -20,13 +20,12 @@
 		<!-- recursively add all files under a given path -->
 		<folder path="benchmarks/clasp">
 			<!-- ignore parts that have a certain prefix -->
-			<ignore prefix="Pigeonhole"/>
-			<ignore prefix="BlockedN-QueensCompetition"/>
-			<ignore prefix="RandomNonTight"/>
+			<ignore prefix="pigeons"/>
+			<ignore prefix="random"/>
 		</folder>
 		<!-- add files below a path individually -->
 		<files path="benchmarks/clasp">
-			<add file="Pigeonhole/instance1.sm"/>
+			<add file="pigeons/pigeonhole10-unsat.lp"/>
 		</files>
 	</benchmark>
 

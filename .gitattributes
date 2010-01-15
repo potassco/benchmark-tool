@@ -1,4 +1,25 @@
 * text=auto !eol
+benchmarks/clasp/blocked-queens/blocked-n-queens_decision-156.48.1960.36.1721259656.lp -text
+benchmarks/clasp/blocked-queens/blocked-n-queens_decision-156.48.1960.36.1721330060.lp -text
+benchmarks/clasp/blocked-queens/blocked-n-queens_decision-156.48.1960.36.1721351180.lp -text
+benchmarks/clasp/eqtest/qeq.12.lp -text
+benchmarks/clasp/pigeons/pigeonhole10-unsat.lp -text
+benchmarks/clasp/pigeons/pigeonhole11-unsat.lp -text
+benchmarks/clasp/pigeons/pigeonhole12-unsat.lp -text
+benchmarks/clasp/pigeons/pigeonhole13-unsat.lp -text
+benchmarks/clasp/pigeons/pigeonhole14-unsat.lp -text
+benchmarks/clasp/pigeons/pigeonhole15-unsat.lp -text
+benchmarks/clasp/random/n60-unsat-b10.lp -text
+benchmarks/clasp/random/n60-unsat-b12.lp -text
+benchmarks/clasp/random/n60-unsat-b15.lp -text
+benchmarks/clasp/random/n60-unsat-b16.lp -text
+benchmarks/clasp/random/n60-unsat-b18.lp -text
+benchmarks/clasp/random/n60-unsat-b2.lp -text
+benchmarks/clasp/random/n60-unsat-b20.lp -text
+benchmarks/clasp/random/n60-unsat-b3.lp -text
+benchmarks/clasp/random/n60-unsat-b5.lp -text
+benchmarks/clasp/random/n60-unsat-b8.lp -text
+benchmarks/clasp/random/n60-unsat-b9.lp -text
 /bgen -text
 runscripts/runscript-all.xml -text
 runscripts/runscript-pbs.xml -text
@@ -6,4 +27,5 @@ runscripts/runscript-seq.xml -text
 src/benchmark_tool/__init__.py -text
 src/benchmark_tool/runscript.py -text
 src/benchmark_tool/runscript_parser.py -text
+src/benchmark_tool/tools.py -text
 src/bgen.py -text

@@ -4,7 +4,7 @@ Created on Jan 13, 2010
 @author: Roland Kaminski
 '''
 
-from benchmark_tool.runscript import Runscript, Project, Benchmark, Config, System, Setting, Pbsjob, Seqjob, Machine
+from runscript import Runscript, Project, Benchmark, Config, System, Setting, PbsJob, SeqJob, Machine
 
 class RunscriptParser:
     """A parser to parse xml runscript specifications."""   
@@ -14,7 +14,7 @@ class RunscriptParser:
     def parse(self, fileName):
         """
         Parse a given runscript and return its representation 
-        in form of a class Runscript.
+        in form of an instance of class Runscript.
         
         Keyword arguments:
         fileName -- a string holding a path to a xml file  
@@ -269,11 +269,11 @@ class RunscriptParser:
         run  = Runscript(root.get("name"), root.get("output"))
 
         for node in root.xpath("./pbsjob"):
-            job = Pbsjob(node.get("name"), node.get("timeout"), node.get("runs"), node.get("ppn"), node.get("procs"), node.get("script_mode"), node.get("walltime"))
+            job = PbsJob(node.get("name"), node.get("timeout"), int(node.get("runs")), int(node.get("ppn")), node.get("procs"), node.get("script_mode"), node.get("walltime"))
             run.addJob(job)
 
         for node in root.xpath("./seqjob"):
-            job = Seqjob(node.get("name"), node.get("timeout"), node.get("runs"), node.get("parallel"))
+            job = SeqJob(node.get("name"), node.get("timeout"), int(node.get("runs")), int(node.get("parallel")))
             run.addJob(job)
         
         for node in root.xpath("./machine"):

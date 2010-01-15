@@ -1,0 +1,253 @@
+2 14 12 0 1 2 3 4 5 6 7 8 9 10 11 12 13
+2 15 12 0 2 2 3 4 5 6 7 8 9 10 11 12 13
+1 1 1 1 14
+1 1 1 0 15
+3 12 2 3 4 5 6 7 8 9 10 11 12 13 0 0
+2 28 12 0 1 16 17 18 19 20 21 22 23 24 25 26 27
+2 29 12 0 2 16 17 18 19 20 21 22 23 24 25 26 27
+1 1 1 1 28
+1 1 1 0 29
+3 12 16 17 18 19 20 21 22 23 24 25 26 27 0 0
+2 42 12 0 1 30 31 32 33 34 35 36 37 38 39 40 41
+2 43 12 0 2 30 31 32 33 34 35 36 37 38 39 40 41
+1 1 1 1 42
+1 1 1 0 43
+3 12 30 31 32 33 34 35 36 37 38 39 40 41 0 0
+2 56 12 0 1 44 45 46 47 48 49 50 51 52 53 54 55
+2 57 12 0 2 44 45 46 47 48 49 50 51 52 53 54 55
+1 1 1 1 56
+1 1 1 0 57
+3 12 44 45 46 47 48 49 50 51 52 53 54 55 0 0
+2 70 12 0 1 58 59 60 61 62 63 64 65 66 67 68 69
+2 71 12 0 2 58 59 60 61 62 63 64 65 66 67 68 69
+1 1 1 1 70
+1 1 1 0 71
+3 12 58 59 60 61 62 63 64 65 66 67 68 69 0 0
+2 84 12 0 1 72 73 74 75 76 77 78 79 80 81 82 83
+2 85 12 0 2 72 73 74 75 76 77 78 79 80 81 82 83
+1 1 1 1 84
+1 1 1 0 85
+3 12 72 73 74 75 76 77 78 79 80 81 82 83 0 0
+2 98 12 0 1 86 87 88 89 90 91 92 93 94 95 96 97
+2 99 12 0 2 86 87 88 89 90 91 92 93 94 95 96 97
+1 1 1 1 98
+1 1 1 0 99
+3 12 86 87 88 89 90 91 92 93 94 95 96 97 0 0
+2 112 12 0 1 100 101 102 103 104 105 106 107 108 109 110 111
+2 113 12 0 2 100 101 102 103 104 105 106 107 108 109 110 111
+1 1 1 1 112
+1 1 1 0 113
+3 12 100 101 102 103 104 105 106 107 108 109 110 111 0 0
+2 126 12 0 1 114 115 116 117 118 119 120 121 122 123 124 125
+2 127 12 0 2 114 115 116 117 118 119 120 121 122 123 124 125
+1 1 1 1 126
+1 1 1 0 127
+3 12 114 115 116 117 118 119 120 121 122 123 124 125 0 0
+2 140 12 0 1 128 129 130 131 132 133 134 135 136 137 138 139
+2 141 12 0 2 128 129 130 131 132 133 134 135 136 137 138 139
+1 1 1 1 140
+1 1 1 0 141
+3 12 128 129 130 131 132 133 134 135 136 137 138 139 0 0
+2 154 12 0 1 142 143 144 145 146 147 148 149 150 151 152 153
+2 155 12 0 2 142 143 144 145 146 147 148 149 150 151 152 153
+1 1 1 1 154
+1 1 1 0 155
+3 12 142 143 144 145 146 147 148 149 150 151 152 153 0 0
+2 168 12 0 1 156 157 158 159 160 161 162 163 164 165 166 167
+2 169 12 0 2 156 157 158 159 160 161 162 163 164 165 166 167
+1 1 1 1 168
+1 1 1 0 169
+3 12 156 157 158 159 160 161 162 163 164 165 166 167 0 0
+2 182 12 0 1 170 171 172 173 174 175 176 177 178 179 180 181
+2 183 12 0 2 170 171 172 173 174 175 176 177 178 179 180 181
+1 1 1 1 182
+1 1 1 0 183
+3 12 170 171 172 173 174 175 176 177 178 179 180 181 0 0
+2 184 13 0 2 2 16 30 44 58 72 86 100 114 128 142 156 170
+1 1 1 0 184
+2 185 13 0 2 3 17 31 45 59 73 87 101 115 129 143 157 171
+1 1 1 0 185
+2 186 13 0 2 4 18 32 46 60 74 88 102 116 130 144 158 172
+1 1 1 0 186
+2 187 13 0 2 5 19 33 47 61 75 89 103 117 131 145 159 173
+1 1 1 0 187
+2 188 13 0 2 6 20 34 48 62 76 90 104 118 132 146 160 174
+1 1 1 0 188
+2 189 13 0 2 7 21 35 49 63 77 91 105 119 133 147 161 175
+1 1 1 0 189
+2 190 13 0 2 8 22 36 50 64 78 92 106 120 134 148 162 176
+1 1 1 0 190
+2 191 13 0 2 9 23 37 51 65 79 93 107 121 135 149 163 177
+1 1 1 0 191
+2 192 13 0 2 10 24 38 52 66 80 94 108 122 136 150 164 178
+1 1 1 0 192
+2 193 13 0 2 11 25 39 53 67 81 95 109 123 137 151 165 179
+1 1 1 0 193
+2 194 13 0 2 12 26 40 54 68 82 96 110 124 138 152 166 180
+1 1 1 0 194
+2 195 13 0 2 13 27 41 55 69 83 97 111 125 139 153 167 181
+1 1 1 0 195
+0
+156 pigeonhole(12,1)
+157 pigeonhole(12,2)
+158 pigeonhole(12,3)
+159 pigeonhole(12,4)
+160 pigeonhole(12,5)
+161 pigeonhole(12,6)
+162 pigeonhole(12,7)
+163 pigeonhole(12,8)
+164 pigeonhole(12,9)
+165 pigeonhole(12,10)
+166 pigeonhole(12,11)
+167 pigeonhole(12,12)
+170 pigeonhole(13,1)
+171 pigeonhole(13,2)
+2 pigeonhole(1,1)
+172 pigeonhole(13,3)
+3 pigeonhole(1,2)
+173 pigeonhole(13,4)
+4 pigeonhole(1,3)
+174 pigeonhole(13,5)
+5 pigeonhole(1,4)
+175 pigeonhole(13,6)
+6 pigeonhole(1,5)
+176 pigeonhole(13,7)
+7 pigeonhole(1,6)
+177 pigeonhole(13,8)
+8 pigeonhole(1,7)
+178 pigeonhole(13,9)
+9 pigeonhole(1,8)
+179 pigeonhole(13,10)
+10 pigeonhole(1,9)
+180 pigeonhole(13,11)
+11 pigeonhole(1,10)
+181 pigeonhole(13,12)
+12 pigeonhole(1,11)
+13 pigeonhole(1,12)
+16 pigeonhole(2,1)
+17 pigeonhole(2,2)
+18 pigeonhole(2,3)
+19 pigeonhole(2,4)
+20 pigeonhole(2,5)
+21 pigeonhole(2,6)
+22 pigeonhole(2,7)
+23 pigeonhole(2,8)
+24 pigeonhole(2,9)
+25 pigeonhole(2,10)
+26 pigeonhole(2,11)
+27 pigeonhole(2,12)
+30 pigeonhole(3,1)
+31 pigeonhole(3,2)
+32 pigeonhole(3,3)
+33 pigeonhole(3,4)
+34 pigeonhole(3,5)
+35 pigeonhole(3,6)
+36 pigeonhole(3,7)
+37 pigeonhole(3,8)
+38 pigeonhole(3,9)
+39 pigeonhole(3,10)
+40 pigeonhole(3,11)
+41 pigeonhole(3,12)
+44 pigeonhole(4,1)
+45 pigeonhole(4,2)
+46 pigeonhole(4,3)
+47 pigeonhole(4,4)
+48 pigeonhole(4,5)
+49 pigeonhole(4,6)
+50 pigeonhole(4,7)
+51 pigeonhole(4,8)
+52 pigeonhole(4,9)
+53 pigeonhole(4,10)
+54 pigeonhole(4,11)
+55 pigeonhole(4,12)
+58 pigeonhole(5,1)
+59 pigeonhole(5,2)
+60 pigeonhole(5,3)
+61 pigeonhole(5,4)
+62 pigeonhole(5,5)
+63 pigeonhole(5,6)
+64 pigeonhole(5,7)
+65 pigeonhole(5,8)
+66 pigeonhole(5,9)
+67 pigeonhole(5,10)
+68 pigeonhole(5,11)
+69 pigeonhole(5,12)
+72 pigeonhole(6,1)
+73 pigeonhole(6,2)
+74 pigeonhole(6,3)
+75 pigeonhole(6,4)
+76 pigeonhole(6,5)
+77 pigeonhole(6,6)
+78 pigeonhole(6,7)
+79 pigeonhole(6,8)
+80 pigeonhole(6,9)
+81 pigeonhole(6,10)
+82 pigeonhole(6,11)
+83 pigeonhole(6,12)
+86 pigeonhole(7,1)
+87 pigeonhole(7,2)
+88 pigeonhole(7,3)
+89 pigeonhole(7,4)
+90 pigeonhole(7,5)
+91 pigeonhole(7,6)
+92 pigeonhole(7,7)
+93 pigeonhole(7,8)
+94 pigeonhole(7,9)
+95 pigeonhole(7,10)
+96 pigeonhole(7,11)
+97 pigeonhole(7,12)
+100 pigeonhole(8,1)
+101 pigeonhole(8,2)
+102 pigeonhole(8,3)
+103 pigeonhole(8,4)
+104 pigeonhole(8,5)
+105 pigeonhole(8,6)
+106 pigeonhole(8,7)
+107 pigeonhole(8,8)
+108 pigeonhole(8,9)
+109 pigeonhole(8,10)
+110 pigeonhole(8,11)
+111 pigeonhole(8,12)
+114 pigeonhole(9,1)
+115 pigeonhole(9,2)
+116 pigeonhole(9,3)
+117 pigeonhole(9,4)
+118 pigeonhole(9,5)
+119 pigeonhole(9,6)
+120 pigeonhole(9,7)
+121 pigeonhole(9,8)
+122 pigeonhole(9,9)
+123 pigeonhole(9,10)
+124 pigeonhole(9,11)
+125 pigeonhole(9,12)
+128 pigeonhole(10,1)
+129 pigeonhole(10,2)
+130 pigeonhole(10,3)
+131 pigeonhole(10,4)
+132 pigeonhole(10,5)
+133 pigeonhole(10,6)
+134 pigeonhole(10,7)
+135 pigeonhole(10,8)
+136 pigeonhole(10,9)
+137 pigeonhole(10,10)
+138 pigeonhole(10,11)
+139 pigeonhole(10,12)
+142 pigeonhole(11,1)
+143 pigeonhole(11,2)
+144 pigeonhole(11,3)
+145 pigeonhole(11,4)
+146 pigeonhole(11,5)
+147 pigeonhole(11,6)
+148 pigeonhole(11,7)
+149 pigeonhole(11,8)
+150 pigeonhole(11,9)
+151 pigeonhole(11,10)
+152 pigeonhole(11,11)
+153 pigeonhole(11,12)
+0
+B+
+0
+B-
+1
+0
+1
