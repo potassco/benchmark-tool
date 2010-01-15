@@ -4,120 +4,21 @@ Created on Jan 13, 2010
 @author: Roland Kaminski
 '''
 
-class Machine:
-    def __init__(self, name, cpu, memory):
-        self.name   = name
-        self.cpu    = cpu
-        self.memory = memory
-
-class System:
-    def __init__(self, name, version, measures):
-        self.name     = name
-        self.version  = version
-        self.measures = measures
-        self.settings = {}
-    def addSetting(self, setting):
-        setting.system = self
-        self.settings[setting.name] = setting
-
-class Setting:
-    def __init__(self, name, cmdline):
-        self.name    = name
-        self.cmdline = cmdline
-        
-class Job:
-    def __init__(self, name, timeout, runs):
-        self.name    = name
-        self.timeout = timeout
-        self.runs    = runs
-        
-class Seqjob(Job):
-    def __init__(self, name, timeout, runs, parallel):
-        Job.__init__(self, name, timeout, runs)
-        self.parallel = parallel
-           
-class Pbsjob(Job):
-    def __init__(self, name, timeout, runs, ppn, procs, script_mode, walltime):
-        Job.__init__(self, name, timeout, runs)
-        self.ppn         = ppn
-        self.procs       = procs
-        self.script_mode = script_mode
-        self.walltime    = walltime
-
-class Config:
-    def __init__(self, name, template):
-        self.name     = name
-        self.template = template
-
-class Benchmark:
-    def __init__(self, name):
-        self.name     = name
-        self.elements = []
-    def addElement(self, element):
-        self.elements.append(element)
-
-class File:
-    def __init__(self, path):
-        self.path = path
-
-class Files:
-    def __init__(self, path):
-        self.path    = path
-        self.ignores = set()
-    def addIgnore(self, ignore):
-        self.ignores.add(ignore)
-
-class Runspec:
-    def __init__(self, name, machine, setting, jobspec, benchmark):
-        self.name    = name 
-        self.machine = machine
-        self.setting = setting
-        self.jobspec = jobspec
-
-class Runscript:
-    def __init__(self, output):
-        self.output     = output
-        self.runspecs   = []
-        self.machines   = {}
-        self.systems    = {}
-        self.jobs       = {} 
-        self.configs    = {} 
-        self.benchmarks = {}
-    
-    def addRunall(self, name, machine, job, benchmark):
-        for system in self.systems.values():
-            for setting in system.settings.values():
-                self.addRunspec(name, machine, system.name, system.version, setting.name, job, benchmark) 
-        
-    def addRunspec(self, name, machine, system, version, setting, job, benchmark):
-        runspec = Runspec(name,
-                          self.machines[machine],
-                          self.systems[(system,version)].settings[setting], 
-                          self.jobs[job], 
-                          self.benchmarks[benchmark])
-        self.runspecs.append(runspec)
-    
-    def addMachine(self, machine):
-        self.machines[machine.name] = machine
-    
-    def addSystem(self, system, config):
-        system.config = self.configs[config]
-        self.systems[(system.name, system.version)] = system
-        
-    def addJob(self, job):
-        self.jobs[job.name] = job
-        
-    def addConfig(self, config):
-        self.configs[config.name] = config
-
-    def addBenchmark(self, benchmark):
-        self.benchmarks[benchmark.name] = benchmark
+from benchmark_tool.runscript import Runscript, Project, Benchmark, Config, System, Setting, Pbsjob, Seqjob, Machine
 
 class RunscriptParser:
+    """A parser to parse xml runscript specifications."""   
     def __init__(self):
         pass
 
     def parse(self, fileName):
+        """
+        Parse a given runscript and return its representation 
+        in form of a class Runscript.
+        
+        Keyword arguments:
+        fileName -- a string holding a path to a xml file  
+        """
         from lxml import etree
         from StringIO import StringIO
         
@@ -136,19 +37,28 @@ class RunscriptParser:
                     <xs:field xpath="@name"/>
                 </xs:unique>
             </xs:element>
-            <xs:element name="pbsjob" type="pbsjobType"/>
-            <xs:element name="seqjob" type="seqjobType"/>
             <xs:element name="config" type="configType"/>
             <xs:element name="benchmark" type="benchmarkType"/>
-            <xs:element name="runspec" type="runspecType"/>
-            <xs:element name="runall" type="runallType"/>
+            <xs:element name="pbsjob" type="pbsjobType"/>
+            <xs:element name="seqjob" type="seqjobType"/>
+            <xs:element name="project" type="projectType"/>
         </xs:choice>
         <xs:attribute name="output" type="xs:string" use="required"/>
     </xs:complexType>
-
+    
+    <!-- a project -->
+    <xs:complexType name="projectType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="runspec" type="runspecType"/>
+            <xs:element name="runtag" type="runtagType"/>
+        </xs:choice>
+        <xs:attribute name="name" type="nameType" use="required"/>
+        <xs:attribute name="job" type="nameType" use="required"/>
+    </xs:complexType>
+    
     <!-- a machine -->
     <xs:complexType name="machineType">
-        <xs:attribute name="name" type="xs:Name" use="required"/>
+        <xs:attribute name="name" type="nameType" use="required"/>
         <xs:attribute name="cpu" type="xs:token" use="required"/>
         <xs:attribute name="memory" type="xs:token" use="required"/>
     </xs:complexType>
@@ -158,20 +68,25 @@ class RunscriptParser:
         <xs:choice minOccurs="1" maxOccurs="unbounded">
             <xs:element name="setting">
                 <xs:complexType>
-                    <xs:attribute name="name" type="xs:Name" use="required"/>
-                    <xs:attribute name="cmdline" type="xs:string" use="required"/>
+                    <xs:attribute name="name" type="nameType" use="required"/>
+                    <xs:attribute name="tag">
+                        <xs:simpleType>
+                            <xs:list itemType="nameType"/>
+                        </xs:simpleType>
+                    </xs:attribute>
+                    <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
             </xs:element>
         </xs:choice>
-        <xs:attribute name="name" type="xs:Name" use="required"/>
+        <xs:attribute name="name" type="nameType" use="required"/>
         <xs:attribute name="version" type="versionType" use="required"/>
-        <xs:attribute name="measures" type="xs:Name" use="required"/>
-        <xs:attribute name="config" type="xs:Name" use="required"/>
+        <xs:attribute name="measures" type="nameType" use="required"/>
+        <xs:attribute name="config" type="nameType" use="required"/>
     </xs:complexType>
 
     <!-- generic attributes for jobs-->
     <xs:attributeGroup name="jobAttr">
-        <xs:attribute name="name" type="xs:Name" use="required"/>
+        <xs:attribute name="name" type="nameType" use="required"/>
         <xs:attribute name="timeout" type="timeType" use="required"/>
         <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
         <xs:anyAttribute processContents="lax"/>
@@ -206,7 +121,7 @@ class RunscriptParser:
     
     <!-- a config -->
     <xs:complexType name="configType">
-        <xs:attribute name="name" type="xs:Name" use="required"/>
+        <xs:attribute name="name" type="nameType" use="required"/>
         <xs:attribute name="template" type="xs:string" use="required"/>
     </xs:complexType>
     
@@ -214,12 +129,19 @@ class RunscriptParser:
     <xs:complexType name="benchmarkType">
         <xs:sequence minOccurs="0" maxOccurs="unbounded">
             <xs:choice>
-                <xs:element name="file">
+                <xs:element name="files">
                     <xs:complexType>
+                        <xs:choice minOccurs="0" maxOccurs="unbounded">
+                            <xs:element name="add">
+                                <xs:complexType>
+                                    <xs:attribute name="file" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:choice>
                         <xs:attribute name="path" type="xs:string" use="required"/>
                     </xs:complexType>
                 </xs:element>
-                <xs:element name="files">
+                <xs:element name="folder">
                     <xs:complexType>
                         <xs:sequence minOccurs="0" maxOccurs="unbounded">
                             <xs:element name="ignore">
@@ -233,26 +155,27 @@ class RunscriptParser:
                 </xs:element>
             </xs:choice>
         </xs:sequence>
-        <xs:attribute name="name" type="xs:Name" use="required"/>
-    </xs:complexType>
-
-    <!-- a runspec -->
-    <xs:complexType name="runspecType">
-        <xs:attribute name="name" type="xs:Name" use="required"/>
-        <xs:attribute name="system" type="xs:Name" use="required"/>
-        <xs:attribute name="version" type="versionType" use="required"/>
-        <xs:attribute name="setting" type="xs:Name" use="required"/>
-        <xs:attribute name="machine" type="xs:Name" use="required"/>
-        <xs:attribute name="benchmark" type="xs:Name" use="required"/>
-        <xs:attribute name="job" type="xs:Name" use="required"/>
+        <xs:attribute name="name" type="nameType" use="required"/>
     </xs:complexType>
     
-    <!-- a runall -->
-    <xs:complexType name="runallType">
-        <xs:attribute name="name" type="xs:Name" use="required"/>
-        <xs:attribute name="machine" type="xs:Name" use="required"/>
-        <xs:attribute name="benchmark" type="xs:Name" use="required"/>
-        <xs:attribute name="job" type="xs:Name" use="required"/>
+    <!-- common attributes for runspec/runtag -->
+    <xs:attributeGroup name="runAttr">
+        <xs:attribute name="machine" type="nameType" use="required"/>
+        <xs:attribute name="benchmark" type="nameType" use="required"/>
+    </xs:attributeGroup>
+    
+    <!-- a runspec -->
+    <xs:complexType name="runspecType">
+        <xs:attribute name="system" type="nameType" use="required"/>
+        <xs:attribute name="version" type="versionType" use="required"/>
+        <xs:attribute name="setting" type="nameType" use="required"/>
+        <xs:attributeGroup ref="runAttr"/>
+    </xs:complexType>
+    
+    <!-- a runtag -->
+    <xs:complexType name="runtagType">
+        <xs:attributeGroup ref="runAttr"/>
+        <xs:attribute name="tag" type="tagrefType" use="required"/>
     </xs:complexType>
     
     <!-- simple types used througout the above definitions -->
@@ -268,11 +191,23 @@ class RunscriptParser:
         </xs:restriction>
     </xs:simpleType>
     
+    <xs:simpleType name="tagrefType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(\*all\*)|([A-Za-z_\-0-9]+([ ]*[A-Za-z_\-0-9]+)*)([ ]*\|[ ]*([A-Za-z_\-0-9]+([ ]*[A-Za-z_\-0-9]+)*))*"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="nameType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z_\-0-9]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
     <!-- the root element -->
     <xs:element name="runscript" type="runscriptType">
         <!-- machine keys -->
         <xs:keyref name="machineRef" refer="machineKey">
-            <xs:selector xpath="runspec"/>
+            <xs:selector xpath="project/runspec|project/runall"/>
             <xs:field xpath="@machine"/>
         </xs:keyref>
         <xs:key name="machineKey">
@@ -281,7 +216,7 @@ class RunscriptParser:
         </xs:key>
         <!-- benchmark keys -->
         <xs:keyref name="benchmarkRef" refer="benchmarkKey">
-            <xs:selector xpath="runspec"/>
+            <xs:selector xpath="project/runspec|project/runall"/>
             <xs:field xpath="@benchmark"/>
         </xs:keyref>
         <xs:key name="benchmarkKey">
@@ -290,7 +225,7 @@ class RunscriptParser:
         </xs:key>
         <!-- system keys -->
         <xs:keyref name="systemRef" refer="systemKey">
-            <xs:selector xpath="runspec"/>
+            <xs:selector xpath="project/runspec"/>
             <xs:field xpath="@system"/>
             <xs:field xpath="@version"/>
         </xs:keyref>
@@ -308,18 +243,18 @@ class RunscriptParser:
             <xs:selector xpath="config"/>
             <xs:field xpath="@name"/>
         </xs:key>
-        <!-- job keys -->
+        <!-- config keys -->
         <xs:keyref name="jobRef" refer="jobKey">
-            <xs:selector xpath="runspec"/>
+            <xs:selector xpath="project"/>
             <xs:field xpath="@job"/>
         </xs:keyref>
         <xs:key name="jobKey">
             <xs:selector xpath="seqjob|pbsjob"/>
             <xs:field xpath="@name"/>
         </xs:key>
-        <!-- runspec/runall names have to be unique -->
-        <xs:unique name="runKey">
-            <xs:selector xpath="runspec|runall"/>
+        <!-- project keys -->
+        <xs:unique name="projectKey">
+            <xs:selector xpath="project"/>
             <xs:field xpath="@name"/>
         </xs:unique>
     </xs:element>
@@ -330,55 +265,62 @@ class RunscriptParser:
         doc = etree.parse(open(fileName))
         schema.assertValid(doc)
         
-        run = Runscript(doc.getroot().get("output"))
-        
-        for node in doc.getroot().xpath("./machine"):
-            machine = Machine(node.get("name"), node.get("cpu"), node.get("memory"))
-            run.addMachine(machine)
+        root = doc.getroot()
+        run  = Runscript(root.get("name"), root.get("output"))
 
-        for node in doc.getroot().xpath("./config"):
-            config = Config(node.get("name"), node.get("template"))
-            run.addConfig(config)
-    
-        for node in doc.getroot().xpath("./system"):
-            system = System(node.get("name"), node.get("version"), node.get("measures"))
-            for child in node.xpath("setting"):
-                setting = Setting(child.get("name"), child.get("cmdline"))
-                system.addSetting(setting)
-            run.addSystem(system, node.get("config"))
-            
-        for node in doc.getroot().xpath("./pbsjob"):
+        for node in root.xpath("./pbsjob"):
             job = Pbsjob(node.get("name"), node.get("timeout"), node.get("runs"), node.get("ppn"), node.get("procs"), node.get("script_mode"), node.get("walltime"))
             run.addJob(job)
 
-        for node in doc.getroot().xpath("./seqjob"):
+        for node in root.xpath("./seqjob"):
             job = Seqjob(node.get("name"), node.get("timeout"), node.get("runs"), node.get("parallel"))
             run.addJob(job)
         
-        for node in doc.getroot().xpath("./benchmark"):
+        for node in root.xpath("./machine"):
+            machine = Machine(node.get("name"), node.get("cpu"), node.get("memory"))
+            run.addMachine(machine)
+
+        for node in root.xpath("./config"):
+            config = Config(node.get("name"), node.get("template"))
+            run.addConfig(config)
+    
+        for node in root.xpath("./system"):
+            system = System(node.get("name"), node.get("version"), node.get("measures"))
+            for child in node.xpath("setting"):
+                if child.get("tag") == None: tag = set()
+                else: tag = set(child.get("tag").split(None))
+                setting = Setting(child.get("name"), child.get("cmdline"), tag)
+                system.addSetting(setting)
+            run.addSystem(system, node.get("config"))
+            
+        for node in root.xpath("./benchmark"):
             benchmark = Benchmark(node.get("name"))
-            for child in node.xpath("./files"):
-                element = Files(child.get("path"))
+            for child in node.xpath("./folder"):
+                element = Benchmark.Folder(child.get("path"))
                 for grandchild in child.xpath("./ignore"):
                     element.addIgnore(grandchild.get("prefix"))
                 benchmark.addElement(element)
-            for child in node.xpath("./file"):
-                element = File(child.get("path"))
+            for child in node.xpath("./files"):
+                element = Benchmark.Files(child.get("path"))
+                for grandchild in child.xpath("./add"):
+                    element.addFile(grandchild.get("file"))
                 benchmark.addElement(element)
             run.addBenchmark(benchmark)
         
-        for node in doc.getroot().xpath("./runspec"):
-            run.addRunspec(node.get("name"), 
-                           node.get("machine"), 
-                           node.get("system"), 
-                           node.get("version"), 
-                           node.get("setting"), 
-                           node.get("job"),
-                           node.get("benchmark"))
-            
-        for node in doc.getroot().xpath("./runspec"):
-            run.addRunall(node.get("name"),
-                          node.get("machine"), 
-                          node.get("job"),
-                          node.get("benchmark"))
+        for node in root.xpath("./project"):
+            project = Project(node.get("name"))
+            run.addProject(project, node.get("job"))
+            for child in node.xpath("./runspec"):
+                project.addRunspec(child.get("machine"),
+                                   child.get("system"),
+                                   child.get("version"),
+                                   child.get("setting"),
+                                   child.get("benchmark"))
+                
+            for child in node.xpath("./runtag"):
+                project.addRuntag(child.get("machine"), 
+                                  child.get("benchmark"),
+                                  child.get("tag"))
+        
+        return run
 

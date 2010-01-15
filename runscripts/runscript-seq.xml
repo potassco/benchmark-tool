@@ -1,0 +1,43 @@
+<runscript output="output">
+	<!-- two example machines -->
+	<machine name="belle-ile" cpu="2xE6750@2.66GHz" memory="2GB"/>
+	<machine name="minquiers" cpu="2xE6750@2.66GHz" memory="2GB"/>
+	
+	<!-- an example configuration for clasp -->
+	<config name="clasp-config" template="templates/clasp.pyratemp"/>
+	<system name="clasp-system" version="1.3.1" measures="clasp" config="clasp-config">
+		<!-- optionally allows for tagging settings -->
+		<setting name="one-as" tag="seq one-as" cmdline="--stats 1"/>
+		<!-- allows for arbitrary additional arbitrary args to pass to the template -->
+		<setting name="all-as" tag="seq all-as" cmdline="--stats 0" any="bla"/>
+	</system>
+	
+	<!-- a job specification (allows for arbitrary additional arguments args to pass to the template) -->
+	<seqjob name="clasp-job" timeout="10" runs="1" parallel="4" any="yes"/>
+
+	<!-- an example benchmark -->
+	<benchmark name="clasp-benchmark">
+		<!-- recursively add all files under a given path -->
+		<folder path="benchmarks/clasp">
+			<!-- ignore parts that have a certain prefix -->
+			<ignore prefix="Pigeonhole"/>
+			<ignore prefix="BlockedN-QueensCompetition"/>
+			<ignore prefix="RandomNonTight"/>
+		</folder>
+		<!-- add files below a path individually -->
+		<files path="benchmarks/clasp">
+			<add file="Pigeonhole/instance1.sm"/>
+		</files>
+	</benchmark>
+
+	<!-- example projects -->
+	<project name="clasp-all-as" job="clasp-job">
+		<!-- individually add runs to the project -->
+		<runspec machine="belle-ile" benchmark="clasp-benchmark" system="clasp-system" version="1.3.1" setting="all-as"/>
+	</project>
+	<project name="clasp-one-as" job="clasp-job">
+		<!-- choose all systems with settings that have the specified tags -->
+		<runtag machine="belle-ile" benchmark="clasp-benchmark"	tag="seq one-as"/>
+	</project>
+</runscript>
+

@@ -19,4 +19,5 @@ else:
     parser.error("Exactly on file has to be given")
 
 p = RunscriptParser()
-p.parse(fileName)
+run = p.parse(fileName)
+run.genScripts()

@@ -1,5 +1,9 @@
 * text=auto !eol
+/bgen -text
+runscripts/runscript-all.xml -text
 runscripts/runscript-pbs.xml -text
+runscripts/runscript-seq.xml -text
 src/benchmark_tool/__init__.py -text
+src/benchmark_tool/runscript.py -text
 src/benchmark_tool/runscript_parser.py -text
 src/bgen.py -text
