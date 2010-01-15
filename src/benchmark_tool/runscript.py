@@ -62,7 +62,7 @@ class SeqScriptGen:
             relpath = os.path.relpath(instpath, path)
             if comma: queue += ","
             else: comma  = True
-            queue+= 'r"""' + os.path.join(relpath, instname) + '"""'
+            queue+= repr(os.path.join(relpath, instname))
         startfile.write("""\
 #!/usr/bin/python
 
