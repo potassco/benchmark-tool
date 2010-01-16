@@ -20,6 +20,8 @@ class System:
         self.version  = version
         self.measures = measures
         self.settings = {}
+        self.config   = None
+         
     def addSetting(self, setting):
         setting.system = self
         self.settings[setting.name] = setting
@@ -36,22 +38,61 @@ class Job:
         self.timeout = timeout
         self.runs    = runs
 
+class Run:
+    def __init__(self, path):
+        self.path = path
+    
+    def root(self):
+        return os.path.relpath(".", self.path)
+    
+    class TimeDelta:
+        def __init__(self, delta):
+            self.delta = delta
+        
+        def seconds(self):
+            return self.delta.days * 86400 + self.delta.seconds
+    
+class SeqRun(Run):
+            
+    def __init__(self, path, run, job, runspec, instance):
+        Run.__init__(self, path)
+        self.run      = run
+        self.job      = job
+        self.runspec  = runspec
+        self.instance = instance
+    
+    def file(self):
+        return os.path.relpath(self.instance.path(), self.path)
+    
+    def args(self):
+        return self.runspec.setting.cmdline
+    
+    def solver(self):
+        return self.runspec.system.name + "-" + self.runspec.system.version
+    
+    def timeout(self):
+        return Run.TimeDelta(self.job.timeout)
+
+
 class SeqScriptGen:
     def __init__(self, seqJob):
         self.seqJob     = seqJob
         self.startfiles = []
     
     def addToScript(self, runspec, instance):
+        import pyratemp
         for run in range(1, self.seqJob.runs + 1):
             path = os.path.join(runspec.path(), instance.classname, instance.instance, "run%d" % run)
             tools.mkdir_p(path)
             startpath = os.path.join(path, "start.sh")
-            startfile = open(startpath, 'w')
-            #TODO: add content
+            template  = pyratemp.Template(filename=runspec.system.config.template)
+            startfile = open(startpath, "w")
+            startfile.write(template(run=SeqRun(path, run, self.seqJob, runspec, instance)))
             startfile.close()
             self.startfiles.append((path, "start.sh"))
             startstat = os.stat(startpath)
             os.chmod(startpath, startstat[0] | stat.S_IXUSR)
+            
     
     def genStartScript(self, path):
         tools.mkdir_p(path)
@@ -66,21 +107,77 @@ class SeqScriptGen:
         startfile.write("""\
 #!/usr/bin/python
 
+import optparse
 import multiprocessing
 import subprocess
 import os
 import sys
 
-os.chdir(os.path.dirname(sys.argv[0]))
-
 queue = [%s]
-        
+
 def run(cmd):
+    print(cmd)
     path, script = os.path.split(cmd)
-    subprocess.Popen(["bash", script], cwd=path, shell=True).wait()
+    subprocess.Popen(["bash", script], cwd=path).wait()
+
+def gui():
+    import Tkinter
+    class App:
+        def __init__(self):
+            root    = Tkinter.Tk()
+            frame   = Tkinter.Frame(root)
+            scrollx = Tkinter.Scrollbar(frame, orient=Tkinter.HORIZONTAL)
+            scrolly = Tkinter.Scrollbar(frame)
+            list    = Tkinter.Listbox(frame, selectmode=Tkinter.MULTIPLE)
+            
+            for script in queue:
+                list.insert(Tkinter.END, script)
+            
+            scrolly.config(command=list.yview)
+            scrollx.config(command=list.xview)
+            list.config(yscrollcommand=scrolly.set)
+            list.config(xscrollcommand=scrollx.set)
+                
+            scrolly.pack(side=Tkinter.RIGHT, fill=Tkinter.Y)
+            scrollx.pack(side=Tkinter.BOTTOM, fill=Tkinter.X)
+            list.pack(fill=Tkinter.BOTH, expand=1)
+            
+            button = Tkinter.Button(root, text='Run', command=self.pressed)
+            
+            frame.pack(fill=Tkinter.BOTH, expand=1)
+            button.pack(side=Tkinter.BOTTOM, fill=Tkinter.X)
+
+            self.root  = root
+            self.list  = list
+            self.run   = False
+            self.queue = [] 
+        
+        def pressed(self):
+            sel = self.list.curselection()
+            for index in sel:
+                global queue
+                self.queue.append(queue[int(index)])
+            self.root.destroy()
+
+        def start(self):
+            self.root.mainloop()
+            return self.queue
+
+    global queue
+    queue = App().start()
+
+if __name__ == '__main__':
+    usage  = "usage: %%prog [options] <runscript>"
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option("-g", "--gui", action="store_true", dest="gui", default=False, help="start gui to selectively start benchmarks") 
+
+    opts, args = parser.parse_args(sys.argv[1:])
+    if len(args) > 0: parser.error("no arguments expected")
     
-pool = multiprocessing.Pool(processes=%d)
-pool.map(run, queue)
+    os.chdir(os.path.dirname(sys.argv[0]))
+    if opts.gui: gui()
+    pool = multiprocessing.Pool(processes=%d)
+    pool.map(run, queue)
 """ % (queue, self.seqJob.parallel))
         startfile.close()
         startstat = os.stat(os.path.join(path, "start.py"))
@@ -115,6 +212,9 @@ class Benchmark:
             self.classname = classname
             self.instance  = instance
             self.hash      = hash((location, classname, instance))
+        
+        def path(self):
+            return os.path.join(self.location, self.classname, self.instance)
         
         def __hash__(self):
             return self.hash 
@@ -181,6 +281,7 @@ class Runspec:
     def __init__(self, machine, setting, benchmark):
         self.machine   = machine
         self.setting   = setting
+        self.system    = setting.system
         self.benchmark = benchmark
         self.project   = None
     

@@ -4,8 +4,8 @@
 	<machine name="minquiers" cpu="2xE6750@2.66GHz" memory="2GB"/>
 	
 	<!-- an example configuration for clasp -->
-	<config name="clasp-config" template="templates/clasp.pyratemp"/>
-	<system name="clasp-system" version="1.3.1" measures="clasp" config="clasp-config">
+	<config name="seq-generic" template="templates/seq-generic.sh"/>
+	<system name="clasp" version="1.3.2" measures="clasp" config="seq-generic">
 		<!-- optionally allows for tagging settings -->
 		<setting name="one-as" tag="seq one-as" cmdline="--stats 1"/>
 		<!-- allows for arbitrary additional arbitrary args to pass to the template -->
@@ -32,7 +32,7 @@
 	<!-- example projects -->
 	<project name="clasp-all-as" job="clasp-job">
 		<!-- individually add runs to the project -->
-		<runspec machine="belle-ile" benchmark="clasp-benchmark" system="clasp-system" version="1.3.1" setting="all-as"/>
+		<runspec machine="belle-ile" benchmark="clasp-benchmark" system="clasp" version="1.3.2" setting="all-as"/>
 	</project>
 	<project name="clasp-one-as" job="clasp-job">
 		<!-- choose all systems with settings that have the specified tags -->

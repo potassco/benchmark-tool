@@ -25,7 +25,9 @@ runscripts/runscript-all.xml -text
 runscripts/runscript-pbs.xml -text
 runscripts/runscript-seq.xml -text
 src/benchmark_tool/__init__.py -text
+src/benchmark_tool/pyratemp.py -text
 src/benchmark_tool/runscript.py -text
 src/benchmark_tool/runscript_parser.py -text
 src/benchmark_tool/tools.py -text
 src/bgen.py -text
+templates/seq-generic.sh -text
