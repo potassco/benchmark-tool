@@ -137,9 +137,9 @@ class Benchmark:
             for root, dirs, files in os.walk(self.path):
                 relroot = os.path.relpath(root, self.path)
                 sub = []
-                for dir in dirs:
-                    if self.skip(relroot, dir): continue
-                    sub.append(dir)
+                for dirname in dirs:
+                    if self.skip(relroot, dirname): continue
+                    sub.append(dirname)
                 dirs[:] = sub
                 for filename in files:
                     if self.skip(relroot, filename): continue
@@ -182,6 +182,7 @@ class Runspec:
         self.machine   = machine
         self.setting   = setting
         self.benchmark = benchmark
+        self.project   = None
     
     def path(self):
         name = self.setting.system.name + "-" + self.setting.system.version + "-" + self.setting.name
@@ -233,8 +234,10 @@ class Runscript:
 
 class Project:
     def __init__(self, name):
-        self.name     = name
-        self.runspecs = {}
+        self.name      = name
+        self.runspecs  = {}
+        self.runscript = None
+        self.job       = None
 
     def addRuntag(self, machine, benchmark, tag):
         disj = TagDisj(tag)
