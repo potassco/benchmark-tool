@@ -20,6 +20,7 @@ benchmarks/clasp/random/n60-unsat-b3.lp -text
 benchmarks/clasp/random/n60-unsat-b5.lp -text
 benchmarks/clasp/random/n60-unsat-b8.lp -text
 benchmarks/clasp/random/n60-unsat-b9.lp -text
+/beval -text
 /bgen -text
 runscripts/runscript-all.xml -text
 runscripts/runscript-pbs.xml -text
@@ -29,5 +30,6 @@ src/benchmark_tool/pyratemp.py -text
 src/benchmark_tool/runscript.py -text
 src/benchmark_tool/runscript_parser.py -text
 src/benchmark_tool/tools.py -text
+src/beval.py -text svneol=unset#text/plain
 src/bgen.py -text
 templates/seq-generic.sh -text

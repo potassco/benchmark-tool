@@ -164,6 +164,7 @@ def gui():
             return self.queue
 
     global queue
+    queue.sort()
     queue = App().start()
 
 if __name__ == '__main__':
@@ -332,6 +333,9 @@ class Runscript:
     
     def path(self):
         return self.output
+    
+    def evalResults(self):
+        print "implement me: parse the output files"
 
 class Project:
     def __init__(self, name):
