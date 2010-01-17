@@ -4,7 +4,7 @@ Created on Jan 13, 2010
 @author: Roland Kaminski
 '''
 
-from benchmark_tool.runscript_parser import RunscriptParser
+from benchmarktool.runscript.parser import Parser
 import optparse
 import sys
 
@@ -19,6 +19,6 @@ if __name__ == '__main__':
     else:
         parser.error("Exactly on file has to be given")
     
-    p = RunscriptParser()
+    p = Parser()
     run = p.parse(fileName)
     run.genScripts()

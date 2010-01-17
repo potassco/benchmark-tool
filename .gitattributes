@@ -31,6 +31,14 @@ src/benchmark_tool/pyratemp.py -text
 src/benchmark_tool/runscript.py -text
 src/benchmark_tool/runscript_parser.py -text
 src/benchmark_tool/tools.py -text
+src/benchmarktool/__init__.py -text
+src/benchmarktool/config.py -text svneol=unset#text/plain
+src/benchmarktool/pyratemp.py -text
+src/benchmarktool/result/__init__.py -text
+src/benchmarktool/runscript/__init__.py -text
+src/benchmarktool/runscript/parser.py -text
+src/benchmarktool/runscript/runscript.py -text
+src/benchmarktool/tools.py -text
 src/beval.py -text svneol=unset#text/plain
 src/bgen.py -text
 templates/seq-generic.sh -text
