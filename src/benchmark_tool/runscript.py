@@ -14,6 +14,15 @@ class Machine:
         self.cpu    = cpu
         self.memory = memory
 
+    def toXml(self, out, indent):
+        out.write('{1}<machine name="{0.name}" cpu="{0.cpu}" memory="{0.memory}"/>\n'.format(self, indent))
+
+    def __hash__(self):
+        return hash(self.name)
+        
+    def __cmp__(self, machine):
+        return self.name < machine.name
+    
 class System:
     def __init__(self, name, version, measures):
         self.name     = name
@@ -25,18 +34,59 @@ class System:
     def addSetting(self, setting):
         setting.system = self
         self.settings[setting.name] = setting
+        
+    def toXml(self, out, indent, settings = None):
+        out.write('{1}<system name="{0.name}" version="{0.version}" measures="{0.measures}" config="{0.config.name}">\n'.format(self, indent))
+        if settings == None: settings = self.settings
+        for setting in settings:
+            setting.toXml(out, indent + "\t")
+        out.write('{0}<system/>\n'.format(indent))
+        
+    def __hash__(self):
+        return hash(self.name)
+
+    def __cmp__(self, system):
+        return self.name < system.name
 
 class Setting:
-    def __init__(self, name, cmdline, tag):
+    def __init__(self, name, cmdline, tag, attr):
         self.name    = name
         self.cmdline = cmdline
         self.tag     = tag
+        self.attr    = attr
+
+    def toXml(self, out, indent):
+        tag = " ".join(sorted(self.tag))
+        out.write('{1}<setting name="{0.name}" cmdline="{0.cmdline}" tag="{2}"'.format(self, indent, tag))
+        for key, val in self.attr.items():
+            out.write(' {0}="{1}"'.format(key, val))
+        out.write('/>\n')
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __cmp__(self, setting):
+        return self.name < setting.name
+
         
 class Job:
-    def __init__(self, name, timeout, runs):
+    def __init__(self, name, timeout, runs, attr):
         self.name    = name
         self.timeout = timeout
         self.runs    = runs
+        self.attr    = attr
+
+    def _toXml(self, out, indent, xmltag, extra):
+        out.write('{1}<{2} name="{0.name}" timeout="{0.timeout}" runs="{0.runs}"{3}'.format(self, indent, xmltag, extra))
+        for key, val in self.attr.items():
+            out.write(' {0}="{1}"'.format(key, val))
+        out.write('/>\n')
+        
+    def __hash__(self):
+        return hash(self.name)
+    
+    def __cmp__(self, job):
+        return job.name < job.name
 
 class Run:
     def __init__(self, path):
@@ -44,13 +94,6 @@ class Run:
     
     def root(self):
         return os.path.relpath(".", self.path)
-    
-    class TimeDelta:
-        def __init__(self, delta):
-            self.delta = delta
-        
-        def seconds(self):
-            return self.delta.days * 86400 + self.delta.seconds
     
 class SeqRun(Run):
             
@@ -71,9 +114,8 @@ class SeqRun(Run):
         return self.runspec.system.name + "-" + self.runspec.system.version
     
     def timeout(self):
-        return Run.TimeDelta(self.job.timeout)
-
-
+        return self.job.timeout
+    
 class SeqScriptGen:
     def __init__(self, seqJob):
         self.seqJob     = seqJob
@@ -82,7 +124,7 @@ class SeqScriptGen:
     def addToScript(self, runspec, instance):
         import pyratemp
         for run in range(1, self.seqJob.runs + 1):
-            path = os.path.join(runspec.path(), instance.classname, instance.instance, "run%d" % run)
+            path = os.path.join(runspec.path(), instance.classname.name, instance.instance, "run%d" % run)
             tools.mkdir_p(path)
             startpath = os.path.join(path, "start.sh")
             template  = pyratemp.Template(filename=runspec.system.config.template)
@@ -185,40 +227,76 @@ if __name__ == '__main__':
         os.chmod(os.path.join(path, "start.py"), startstat[0] | stat.S_IXUSR)
     
 class SeqJob(Job):
-    def __init__(self, name, timeout, runs, parallel):
-        Job.__init__(self, name, timeout, runs)
+    def __init__(self, name, timeout, runs, parallel, attr):
+        Job.__init__(self, name, timeout, runs, attr)
         self.parallel = parallel
     
     def scriptGen(self):
         return SeqScriptGen(self) 
 
+    def toXml(self, out, indent):
+        extra = ' parallel="{0.parallel}"'.format(self)
+        Job._toXml(self, out, indent, "seqjob", extra)
+
            
 class PbsJob(Job):
-    def __init__(self, name, timeout, runs, ppn, procs, script_mode, walltime):
-        Job.__init__(self, name, timeout, runs)
+    def __init__(self, name, timeout, runs, ppn, procs, script_mode, walltime, attr):
+        Job.__init__(self, name, timeout, runs, attr)
         self.ppn         = ppn
         self.procs       = procs
         self.script_mode = script_mode
         self.walltime    = walltime
+
+    def toXml(self, out, indent):
+        procs    = " ".join(self.procs)
+        extra = ' ppn="{0.ppn}" procs={1} script_mode="{0.script_mode}" walltime="{0.walltime}"'.format(self, procs)
+        Job._toXml(self, out, indent, "pbsjob", extra)
 
 class Config:
     def __init__(self, name, template):
         self.name     = name
         self.template = template
 
+    def toXml(self, out, indent):
+        out.write('{1}<config name="{0.name}" template="{0.template}"/>\n'.format(self, indent))
+
+    def __hash__(self):
+        return hash(self.name)
+    
+    def __cmp__(self, config):
+        return config.name < config.name
+
 class Benchmark:
+    class Class:
+        def __init__(self, name):
+            self.name = name
+            self.id   = None 
+
+        def __cmp__(self, other):
+            return self.name < other.name 
+
+        def __hash__(self):
+            return hash(self.name)
+            
     class Instance:
         def __init__(self, location, classname, instance):
             self.location  = location
             self.classname = classname
             self.instance  = instance
-            self.hash      = hash((location, classname, instance))
-        
-        def path(self):
-            return os.path.join(self.location, self.classname, self.instance)
-        
+            self.hash      = hash((classname, instance))
+            self.id        = None
+
+        def toXml(self, out, indent):
+            out.write('{1}<instance name="{0.instance}" id="{0.id}"/>\n'.format(self, indent))
+
+        def __cmp__(self, instance):
+            return self.instance < instance.instance 
+
         def __hash__(self):
-            return self.hash 
+            return hash(self.instance)
+
+        def path(self):
+            return os.path.join(self.location, self.classname.name, self.instance)
         
     class Folder:
         def __init__(self, path):
@@ -263,20 +341,48 @@ class Benchmark:
     def __init__(self, name):
         self.name        = name
         self.elements    = []
-        self.instances   = set()
+        self.instances   = {}
         self.initialized = False
         
     def addElement(self, element):
         self.elements.append(element)
     
     def addInstance(self, root, relroot, filename):
-        self.instances.add(Benchmark.Instance(root, relroot, filename))
+        classname = Benchmark.Class(relroot)
+        if not classname in self.instances: 
+            self.instances[classname] = set()
+        self.instances[classname].add(Benchmark.Instance(root, classname, filename))
     
     def init(self):
         if not self.initialized:
-            for element in self.elements:
-                element.init(self)
+            for element in self.elements: element.init(self)
+            classid = 0
+            for classname in sorted(self.instances.keys()):
+                classname.id = classid
+                classid += 1
+                instanceid = 0
+                for instance in sorted(self.instances[classname]):
+                    instance.id = instanceid
+                    instanceid += 1
             self.initialized = True
+            
+
+    def toXml(self, out, indent):
+        self.init()
+        out.write('{1}<benchmark name="{0}">\n'.format(self.name, indent))
+        for classname in sorted(self.instances.keys()):
+            instances = self.instances[classname]
+            out.write('{1}<class name="{0.name}" id="{0.id}">\n'.format(classname, indent + "\t"))
+            for instance in sorted(instances):
+                instance.toXml(out, indent + "\t\t")
+            out.write('{0}</class>\n'.format(indent + "\t"))
+        out.write('{0}</benchmark>\n'.format(indent))
+        
+    def __hash__(self):
+        return hash(self.name)
+
+    def __cmp__(self, benchmark):
+        return benchmark.name < benchmark.name
 
 class Runspec:
     def __init__(self, machine, setting, benchmark):
@@ -292,8 +398,13 @@ class Runspec:
     
     def genScripts(self, scriptGen):
         self.benchmark.init()
-        for instance in self.benchmark.instances:
-            scriptGen.addToScript(self, instance)
+        for instances in self.benchmark.instances.values():
+            for instance in instances:
+                scriptGen.addToScript(self, instance)
+    
+    def __cmp__(self, runspec):
+        return (self.machine, self.system, self.setting, self.benchmark) < (runspec.machine, runspec.system, runspec.setting, runspec.benchmark) 
+
 
 class Runscript:
     def __init__(self, name, output):
@@ -334,9 +445,47 @@ class Runscript:
     def path(self):
         return self.output
     
-    def evalResults(self):
-        print "implement me: parse the output files"
-
+    def evalResults(self, out):
+        machines   = set()
+        jobs       = set()
+        configs    = set()
+        systems    = {}
+        benchmarks = set() 
+        
+        for project in self.projects.values():
+            jobs.add(project.job)
+            for runspecs in project.runspecs.values():
+                for runspec in runspecs:
+                    machines.add(runspec.machine)
+                    configs.add(runspec.system.config)
+                    if not runspec.system in systems: systems[runspec.system] = []
+                    systems[runspec.system].append(runspec.setting)
+                    benchmarks.add(runspec.benchmark)
+        
+        out.write('<result>\n')
+        
+        for machine in sorted(machines):
+            machine.toXml(out, "\t")
+        for config in sorted(configs):
+            config.toXml(out, "\t")
+        for system in sorted(systems.keys()):
+            system.toXml(out, "\t", systems[system])
+        for job in sorted(jobs):
+            job.toXml(out, "\t")
+        for benchmark in sorted(benchmarks):
+            benchmark.toXml(out, "\t")
+        
+        for project in self.projects.values():
+            out.write('\t<project name="{0.name}" job="{0.job.name}">\n'.format(project))
+            jobs.add(project.job)
+            for runspecs in project.runspecs.values():
+                for runspec in runspecs:
+                    out.write('\t\t<runspec machine="{0.machine.name}" system="{0.system.name}" version="{0.system.version}" benchmark="{0.benchmark.name}">\n'.format(runspec))
+                    out.write('\t\t\tTODO: parse the results of this benchmark!!!!\n')
+                    out.write('\t\t</runspec>\n')
+            out.write('\t</project>\n')
+        out.write('</result>\n')
+         
 class Project:
     def __init__(self, name):
         self.name      = name
@@ -368,6 +517,13 @@ class Project:
             for runspec in runspecs:
                 runspec.genScripts(scriptGen)
             scriptGen.genStartScript(os.path.join(self.path(), machine))
+    
+    def __hash__(self):
+        return hash(self.name)
+
+    def __cmp__(self, project):
+        return project.name < project.name
+
 
 class TagDisj:
     """Represents tags in form of a disjunctive normal form."""

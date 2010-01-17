@@ -270,11 +270,14 @@ class RunscriptParser:
         run  = Runscript(root.get("name"), root.get("output"))
 
         for node in root.xpath("./pbsjob"):
-            job = PbsJob(node.get("name"), tools.timedelta(node.get("timeout")), int(node.get("runs")), int(node.get("ppn")), node.get("procs"), node.get("script_mode"), tools.timedelta(node.get("walltime")))
+            attr = self.filterAttr(node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime"])
+            procs = [int(proc) for proc in node.get("procs").split(None)]
+            job = PbsJob(node.get("name"), tools.xmlTime(node.get("timeout")), int(node.get("runs")), int(node.get("ppn")), procs, node.get("script_mode"), tools.xmlTime(node.get("walltime")), attr)
             run.addJob(job)
 
         for node in root.xpath("./seqjob"):
-            job = SeqJob(node.get("name"), tools.timedelta(node.get("timeout")), int(node.get("runs")), int(node.get("parallel")))
+            attr = self.filterAttr(node, ["name", "timeout", "runs", "parallel"])
+            job = SeqJob(node.get("name"), tools.xmlTime(node.get("timeout")), int(node.get("runs")), int(node.get("parallel")), attr)
             run.addJob(job)
         
         for node in root.xpath("./machine"):
@@ -288,9 +291,10 @@ class RunscriptParser:
         for node in root.xpath("./system"):
             system = System(node.get("name"), node.get("version"), node.get("measures"))
             for child in node.xpath("setting"):
+                attr = self.filterAttr(child, ["name", "cmdline", "tag"])
                 if child.get("tag") == None: tag = set()
                 else: tag = set(child.get("tag").split(None))
-                setting = Setting(child.get("name"), child.get("cmdline"), tag)
+                setting = Setting(child.get("name"), child.get("cmdline"), tag, attr)
                 system.addSetting(setting)
             run.addSystem(system, node.get("config"))
             
@@ -324,4 +328,10 @@ class RunscriptParser:
                                   child.get("tag"))
         
         return run
-
+    
+    def filterAttr(self, node, skip):
+        attr = {}
+        for key, val in node.items():
+            if not key in skip:
+                attr[key] = val  
+        return attr

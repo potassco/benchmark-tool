@@ -21,4 +21,4 @@ if __name__ == '__main__':
     
     p = RunscriptParser()
     run = p.parse(fileName)
-    run.evalResults()
+    run.evalResults(sys.stdout)
