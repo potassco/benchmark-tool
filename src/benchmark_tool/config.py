@@ -13,7 +13,7 @@ clasp_choices     = re.compile(r"^Choices[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_time        = re.compile(r"^Time[ ]*:[ ]*([0-9]+\.[0-9]+)s[ ]*\(")
 clasp_conflicts   = re.compile(r"^Conflicts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_restarts    = re.compile(r"^Restarts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
-clasp_status      = re.compile(r"^(SATISFIABLE|UNSATISFIABLE|UNKNOWN)[ ]*$$")
+clasp_status      = re.compile(r"^(SATISFIABLE|UNSATISFIABLE|UNKNOWN)[ ]*$")
 clasp_interrupted = re.compile(r"^Interrupted[ ]*:[ ]*(1)[ ]*$")
 
 def clasp(root):
