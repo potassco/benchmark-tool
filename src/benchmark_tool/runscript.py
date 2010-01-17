@@ -3,6 +3,7 @@ Created on Jan 15, 2010
 
 @author: Roland Kaminski
 '''
+import benchmark_tool
 
 import tools
 import os
@@ -121,10 +122,13 @@ class SeqScriptGen:
         self.seqJob     = seqJob
         self.startfiles = []
     
+    def path(self, runspec, instance, run):
+        return os.path.join(runspec.path(), instance.classname.name, instance.instance, "run%d" % run)
+        
     def addToScript(self, runspec, instance):
         import pyratemp
         for run in range(1, self.seqJob.runs + 1):
-            path = os.path.join(runspec.path(), instance.classname.name, instance.instance, "run%d" % run)
+            path = self.path(runspec, instance, run)
             tools.mkdir_p(path)
             startpath = os.path.join(path, "start.sh")
             template  = pyratemp.Template(filename=runspec.system.config.template)
@@ -134,7 +138,16 @@ class SeqScriptGen:
             self.startfiles.append((path, "start.sh"))
             startstat = os.stat(startpath)
             os.chmod(startpath, startstat[0] | stat.S_IXUSR)
-            
+    
+    def evalResults(self, out, indent, runspec, instance):
+        import benchmark_tool.config #@UnusedImport
+        exec("func = benchmark_tool.config." + runspec.system.measures)
+        for run in range(1, self.seqJob.runs + 1):
+            out.write('{0}<run number="{1}">\n'.format(indent, run))
+            result = func(self.path(runspec, instance, run)) #@UndefinedVariable
+            for key, type, val in sorted(result):
+                out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, type, val))
+            out.write('{0}</run>\n'.format(indent))
     
     def genStartScript(self, path):
         tools.mkdir_p(path)
@@ -477,11 +490,19 @@ class Runscript:
         
         for project in self.projects.values():
             out.write('\t<project name="{0.name}" job="{0.job.name}">\n'.format(project))
+            jobGen = project.job.scriptGen()
             jobs.add(project.job)
             for runspecs in project.runspecs.values():
                 for runspec in runspecs:
                     out.write('\t\t<runspec machine="{0.machine.name}" system="{0.system.name}" version="{0.system.version}" benchmark="{0.benchmark.name}">\n'.format(runspec))
-                    out.write('\t\t\tTODO: parse the results of this benchmark!!!!\n')
+                    for classname in sorted(runspec.benchmark.instances):
+                        out.write('\t\t\t<class id="{0.id}">\n'.format(classname))
+                        instances =  runspec.benchmark.instances[classname]
+                        for instance in instances:
+                            out.write('\t\t\t\t<instance id="{0.id}">\n'.format(instance))
+                            jobGen.evalResults(out, "\t\t\t\t\t", runspec, instance)
+                            out.write('\t\t\t\t</instance>\n')
+                        out.write('\t\t\t</class>\n')
                     out.write('\t\t</runspec>\n')
             out.write('\t</project>\n')
         out.write('</result>\n')
