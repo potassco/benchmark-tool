@@ -25,6 +25,7 @@ benchmarks/clasp/random/n60-unsat-b9.lp -text
 doc/PLAN -text
 doc/README -text
 doc/USECASES -text
+doc/soffice/hoedic-sat.ods -text
 doc/soffice/minimal.ods -text
 doc/soffice/minimal/META-INF/manifest.xml -text
 doc/soffice/minimal/content.xml -text
