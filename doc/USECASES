@@ -1,0 +1,25 @@
+- sequential
+  - compare different systems with different settings
+    - most important for ben
+	-> a runscript should provide the possibility to 
+	   easyly run all systems with all settings
+  - compare different machines
+    - not yet important
+	- allow for specifying multiple machines
+	- easy to implement
+	  -> create one start script per machine
+
+- parallel
+  - compare different systems with different settings
+  - comparing clusters doesn't seem important to me 
+    -> but is possible using the mechanism described above
+  - mixing sequential and parallel settings makes no sense
+    -> the sequential reference solver can always be started using pbs
+
+- think about
+  - group run specs into projects
+    -> all jobs in a project should be startable by a single start script (per machine)
+  - the current runall is problematic
+    -> provide tags to tag settings that are
+	-> to enable runall functionality provide the predifined tag "*all*"
+
