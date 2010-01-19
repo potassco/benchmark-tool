@@ -493,7 +493,7 @@ class Runscript:
             jobs.add(project.job)
             for runspecs in project.runspecs.values():
                 for runspec in runspecs:
-                    out.write('\t\t<runspec machine="{0.machine.name}" system="{0.system.name}" version="{0.system.version}" benchmark="{0.benchmark.name}">\n'.format(runspec))
+                    out.write('\t\t<runspec machine="{0.machine.name}" system="{0.system.name}" version="{0.system.version}" benchmark="{0.benchmark.name}" setting="{0.setting.name}">\n'.format(runspec))
                     for classname in sorted(runspec.benchmark.instances):
                         out.write('\t\t\t<class id="{0.id}">\n'.format(classname))
                         instances =  runspec.benchmark.instances[classname]

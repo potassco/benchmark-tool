@@ -59,7 +59,7 @@ class Parser:
             self.result.projects[self.project.name] = self.project
         elif tag == "runspec":
             self.benchscope = False
-            self.runspec = Runspec(self.result.systems[(attrib["system"], attrib["version"])], self.result.machines[attrib["machine"]], self.result.benchmarks[attrib["benchmark"]])
+            self.runspec = Runspec(self.result.systems[(attrib["system"], attrib["version"])], self.result.machines[attrib["machine"]], self.result.benchmarks[attrib["benchmark"]], self.result.systems[(attrib["system"], attrib["version"])].settings[attrib["setting"]])
             self.project.runspecs.append(self.runspec)
         elif tag == "class" and not self.benchscope:
             benchclass = self.runspec.benchmark.classes[int(attrib["id"])]

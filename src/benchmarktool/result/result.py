@@ -3,17 +3,21 @@ Created on Jan 19, 2010
 
 @author: Roland Kaminski
 '''
-from io import StringIO
 
 import heapq
 import itertools
 from zipfile import ZipFile
 from StringIO import StringIO
 
+import sys
+
 class Spreadsheet:
-    def __init__(self, benchmark, instMeasures):
-        self.instSheet = InstanceTable(benchmark, instMeasures)
-    
+    def __init__(self, benchmark, columns, measures):
+        self.instSheet = InstanceTable(benchmark, columns, measures)
+        
+    def finish(self):
+        self.instSheet.finish()
+        
     def printSheet(self, out):
         zipFile = ZipFile(out, "w")
         out = StringIO()
@@ -46,10 +50,28 @@ class Spreadsheet:
     def addRunspec(self, runspec):
         self.instSheet.addRunspec(runspec)
         
+class Cell:
+    def __init__(self):
+        pass
+
+class StringCell:
+    def __init__(self, val):
+        self.val = val
+    
+    def printSheet(self, out):
+        out.write('<table:table-cell office:value-type="string"><text:p>{0}</text:p></table:table-cell>'.format(self.val))
+
+class FloatCell:
+    def __init__(self, val):
+        self.val = val
+    
+    def printSheet(self, out):
+        out.write('<table:table-cell office:value-type="float" office:value="{0}"></table:table-cell>'.format(self.val))
+
 class Table:
     def __init__(self):
         self.rows    = 0
-        self.rowSize = {}  
+        self.rowSize = {}
         self.content = {}
     
     def add(self, row, col, cell):
@@ -65,29 +87,61 @@ class Table:
             out.write('<table:table-row table:style-name="ro1">')
             for col in range(0,  self.rowSize.get(row, 0)):
                 cell = self.content.get((row, col), None)
-                out.write('<table:table-cell office:value-type="string"><text:p>{0}</text:p></table:table-cell>'.format(cell))
+                if cell == None:
+                    out.write('<table:table-cell office:value-type="string"><text:p></text:p></table:table-cell>')
+                else:
+                    cell.printSheet(out)
             out.write('</table:table-row>')
         out.write('</table:table>')
     
 class InstanceTable(Table):
-    def __init__(self, benchmark, measures):
+    def __init__(self, benchmark, columns, measures):
         Table.__init__(self)
         self.benchmark = benchmark
+        self.columns   = columns
         self.results   = {}
         self.measures  = measures
+        self.lines     = 0
         row = 2
         for instance in self.benchmark.list:
             instance = instance.values()[0]
-            self.add(row, 0, instance.benchclass.name + "/" + instance.name)
+            self.add(row, 0, StringCell(instance.benchclass.name + "/" + instance.name))
             row += instance.maxRuns
+            self.lines += instance.maxRuns
         
-        self.add(row + 1, 0, "SUM")
-        self.add(row + 2, 0, "AVERAGE")
-        self.add(row + 3, 0, "STDDEV")
+        self.add(row + 1, 0, StringCell("SUM"))
+        self.add(row + 2, 0, StringCell("AVERAGE"))
+        self.add(row + 3, 0, StringCell("STDDEV"))
+        
+    def finish(self):
+        col = 1
+        for column in sorted(self.columns.columns):
+            column.offset = col
+            if self.measures == "": measures = sorted(column.width)
+            else: measures = self.measures
+            add = 0
+            for name in measures:
+                self.add(1, column.offset + add, StringCell(name))
+                for line in range(0, self.lines):
+                    cell = column.getCell(name, line)
+                    self.add(2 + line, column.offset + add, cell)
+                add += 1
+            if add == 0: add = 1    
+            col+= add
+
     def addRunspec(self, runspec):
+        column = self.columns.getColumn(runspec)
         for classresult in runspec.classresults:
             for instresult in classresult.instresults:
-                pass
+                for run in instresult.runs:
+                    if self.measures == "": measures = sorted(run.measures.keys())
+                    else: measures = self.measures
+                    for name in measures:
+                        if name in run.measures:
+                            type, value = run.measures[name]
+                            if type != "float": type = "string"
+                            column.addCell(instresult.instance.line + run.number - 1, name, type, value)
+
 class Result:
     def __init__(self):
         self.machines   = {}
@@ -97,32 +151,69 @@ class Result:
         self.benchmarks = {}
         self.projects   = {}
     
-    def mergeBenchmarks(self, projects):
+    def merge(self, projects):
         benchmarks = set()
+        columns    = set()
         for project in self.projects.values():
             for runspec in project.runspecs:
+                columns.add(Column(runspec.setting, runspec.machine))
                 for classresult in runspec.classresults:
                     for instresult in classresult.instresults:
                         instresult.instance.maxRuns = max(instresult.instance.maxRuns, len(instresult.runs))
                 benchmarks.add(runspec.benchmark)
         
-        return BenchmarkMerge(benchmarks)
+        return BenchmarkMerge(benchmarks), ColumnMerge(columns)
         
-    def genOffice(self, out, selProjects, instMeasures, classMeasures):
+    def genOffice(self, out, selProjects, measures):
         projects = [] 
         for project in self.projects.values():
-            if selProjects == [] or selProjects.name in selProjects:
+            if selProjects == "" or projects.name in selProjects:
                 projects.append(project)
-        merged = self.mergeBenchmarks(projects)
+        benchmarkMerge, columnMerge = self.merge(projects)
         
-        
-        sheet = Spreadsheet(merged, instMeasures)
+        sheet = Spreadsheet(benchmarkMerge, columnMerge, measures)
         for project in projects:
             for runspec in project.runspecs:
                 sheet.addRunspec(runspec)
-        
+        sheet.finish()
         sheet.printSheet(out)
 
+class Column:
+    def __init__(self, setting, machine):
+        self.setting  = setting
+        self.machine  = machine
+        self.measures = {}
+        self.width    = set()
+    
+    def __cmp__(self, other):
+        return cmp((self.setting.system.name, self.setting.system.version, self.machine.name), (other.setting.system.name, other.setting.system.version, other.machine.name))
+    
+    def __hash__(self):
+        return hash((self.setting, self.machine))
+    
+    def addCell(self, line, name, type, value):
+        if type == "float": cell = FloatCell(float(value))
+        else: cell = StringCell(value)
+        self.measures[(name, line)] = cell 
+        self.width.add(name)
+    
+    def getWidth(self):
+        return len(self.width)
+    
+    def getCell(self, name, line):
+        return self.measures.get((name, line), None) 
+
+class ColumnMerge:
+    def __init__(self, columns):
+        self.machines = set()
+        self.columns  = {}
+        for column in columns:
+            self.columns[column] = column
+            self.machines.add(column.machine)
+
+    def getColumn(self, runspec):
+        return self.columns[Column(runspec.setting, runspec.machine)]
+    
 class BenchmarkMerge:
     def __init__(self, benchmarks):
         start = []
@@ -161,6 +252,7 @@ class System:
 
 class Setting:
     def __init__(self, system, name, cmdline, tag, attr):
+        self.system  = system
         self.name    = name
         self.cmdline = cmdline
         self.tag     = tag
@@ -226,10 +318,11 @@ class Project:
         self.runspecs = [] 
 
 class Runspec():
-    def __init__(self, system, machine, benchmark):
+    def __init__(self, system, machine, benchmark, setting):
         self.system       = system
         self.machine      = machine
         self.benchmark    = benchmark
+        self.setting      = setting
         self.classresults = []
 
 class ClassResult:
