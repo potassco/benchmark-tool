@@ -42,7 +42,7 @@ class System:
         if settings == None: settings = self.settings
         for setting in settings:
             setting.toXml(out, indent + "\t")
-        out.write('{0}<system/>\n'.format(indent))
+        out.write('{0}</system>\n'.format(indent))
         
     def __hash__(self):
         return hash(self.name)

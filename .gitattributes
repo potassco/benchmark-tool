@@ -1,4 +1,5 @@
 * text=auto !eol
+/bconv -text
 benchmarks/clasp/blocked-queens/blocked-n-queens_decision-156.48.1960.36.1721259656.lp -text
 benchmarks/clasp/blocked-queens/blocked-n-queens_decision-156.48.1960.36.1721330060.lp -text
 benchmarks/clasp/blocked-queens/blocked-n-queens_decision-156.48.1960.36.1721351180.lp -text
@@ -33,10 +34,13 @@ doc/soffice/minimal/mimetype -text
 runscripts/runscript-all.xml -text
 runscripts/runscript-pbs.xml -text
 runscripts/runscript-seq.xml -text
+src/bconv.py -text svneol=unset#text/plain
 src/benchmarktool/__init__.py -text
 src/benchmarktool/config.py -text svneol=unset#text/plain
 src/benchmarktool/pyratemp.py -text
 src/benchmarktool/result/__init__.py -text
+src/benchmarktool/result/parser.py -text svneol=unset#text/plain
+src/benchmarktool/result/result.py -text svneol=unset#text/plain
 src/benchmarktool/runscript/__init__.py -text
 src/benchmarktool/runscript/parser.py -text
 src/benchmarktool/runscript/runscript.py -text
