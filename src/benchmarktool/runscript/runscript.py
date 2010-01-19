@@ -23,7 +23,7 @@ class Machine:
         return hash(self.name)
         
     def __cmp__(self, machine):
-        return self.name < machine.name
+        return cmp(self.name, machine.name)
     
 class System:
     def __init__(self, name, version, measures):
@@ -48,7 +48,7 @@ class System:
         return hash(self.name)
 
     def __cmp__(self, system):
-        return self.name < system.name
+        return cmp(self.name, system.name)
 
 class Setting:
     def __init__(self, name, cmdline, tag, attr):
@@ -68,7 +68,7 @@ class Setting:
         return hash(self.name)
 
     def __cmp__(self, setting):
-        return self.name < setting.name
+        return cmp(self.name, setting.name)
 
         
 class Job:
@@ -88,7 +88,7 @@ class Job:
         return hash(self.name)
     
     def __cmp__(self, job):
-        return job.name < job.name
+        return cmp(job.name, job.name)
 
 class Run:
     def __init__(self, path):
@@ -276,7 +276,7 @@ class Config:
         return hash(self.name)
     
     def __cmp__(self, config):
-        return config.name < config.name
+        return cmp(config.name, config.name)
 
 class Benchmark:
     class Class:
@@ -285,7 +285,7 @@ class Benchmark:
             self.id   = None 
 
         def __cmp__(self, other):
-            return self.name < other.name 
+            return cmp(self.name, other.name) 
 
         def __hash__(self):
             return hash(self.name)
@@ -302,7 +302,7 @@ class Benchmark:
             out.write('{1}<instance name="{0.instance}" id="{0.id}"/>\n'.format(self, indent))
 
         def __cmp__(self, instance):
-            return self.instance < instance.instance 
+            return cmp(self.instance, instance.instance) 
 
         def __hash__(self):
             return hash(self.instance)
@@ -394,7 +394,7 @@ class Benchmark:
         return hash(self.name)
 
     def __cmp__(self, benchmark):
-        return benchmark.name < benchmark.name
+        return cmp(benchmark.name, benchmark.name)
 
 class Runspec:
     def __init__(self, machine, setting, benchmark):
@@ -415,7 +415,7 @@ class Runspec:
                 scriptGen.addToScript(self, instance)
     
     def __cmp__(self, runspec):
-        return (self.machine, self.system, self.setting, self.benchmark) < (runspec.machine, runspec.system, runspec.setting, runspec.benchmark) 
+        return cmp((self.machine, self.system, self.setting, self.benchmark), (runspec.machine, runspec.system, runspec.setting, runspec.benchmark)) 
 
 
 class Runscript:
@@ -542,7 +542,7 @@ class Project:
         return hash(self.name)
 
     def __cmp__(self, project):
-        return project.name < project.name
+        return cmp(project.name, project.name)
 
 
 class TagDisj:

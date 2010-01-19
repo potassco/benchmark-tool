@@ -6,98 +6,7 @@ Created on Jan 19, 2010
 
 from lxml import etree
 from benchmarktool import tools
-
-class Result:
-    def __init__(self):
-        self.machines   = {}
-        self.configs    = {}
-        self.systems    = {}
-        self.jobs       = {}
-        self.benchmarks = {}
-        self.projects   = {}
-
-class Machine:
-    def __init__(self, name, cpu, memory):
-        self.name   = name
-        self.cpu    = cpu
-        self.memory = memory 
-
-class Config:
-    def __init__(self, name, template):
-        self.name     = name
-        self.template = template
-
-class System:
-    def __init__(self, name, version, config, measures):
-        self.name     = name
-        self.version  = version
-        self.config   = config
-        self.measures = measures
-        self.settings = {}
-
-class Setting:
-    def __init__(self, system, name, cmdline, tag, attr):
-        self.name    = name
-        self.cmdline = cmdline
-        self.tag     = tag
-        self.attr    = attr
-
-class Job:
-    def __init__(self, name, timeout, runs, attrib):
-        self.name    = name
-        self.timeout = timeout
-        self.runs    = runs
-        self.attrib  = attrib
-
-class SeqJob(Job):
-    def __init__(self, name, timeout, runs, parallel, attrib):
-        Job.__init__(self, name, timeout, runs, attrib)
-        self.parallel = parallel
-
-class Benchmark:
-    def __init__(self, name):
-        self.name    = name
-        self.classes = {}
-
-class Class:
-    def __init__(self, name, id):
-        self.name      = name
-        self.id        = id
-        self.instances = {}
-
-class Instance:
-    def __init__(self, name, id):
-        self.name      = name
-        self.id        = id
-
-class Project:
-    def __init__(self, name, job):
-        self.name     = name
-        self.job      = job
-        self.runspecs = [] 
-
-class Runspec():
-    def __init__(self, system, machine, benchmark):
-        self.system       = system
-        self.machine      = machine
-        self.benchmark    = benchmark
-        self.classresults = []
-
-class ClassResult:
-    def __init__(self, benchclass):
-        self.benchclass  = benchclass
-        self.instresults = []
-
-class InstanceResult:
-    def __init__(self, benchinst):
-        self.benchclass  = benchinst
-        self.runs        = []
-
-class Run:
-    def __init__(self, instresult, number):
-        self.instresult = instresult
-        self.number     = number
-        self.measures   = {}
+from benchmarktool.result.result import * 
 
 class Parser:
     def __init__(self):
@@ -108,6 +17,7 @@ class Parser:
         # do not use the full blown etree representation 
         parser = etree.XMLParser(target=self)
         etree.parse(infile, parser)
+        return self.result
         
     def start(self, tag, attrib):
         if tag == "result":
@@ -139,10 +49,10 @@ class Parser:
             self.benchmark = Benchmark(attrib["name"])
             self.result.benchmarks[self.benchmark.name] = self.benchmark
         elif tag == "class" and self.benchscope:
-            self.benchclass = Class(attrib["name"], int(attrib["id"]))
+            self.benchclass = Class(self.benchmark, attrib["name"], int(attrib["id"]))
             self.benchmark.classes[self.benchclass.id] = self.benchclass
         elif tag == "instance" and self.benchscope:
-            instance = Instance(attrib["name"], int(attrib["id"]))
+            instance = Instance(self.benchclass, attrib["name"], int(attrib["id"]))
             self.benchclass.instances[instance.id] = instance
         elif tag == "project":
             self.project = Project(attrib["name"], attrib["job"])
@@ -158,12 +68,13 @@ class Parser:
         elif tag == "instance" and not self.benchscope:
             benchinst = self.classresult.benchclass.instances[int(attrib["id"])]
             self.instresult = InstanceResult(benchinst)
+            self.classresult.instresults.append(self.instresult)
         elif tag == "run" and not self.benchscope:
             self.run = Run(self.instresult, int(attrib["number"]))
             self.instresult.runs.append(self.run)
         elif tag == "measure":
             self.run.measures[attrib["name"]] = (attrib["type"], attrib["val"]) 
         else: print tag, attrib 
-    
+        
     def close(self):
         pass
