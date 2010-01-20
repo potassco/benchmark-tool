@@ -26,10 +26,11 @@ class Machine:
         return cmp(self.name, machine.name)
     
 class System:
-    def __init__(self, name, version, measures):
+    def __init__(self, name, version, measures, order):
         self.name     = name
         self.version  = version
         self.measures = measures
+        self.order    = order
         self.settings = {}
         self.config   = None
          
@@ -40,7 +41,7 @@ class System:
     def toXml(self, out, indent, settings = None):
         out.write('{1}<system name="{0.name}" version="{0.version}" measures="{0.measures}" config="{0.config.name}">\n'.format(self, indent))
         if settings == None: settings = self.settings
-        for setting in settings:
+        for setting in sorted(settings, key=lambda s: s.order):
             setting.toXml(out, indent + "\t")
         out.write('{0}</system>\n'.format(indent))
         
@@ -51,10 +52,11 @@ class System:
         return cmp(self.name, system.name)
 
 class Setting:
-    def __init__(self, name, cmdline, tag, attr):
+    def __init__(self, name, cmdline, tag, order, attr):
         self.name    = name
         self.cmdline = cmdline
         self.tag     = tag
+        self.order   = order
         self.attr    = attr
 
     def toXml(self, out, indent):
@@ -480,7 +482,7 @@ class Runscript:
             machine.toXml(out, "\t")
         for config in sorted(configs):
             config.toXml(out, "\t")
-        for system in sorted(systems.keys()):
+        for system in sorted(systems.keys(), cmp=lambda s: s.order):
             system.toXml(out, "\t", systems[system])
         for job in sorted(jobs):
             job.toXml(out, "\t")

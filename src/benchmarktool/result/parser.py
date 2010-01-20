@@ -21,6 +21,7 @@ class Parser:
         
     def start(self, tag, attrib):
         if tag == "result":
+            self.systemOrder = 0
             self.result = Result()
         elif tag == "machine":
             machine =  Machine(attrib["name"], attrib["cpu"], attrib["memory"])
@@ -29,14 +30,17 @@ class Parser:
             config = Config(attrib["name"], attrib["template"])
             self.result.configs[config.name] = config 
         elif tag == "system":
-            self.system = System(attrib["name"], attrib["version"], attrib["config"], attrib["measures"])
+            self.system = System(attrib["name"], attrib["version"], attrib["config"], attrib["measures"], self.systemOrder)
             self.result.systems[(self.system.name, self.system.version)] = self.system
+            self.systemOrder += 1
+            self.settingOrder = 0
         elif tag == "setting":
             tag     = attrib.pop("tag", None)
             name    = attrib.pop("name")
             cmdline = attrib.pop("cmdline")
-            setting = Setting(self.system, name, cmdline, tag, attrib)
+            setting = Setting(self.system, name, cmdline, tag, self.settingOrder, attrib)
             self.system.settings[name] = setting
+            self.settingOrder += 1
         elif tag == "seqjob":
             name     = attrib.pop("name")
             timeout  = tools.xmlTime(attrib.pop("timeout"))

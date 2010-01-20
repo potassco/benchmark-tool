@@ -288,15 +288,19 @@ class Parser:
             config = Config(node.get("name"), node.get("template"))
             run.addConfig(config)
     
+        sytemOrder = 0 
         for node in root.xpath("./system"):
-            system = System(node.get("name"), node.get("version"), node.get("measures"))
+            system = System(node.get("name"), node.get("version"), node.get("measures"), sytemOrder)
+            settingOrder = 0
             for child in node.xpath("setting"):
                 attr = self.filterAttr(child, ["name", "cmdline", "tag"])
                 if child.get("tag") == None: tag = set()
                 else: tag = set(child.get("tag").split(None))
-                setting = Setting(child.get("name"), child.get("cmdline"), tag, attr)
+                setting = Setting(child.get("name"), child.get("cmdline"), tag, settingOrder, attr)
                 system.addSetting(setting)
+                settingOrder += 1
             run.addSystem(system, node.get("config"))
+            sytemOrder += 1
             
         for node in root.xpath("./benchmark"):
             benchmark = Benchmark(node.get("name"))
