@@ -6,9 +6,11 @@ Created on Jan 15, 2010
 
 import benchmarktool.pyratemp as pyratemp
 import benchmarktool.tools as tools
-import benchmarktool.config #@UnusedImport
 import os
 import stat
+
+# pylint: disable-msg=W0611
+import benchmarktool.config #@UnusedImport
 
 class Machine:
     def __init__(self, name, cpu, memory):
@@ -142,9 +144,11 @@ class SeqScriptGen:
             os.chmod(startpath, startstat[0] | stat.S_IXUSR)
     
     def evalResults(self, out, indent, runspec, instance):
+        # pylint: disable-msg=W0122
         exec("func = benchmarktool.config." + runspec.system.measures)
         for run in range(1, self.seqJob.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
+            # pylint: disable-msg=E0602
             result = func(self.path(runspec, instance, run)) #@UndefinedVariable
             for key, valtype, val in sorted(result):
                 out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val))

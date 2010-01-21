@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable-msg=W0511
+# pylint: disable-msg=W0621
+# pylint: disable-msg=W0622
+# pylint: disable-msg=W0613
+# pylint: disable-msg=W0703
 """
 Small, simple and powerful template-engine for python.
 
@@ -1061,4 +1066,3 @@ if __name__ == '__main__':
     _doctest()
 
 #=========================================
-

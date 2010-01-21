@@ -72,12 +72,12 @@ class Spreadsheet:
 <?xml version="1.0" encoding="UTF-8"?>\
 <!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">\
 <script:module xmlns:script="http://openoffice.org/2000/script" script:name="Functions" script:language="StarBasic">\
-Function GEOMDIST(a, b)
+Function SDSUM(a, b)
     If Not IsArray( a ) Then
         If IsNumeric( a ) Then
-            GEOMDIST = a
+            SDSUM = a
         Else
-            GEOMDIST = 0
+            SDSUM = 0
         End If
     Else
         Dim s As double
@@ -98,8 +98,11 @@ Function GEOMDIST(a, b)
                 s = s + (x - y)^2
             Next j
         Next i
-        GEOMDIST = s^0.5
+        SDSUM = s
     End If
+End Function
+Function GEOMDIST(a, b)
+    GEOMDIST = SDSUM(a,b)^0.5
 End Function
 </script:module>
 ''')
@@ -149,10 +152,10 @@ class Table:
         radix = ord("Z") - ord("A") + 1
         ret   = ""
         while col >= 0:
-            rem = col % radix;
-            ret = chr(rem + ord("A")) + ret;
-            col = col / radix - 1;
-        return ret + str(row + 1);
+            rem = col % radix
+            ret = chr(rem + ord("A")) + ret
+            col = col / radix - 1
+        return ret + str(row + 1)
 
     def printSheet(self, out):
         out.write('<table:table table:name="Instances" table:style-name="ta1" table:print="false"><table:table-column table:style-name="co1" table:default-cell-style-name="Default"/>')
@@ -175,6 +178,7 @@ class InstanceTable(Table):
         self.measures  = measures
         self.lines     = 0
         self.machines  = set()
+        self.lastcol   = None
         row = 2
         for instance in self.benchmark.list:
             instance = instance.values()[0]
@@ -241,9 +245,9 @@ class InstanceTable(Table):
                     else: measures = self.measures
                     for name in measures:
                         if name in run.measures:
-                            type, value = run.measures[name]
-                            if type != "float": type = "string"
-                            column.addCell(instresult.instance.line + run.number - 1, name, type, value)
+                            valueType, value = run.measures[name]
+                            if valueType != "float": valueType = "string"
+                            column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
 
 class Column:
     def __init__(self, setting, machine):
@@ -264,10 +268,10 @@ class Column:
     def __hash__(self):
         return hash((self.setting, self.machine))
     
-    def addCell(self, line, name, type, value):
+    def addCell(self, line, name, valueType, value):
         if type == "float": cell = FloatCell(float(value))
         else: cell = StringCell(value)
-        self.type[name] = type
+        self.type[name] = valueType
         if not name in self.content:
             self.content[name] = []
         self.content[name].append((line, cell))

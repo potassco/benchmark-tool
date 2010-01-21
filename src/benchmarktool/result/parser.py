@@ -6,11 +6,22 @@ Created on Jan 19, 2010
 
 from lxml import etree
 from benchmarktool import tools
-from benchmarktool.result.result import * 
+from benchmarktool.result.result import Benchmark, Class, ClassResult, Config, Instance, InstanceResult, Machine, Project, Result, Run, Runspec, SeqJob, Setting, System
 
 class Parser:
     def __init__(self):
-        pass
+        self.benchclass   = None
+        self.systemOrder  = None
+        self.result       = None
+        self.system       = None
+        self.settingOrder = None
+        self.benchscope   = None
+        self.benchmark    = None
+        self.classresult  = None
+        self.instresult   = None
+        self.runspec      = None
+        self.project      = None
+        self.run          = None
     
     def parse(self, infile):
         # to reduce memory consumption especially for large result files
