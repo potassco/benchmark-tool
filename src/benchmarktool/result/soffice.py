@@ -6,6 +6,8 @@ Created on Jan 20, 2010
 
 from zipfile import ZipFile
 from StringIO import StringIO
+import __builtin__
+import math
 
 class Spreadsheet:
     def __init__(self, benchmark, columns, measures):
@@ -52,6 +54,7 @@ class Spreadsheet:
 <manifest:file-entry manifest:media-type="" manifest:full-path="Basic/Standard/"/>\
 <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="Basic/script-lc.xml"/>\
 <manifest:file-entry manifest:media-type="" manifest:full-path="Basic/"/>\
+<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="styles.xml"/>\
 </manifest:manifest>\
 ''')
         zipFile.writestr("Basic/script-lc.xml", '''\
@@ -106,6 +109,20 @@ Function GEOMDIST(a, b)
 End Function
 </script:module>
 ''')
+        zipFile.writestr("styles.xml", '''\
+<?xml version="1.0" encoding="UTF-8"?>\
+<office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:rpt="http://openoffice.org/2005/report" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2" xmlns:rdfa="http://docs.oasis-open.org/opendocument/meta/rdfa#" office:version="1.2">\
+<office:styles>\
+<style:style style:name="Default" style:family="table-cell"/>\
+<style:style style:name="cellBest" style:family="table-cell" style:parent-style-name="Default">\
+<style:table-cell-properties fo:background-color="#00ff00"/>\
+</style:style>\
+<style:style style:name="cellWorst" style:family="table-cell" style:parent-style-name="Default">\
+<style:table-cell-properties fo:background-color="#ff0000"/>\
+</style:style>\
+</office:styles>\
+</office:document-styles>\
+''')
         zipFile.close()
         
     def addRunspec(self, runspec):
@@ -113,28 +130,39 @@ End Function
         
 class Cell:
     def __init__(self):
-        pass
+        self.style = None
 
-class StringCell:
+class StringCell(Cell):
     def __init__(self, val):
+        Cell.__init__(self)
         self.val = val
     
     def printSheet(self, out):
         out.write('<table:table-cell office:value-type="string"><text:p>{0}</text:p></table:table-cell>'.format(self.val))
 
-class FloatCell:
+class FloatCell(Cell):
     def __init__(self, val):
+        Cell.__init__(self)
         self.val = val
     
     def printSheet(self, out):
-        out.write('<table:table-cell office:value-type="float" office:value="{0}"/>'.format(self.val))
+        if self.style != None:
+            style = ' table:style-name="{0}"'.format(self.style)
+        else:
+            style = ""
+        out.write('<table:table-cell{1} office:value-type="float" office:value="{0}"/>'.format(self.val, style))
 
-class FormulaCell:
+class FormulaCell(Cell):
     def __init__(self, val):
+        Cell.__init__(self)
         self.val = val
     
     def printSheet(self, out):
-        out.write('<table:table-cell table:formula="{0}" office:value-type="float"/>'.format(self.val))
+        if self.style != None:
+            style = ' table:style-name="{0}"'.format(self.style)
+        else: 
+            style = ""
+        out.write('<table:table-cell{1} table:formula="{0}" office:value-type="float"/>'.format(self.val, style))
 
 class Table:
     def __init__(self):
@@ -148,6 +176,9 @@ class Table:
             rowRef.append(None)
         rowRef[col] = cell
 
+    def get(self, row, col):
+        return self.content[row][col]
+        
     def cellIndex(self, row, col):
         radix = ord("Z") - ord("A") + 1
         ret   = ""
@@ -168,7 +199,41 @@ class Table:
                     cell.printSheet(out)
             out.write('</table:table-row>')
         out.write('</table:table>')
+
+class ValueRows:
+    def __init__(self):
+        self.list = {}
     
+    def __iter__(self):
+        for name, valList in self.list.items():
+            for line in range(0, len(valList)):
+                row =  sorted(valList[line])
+                row.sort()
+                result = [None, None, None, None]
+                if len(row) > 0: 
+                    result[0] = row[0][1]
+                if len(row) > 1: 
+                    result[3] = row[-1][1]
+                if len(row) > 2: 
+                    result[1] = row[1][1]
+                    result[2] = row[-2][1]
+                yield name, line, tuple(result)
+    
+    def add(self, name, val, line, col):
+        if not name in self.list: self.list[name] = []
+        valList =  self.list[name]
+        while len(valList) <= line: valList.append([])  
+        valList[line].append((val,col))
+    
+    def min(self, name, line):
+        if not name in self.list: 
+            return None
+        if line >= len(self.list[name]):
+            return None
+        if len(self.list[name][line]) == 0:
+            return None
+        return min(map(lambda x: x[0], self.list[name][line]))
+        
 class InstanceTable(Table):
     def __init__(self, benchmark, columns, measures):
         Table.__init__(self)
@@ -200,6 +265,8 @@ class InstanceTable(Table):
     def finish(self):
         col = 1
         floatOccur = {}
+        valueRows = ValueRows()
+        # generate all columns
         for column in sorted(self.columns.columns):
             column.offset = col
             self.add(0, col, StringCell(column.genName(len(self.machines) > 1)))
@@ -209,16 +276,27 @@ class InstanceTable(Table):
             for name in measures:
                 if name in column.content:
                     self.add(1, column.offset + add, StringCell(name))
-                    for line, cell in column.content[name]:
-                        self.add(2 + line, column.offset + add, cell)
+                    column.offsets[name] = column.offset + add
+                    content = column.content[name]
+                    for line in range(0, len(content)):
+                        value = content[line]
+                        if value.__class__ == __builtin__.float:
+                            self.add(2 + line, column.offset + add, FloatCell(value))
+                            valueRows.add(name, value, line, column.offset + add)
+                        else:
+                            self.add(2 + line, column.offset + add, StringCell(value))
                     if column.type[name] == "float":
-                        if not name in floatOccur: floatOccur[name] = set() 
+                        if not name in floatOccur: 
+                            floatOccur[name] = set() 
                         floatOccur[name].add(col)
                         self.addFooter(col + add)
                     add += 1
             if add == 0: add = 1    
             col += add
-        self.lastcol = col
+            
+        # generate virtual best solver
+        virtualBest = Column(None, None)
+        virtualBest.offset = self.lastcol = col
         self.add(0, col, StringCell("virtual best"))
         for name in measures:
             if name in floatOccur:
@@ -229,11 +307,31 @@ class InstanceTable(Table):
                         if minRange != "": 
                             minRange += ";" 
                         minRange += "[.{0}]".format(self.cellIndex(row, colRef))
+                    virtualBest.addCell(row - 2, name, "float", valueRows.min(name, row - 2))
                     self.add(row, col, FormulaCell("of:=MIN({0})".format(minRange)))
                     self.addFooter(col)
                 for colRef in sorted(floatOccur[name]):
                     self.add(self.resultOffset + 4, colRef, FormulaCell("of:=GEOMDIST([.{0}:.{1}];[.{2}:.{3}])".format(self.cellIndex(2, colRef), self.cellIndex(self.resultOffset - 1, colRef), self.cellIndex(2, col), self.cellIndex(self.resultOffset - 1, col))))
                 col+= 1
+        virtualBest.calcSummary(self.resultOffset - 2)
+        
+        # calc values for the footers
+        for column in self.columns.columns:
+            column.calcSummary(self.resultOffset - 2, virtualBest)
+            for name, summary in column.summary.items():
+                valueRows.add(name, summary.sum, self.resultOffset - 2 + 1, column.offsets[name])
+                valueRows.add(name, summary.avg, self.resultOffset - 2 + 2, column.offsets[name])
+                valueRows.add(name, summary.dev, self.resultOffset - 2 + 3, column.offsets[name])
+                valueRows.add(name, summary.dst, self.resultOffset - 2 + 4, column.offsets[name])
+                     
+        # apply some styles to the instance sheet
+        for name, line, (best, better, worse, worst) in valueRows:
+            if best != None:
+                cell = self.get(2 + line, best)
+                cell.style = "cellBest"
+            if worst != None:
+                cell = self.get(2 + line, worst)
+                cell.style = "cellWorst"
             
     def addRunspec(self, runspec):
         column = self.columns.getColumn(runspec)
@@ -249,12 +347,40 @@ class InstanceTable(Table):
                             if valueType != "float": valueType = "string"
                             column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
 
+class Summary:
+    def __init__(self):
+        self.sum   = 0
+        self.dev   = 0
+        self.sqsum = 0
+        self.avg   = 0
+        self.dst   = 0
+    
+    def calc(self, n, colA, colB):
+        self.avg = self.sum // n
+        self.dev = math.sqrt(self.sqsum // n - self.avg * self.avg)
+        colA.extend([None for _ in range(0, n - len(colA))])
+        if colB != None: 
+            colB.extend([None for _ in range(0, n - len(colB))])
+            sdsum = 0
+            for a, b in zip(colA, colB):
+                if a == None: a = 0
+                if b == None: b = 0
+                sdsum += (a - b) * (a - b)
+            self.dst = math.sqrt(sdsum)
+        
+    def add(self, val):
+        self.sum   += val
+        self.sqsum += val * val
+        
 class Column:
     def __init__(self, setting, machine):
         self.setting  = setting
         self.machine  = machine
+        self.offset   = None
         self.content  = {}
         self.type     = {}
+        self.summary  = {}
+        self.offsets  = {}
     
     def genName(self, addMachine):
         res = self.setting.system.name + "-" + self.setting.system.version + "/" + self.setting.name
@@ -268,10 +394,24 @@ class Column:
     def __hash__(self):
         return hash((self.setting, self.machine))
     
+    def calcSummary(self, n, ref = None):
+        for name, summary in self.summary.items():
+            if ref.__class__ == Column:
+                refCol = ref.content[name]
+            else:
+                refCol = None
+            summary.calc(n, self.content[name], refCol)
+    
     def addCell(self, line, name, valueType, value):
-        if type == "float": cell = FloatCell(float(value))
-        else: cell = StringCell(value)
+        if valueType == "float": 
+            value = float(value)
+            if not name in self.summary: 
+                self.summary[name] = Summary() 
+            self.summary[name].add(value)
         self.type[name] = valueType
-        if not name in self.content:
+        if not name in self.content: 
             self.content[name] = []
-        self.content[name].append((line, cell))
+        content = self.content[name]
+        while len(content) <= line: 
+            content.append(None)
+        content[line] = value

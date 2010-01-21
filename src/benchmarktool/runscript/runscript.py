@@ -9,8 +9,10 @@ import benchmarktool.tools as tools
 import os
 import stat
 
+# needed to embed measurements functions via exec 
 # pylint: disable-msg=W0611
 import benchmarktool.config #@UnusedImport
+# pylint: enable-msg=W0611
 
 class Machine:
     def __init__(self, name, cpu, memory):

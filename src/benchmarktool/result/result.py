@@ -20,7 +20,7 @@ class Result:
     def merge(self, projects):
         benchmarks = set()
         columns    = set()
-        for project in self.projects.values():
+        for project in projects:
             for runspec in project.runspecs:
                 columns.add(Column(runspec.setting, runspec.machine))
                 for classresult in runspec.classresults:
@@ -33,7 +33,7 @@ class Result:
     def genOffice(self, out, selProjects, measures):
         projects = [] 
         for project in self.projects.values():
-            if selProjects == "" or projects.name in selProjects:
+            if selProjects == "" or project.name in selProjects:
                 projects.append(project)
         benchmarkMerge, columnMerge = self.merge(projects)
         
@@ -62,7 +62,7 @@ class BenchmarkMerge:
             start = heapq.merge(start, benchmark)
         self.list = []
         num = 0
-        for key, instances in itertools.groupby(start, lambda instance: (instance.benchclass.id, instance.id)):
+        for _, instances in itertools.groupby(start, lambda instance: (instance.benchclass.id, instance.id)):
             maxRuns = 1
             line = {}
             for instance in instances:
@@ -137,17 +137,17 @@ class Benchmark:
         return Benchmark.Iterator(self)
     
 class Class:
-    def __init__(self, benchmark, name, id):
+    def __init__(self, benchmark, name, uid):
         self.benchmark = benchmark
         self.name      = name
-        self.id        = id
+        self.id        = uid
         self.instances = {}
 
 class Instance:
-    def __init__(self, benchclass, name, id):
+    def __init__(self, benchclass, name, uid):
         self.benchclass = benchclass
         self.name       = name
-        self.id         = id
+        self.id         = uid
         self.line       = None
         self.maxRuns    = 0
     
