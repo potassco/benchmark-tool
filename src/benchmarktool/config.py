@@ -16,31 +16,40 @@ clasp_restarts    = re.compile(r"^Restarts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_status      = re.compile(r"^(SATISFIABLE|UNSATISFIABLE|UNKNOWN)[ ]*$")
 clasp_interrupted = re.compile(r"^Interrupted[ ]*:[ ]*(1)[ ]*$")
 
-def clasp(root):
-    result = []
+def clasp(root, runspec):
+    result      = []
     interrupted = 0
+    status      = None
+    time        = runspec.project.job.timeout
     for line in open(os.path.join(root, "runsolver.solver")):
         m = clasp_models.match(line)
-        if m: result.append(("models", "int", m.group(1)))
+        if m: result.append(("models", "float", m.group(1)))
         
         m = clasp_choices.match(line)
-        if m: result.append(("choices", "int", m.group(1)))
+        if m: result.append(("choices", "float", m.group(1)))
         
         m = clasp_time.match(line)
-        if m: result.append(("time", "float", m.group(1)))
+        if m: time = m.group(1)
         
         m = clasp_conflicts.match(line)
-        if m: result.append(("conflicts", "int", m.group(1)))
+        if m: result.append(("conflicts", "float", m.group(1)))
         
         m = clasp_restarts.match(line)
-        if m: result.append(("restarts", "int", m.group(1)))
+        if m: result.append(("restarts", "float", m.group(1)))
         
         m = clasp_status.match(line)
-        if m: result.append(("status", "string", m.group(1)))
+        if m: status =  m.group(1)
         
         m = clasp_interrupted.match(line)
         if m: interrupted = 1
-        
-    result.append(("interrupted", "int", interrupted))
+    
+    result.append(("time", "float", time))
+    result.append(("status", "string", status))
+    
+    if status != "SATISFIABLE" and status != "UNSATISFIABLE":
+        result.append(("timeout", "float", 1))
+    else:
+        result.append(("timeout", "float", 0))
+    result.append(("interrupted", "float", interrupted))
     return result
         

@@ -151,7 +151,7 @@ class SeqScriptGen:
         for run in range(1, self.seqJob.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
             # pylint: disable-msg=E0602
-            result = func(self.path(runspec, instance, run)) #@UndefinedVariable
+            result = func(self.path(runspec, instance, run), runspec) #@UndefinedVariable
             for key, valtype, val in sorted(result):
                 out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val))
             out.write('{0}</run>\n'.format(indent))

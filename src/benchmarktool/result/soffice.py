@@ -121,10 +121,20 @@ End Function
 <?xml version="1.0" encoding="UTF-8"?>\
 <office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:rpt="http://openoffice.org/2005/report" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2" xmlns:rdfa="http://docs.oasis-open.org/opendocument/meta/rdfa#" office:version="1.2">\
 <office:styles>\
+\
 <style:style style:name="Default" style:family="table-cell"/>\
 <style:style style:name="cellBest" style:family="table-cell" style:parent-style-name="Default">\
 <style:table-cell-properties fo:background-color="#00ff00"/>\
 </style:style>\
+\
+<style:style style:name="cellBetter" style:family="table-cell" style:parent-style-name="Default">\
+<style:table-cell-properties fo:background-color="#80ff00"/>\
+</style:style>\
+\
+<style:style style:name="cellWorse" style:family="table-cell" style:parent-style-name="Default">\
+<style:table-cell-properties fo:background-color="#ff8000"/>\
+</style:style>\
+\
 <style:style style:name="cellWorst" style:family="table-cell" style:parent-style-name="Default">\
 <style:table-cell-properties fo:background-color="#ff0000"/>\
 </style:style>\
@@ -179,11 +189,10 @@ class Table:
         self.name    = "ta1" 
     
     def add(self, row, col, cell):
+        # estimate some "good" column width 
         while len(self.cowidth) <= col + 1:
             self.cowidth.append(0.8925)
         if cell.__class__ == StringCell:
-            import sys
-            print >> sys.stderr, cell.val, len(cell.val) * 0.07
             self.cowidth[col] = max(self.cowidth[col], len(cell.val) * 0.07)
         while len(self.content) <= row: 
             self.content.append([])
@@ -227,15 +236,25 @@ class ValueRows:
             for line in range(0, len(valList)):
                 row =  sorted(valList[line])
                 row.sort()
-                result = [None, None, None, None]
-                if len(row) > 0: 
-                    result[0] = row[0][1]
-                if len(row) > 1: 
-                    result[3] = row[-1][1]
-                if len(row) > 2: 
-                    result[1] = row[1][1]
-                    result[2] = row[-2][1]
-                yield name, line, tuple(result)
+                best   = [[], []]
+                worst  = [[], []]
+                # chop best
+                start = 0
+                for i in range(0, 2):
+                    if start < len(row):
+                        first = row[start][0]
+                        while start < len(row) and row[start][0] == first: 
+                            best[i].append(row[start][1])
+                            start += 1  
+                # chop worst
+                end = len(row) - 1
+                for i in range(0, 2):
+                    if end >= start:
+                        first = row[end][0]
+                        while end >= start and row[end][0] == first: 
+                            worst[i].append(row[end][1])
+                            end -= 1  
+                yield name, line, (best[0], best[1], worst[1], worst[0])
     
     def add(self, name, val, line, col):
         if not name in self.list: self.list[name] = []
@@ -306,7 +325,7 @@ class InstanceTable(Table):
                     if column.type[name] == "float":
                         if not name in floatOccur: 
                             floatOccur[name] = set() 
-                        floatOccur[name].add(col)
+                        floatOccur[name].add(col + add)
                         self.addFooter(col + add)
                     add += 1
             if add == 0: add = 1    
@@ -344,11 +363,17 @@ class InstanceTable(Table):
                      
         # apply some styles to the instance sheet
         for name, line, (best, better, worse, worst) in valueRows:
-            if best != None:
-                cell = self.get(2 + line, best)
+            for i in best:
+                cell = self.get(2 + line, i)
                 cell.style = "cellBest"
-            if worst != None:
-                cell = self.get(2 + line, worst)
+            for i in better:
+                cell = self.get(2 + line, i)
+                cell.style = "cellBetter"
+            for i in worse:
+                cell = self.get(2 + line, i)
+                cell.style = "cellWorse"
+            for i in worst:
+                cell = self.get(2 + line, i)
                 cell.style = "cellWorst"
             
     def addRunspec(self, runspec):
