@@ -1,0 +1,43 @@
+<runscript output="output">
+	<!-- two example machines -->
+	<machine name="belle-ile" cpu="2xE6750@2.66GHz" memory="2GB"/>
+	<machine name="minquiers" cpu="2xE6750@2.66GHz" memory="2GB"/>
+	<machine name="houat"     cpu="8xE5520@2.27GHz" memory="24GB"/>
+	
+	<!-- an example configuration for clasp -->
+	<config name="seq-generic" template="templates/seq-generic.sh"/>
+	<system name="clasp" version="1.3.2" measures="clasp" config="seq-generic">
+		<!-- optionally allows for tagging settings -->
+		<setting name="default"  cmdline="--stats 1"/>
+		<setting name="vsids"    cmdline="--stats --heu=vsids 1"/>
+		<setting name="progress" cmdline="--stats --save-progress 1"/>
+		<setting name="estimate" cmdline="--stats --estimate 1"/>
+		<setting name="recstr"   cmdline="--stats --recursive-str 1"/>
+		<setting name="nodel"    cmdline="--stats --del=no 1"/>
+		<setting name="norest"   cmdline="--stats --restarts=no 1"/>
+	</system>
+	
+	<!-- a job specification (allows for arbitrary additional arguments args to pass to the template) -->
+	<seqjob name="clasp-job" timeout="120" runs="1" parallel="8" any="yes"/>
+
+	<!-- an example benchmark -->
+	<benchmark name="clasp-benchmark">
+		<!-- recursively add all files under a given path -->
+		<folder path="benchmarks/clasp">
+			<!-- ignore parts that have a certain prefix -->
+			<ignore prefix="pigeons"/>
+		</folder>
+		<!-- add files below a path individually -->
+		<files path="benchmarks/clasp">
+			<add file="pigeons/pigeonhole10-unsat.lp"/>
+			<add file="pigeons/pigeonhole11-unsat.lp"/>
+		</files>
+	</benchmark>
+
+	<!-- example projects -->
+	<project name="clasp-big" job="clasp-job">
+		<!-- choose all systems with settings that have the specified tags -->
+		<runtag machine="houat" benchmark="clasp-benchmark" tag="*all*"/>
+	</project>
+</runscript>
+
