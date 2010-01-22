@@ -11,7 +11,7 @@ import math
 
 class Spreadsheet:
     def __init__(self, benchmark, columns, measures):
-        self.instSheet = InstanceTable(benchmark, columns, measures)
+        self.instSheet = InstanceTable(benchmark, columns, measures, "ta1")
         
     def finish(self):
         self.instSheet.finish()
@@ -19,6 +19,7 @@ class Spreadsheet:
     def printSheet(self, out):
         zipFile = ZipFile(out, "w")
         out = StringIO()
+        
         out.write('''\
 <?xml version="1.0" encoding="UTF-8"?>\
 <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:xforms="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rpt="http://openoffice.org/2005/report" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2" xmlns:rdfa="http://docs.oasis-open.org/opendocument/meta/rdfa#" xmlns:field="urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:field:1.0" xmlns:formx="urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0" office:version="1.2">\
@@ -28,9 +29,15 @@ class Spreadsheet:
 <style:font-face style:name="DejaVu Sans" svg:font-family="'DejaVu Sans'" style:font-family-generic="system" style:font-pitch="variable"/>\
 </office:font-face-decls>\
 <office:automatic-styles>\
-<style:style style:name="co1" style:family="table-column">\
-<style:table-column-properties fo:break-before="auto" style:column-width="0.8925in"/>\
+''')        
+        for i in range(0, len(self.instSheet.cowidth)):
+            out.write('''\
+<style:style style:name="{0}co{1}" style:family="table-column">\
+<style:table-column-properties fo:break-before="auto" style:column-width="{2}in"/>\
 </style:style>\
+'''.format(self.instSheet.name, i + 1, self.instSheet.cowidth[i]))
+
+        out.write('''\
 <style:style style:name="ro1" style:family="table-row">\
 <style:table-row-properties style:row-height="0.178in" fo:break-before="auto" style:use-optimal-row-height="true"/>\
 </style:style>\
@@ -40,6 +47,7 @@ class Spreadsheet:
 </office:automatic-styles>\
 <office:body>\
 <office:spreadsheet>''')
+        
         self.instSheet.printSheet(out)
         out.write('''</office:spreadsheet></office:body></office:document-content>''')
         zipFile.writestr("mimetype", '''application/vnd.oasis.opendocument.spreadsheet''')
@@ -165,10 +173,18 @@ class FormulaCell(Cell):
         out.write('<table:table-cell{1} table:formula="{0}" office:value-type="float"/>'.format(self.val, style))
 
 class Table:
-    def __init__(self):
+    def __init__(self, name):
         self.content = []
+        self.cowidth = []
+        self.name    = "ta1" 
     
     def add(self, row, col, cell):
+        while len(self.cowidth) <= col + 1:
+            self.cowidth.append(0.8925)
+        if cell.__class__ == StringCell:
+            import sys
+            print >> sys.stderr, cell.val, len(cell.val) * 0.07
+            self.cowidth[col] = max(self.cowidth[col], len(cell.val) * 0.07)
         while len(self.content) <= row: 
             self.content.append([])
         rowRef = self.content[row]
@@ -189,7 +205,9 @@ class Table:
         return ret + str(row + 1)
 
     def printSheet(self, out):
-        out.write('<table:table table:name="Instances" table:style-name="ta1" table:print="false"><table:table-column table:style-name="co1" table:default-cell-style-name="Default"/>')
+        out.write('<table:table table:name="Instances" table:style-name="ta1" table:print="false">')
+        for i in range(0, len(self.cowidth)):
+            out.write('''<table:table-column table:style-name="{0}co{1}" table:default-cell-style-name="Default"/>'''.format(self.name, i + 1))
         for row in self.content:
             out.write('<table:table-row table:style-name="ro1">')
             for cell in row:
@@ -235,8 +253,8 @@ class ValueRows:
         return min(map(lambda x: x[0], self.list[name][line]))
         
 class InstanceTable(Table):
-    def __init__(self, benchmark, columns, measures):
-        Table.__init__(self)
+    def __init__(self, benchmark, columns, measures, name):
+        Table.__init__(self, name)
         self.benchmark = benchmark
         self.columns   = columns
         self.results   = {}
