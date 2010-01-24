@@ -8,6 +8,7 @@ from zipfile import ZipFile
 from StringIO import StringIO
 import __builtin__
 import math
+from benchmarktool import tools 
 
 class Spreadsheet:
     def __init__(self, benchmark, columns, measures):
@@ -214,15 +215,15 @@ class ValueRows:
         while len(valList) <= line: valList.append([])  
         valList[line].append((val,col))
     
-    def min(self, name, line):
+    def map(self, name, line, func):
         if not name in self.list: 
             return None
         if line >= len(self.list[name]):
             return None
         if len(self.list[name][line]) == 0:
             return None
-        return min(map(lambda x: x[0], self.list[name][line]))
-        
+        return func(map(lambda x: x[0], self.list[name][line]))
+
 class InstanceTable(Table):
     def __init__(self, benchmark, columns, measures, name):
         Table.__init__(self, name)
@@ -296,7 +297,6 @@ class InstanceTable(Table):
             resultColumns.append(column)
             for name in measures:
                 if name in floatOccur:
-                     
                     self.add(1, col, StringCell(name))
                     for row in xrange(2, self.resultOffset):
                         minRange = ""
@@ -304,9 +304,11 @@ class InstanceTable(Table):
                             if minRange != "": 
                                 minRange += ";" 
                             minRange += "[.{0}]".format(self.cellIndex(row, colRef, True))
-                        column.addCell(row - 2, name, "float", valueRows.min(name, row - 2))
                         self.add(row, col, FormulaCell("of:={1}({0})".format(minRange, colName.upper())))
                         self.addFooter(col)
+                        if colName == "min":      column.addCell(row - 2, name, "float", valueRows.map(name, row - 2, min))
+                        elif colName == "median": column.addCell(row - 2, name, "float", valueRows.map(name, row - 2, tools.median))
+                        elif colName == "max":    column.addCell(row - 2, name, "float", valueRows.map(name, row - 2, max))
                     for colRef in sorted(floatOccur[name]):
                         if colName == "min":
                             self.add(
@@ -372,7 +374,15 @@ class InstanceTable(Table):
 #                valueRows.add(name, summary.avg, self.resultOffset - 2 + 2, column.offsets[name])
 #                valueRows.add(name, summary.dev, self.resultOffset - 2 + 3, column.offsets[name])
 #                valueRows.add(name, summary.dst, self.resultOffset - 2 + 4, column.offsets[name])
-                     
+
+#a) Farbkodierung (nur ab mindestens zwei Konfigurationen):
+#  a1) Laufzeit:
+#    - gruen: best, aber nur, wenn (worst-Laufzeit - best-Laufzeit) > 2 sec
+#    - rot : worst, aber nur, wenn (worst-Laufzeit - median-Laufzeit) > 2 sec
+#  a2) Timeouts:
+#    - gruen: best, aber nur, wenn (worst - best) > 0
+#    - rot: alle fuer die timeouts > median
+
         # apply some styles to the instance sheet
         for name, line, (best, better, worse, worst) in valueRows:
             for i in best:
