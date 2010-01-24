@@ -57,211 +57,10 @@ class Spreadsheet:
 <manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0">\
 <manifest:file-entry manifest:media-type="application/vnd.oasis.opendocument.spreadsheet" manifest:version="1.2" manifest:full-path="/"/>\
 <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="content.xml"/>\
-<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="Basic/Standard/Functions.xml"/>\
-<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="Basic/Standard/script-lb.xml"/>\
-<manifest:file-entry manifest:media-type="" manifest:full-path="Basic/Standard/"/>\
-<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="Basic/script-lc.xml"/>\
-<manifest:file-entry manifest:media-type="" manifest:full-path="Basic/"/>\
 <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="styles.xml"/>\
 </manifest:manifest>\
 ''')
-        zipFile.writestr("Basic/script-lc.xml", '''\
-<?xml version="1.0" encoding="UTF-8"?>\
-<!DOCTYPE library:libraries PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "libraries.dtd">\
-<library:libraries xmlns:library="http://openoffice.org/2000/library" xmlns:xlink="http://www.w3.org/1999/xlink">\
-<library:library library:name="Standard" library:link="false"/>\
-</library:libraries>\
-''')
-        zipFile.writestr("Basic/Standard/script-lb.xml", '''\
-<?xml version="1.0" encoding="UTF-8"?>\
-<!DOCTYPE library:library PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "library.dtd">\
-<library:library xmlns:library="http://openoffice.org/2000/library" library:name="Standard" library:readonly="false" library:passwordprotected="false">\
-<library:element library:name="Functions"/>\
-</library:library>\
-''')
-        
-        script = '''\
-Sub TEST()
-    DIM a(20)
-    a(1) = 12
-    a(2) = 15
-    a(3) = 11
-    a(4) = 2
-    a(5) = 9
-    a(6) = 5
-    a(7) = 0
-    a(8) = 7
-    a(9) = 3
-    a(10) = 21
-    a(11) = 44
-    a(12) = 40
-    a(13) = 1
-    a(14) = 18
-    a(15) = 20
-    a(16) = 32
-    a(17) = 19
-    a(18) = 35
-    a(19) = 37
-    a(20) = 39
-    msgbox "median: " & _MEDIAN(a)
-End Sub
 
-Function SDSUM(a, b)
-    If IsNumeric(a) Then
-        SDSUM = (a - b) ^ 2
-    ElseIf IsArray(a) Then
-        s = 0
-        For i = 1 To UBOUND(a, 1)
-            For j = 1 To UBOUND(a, 2)
-                Dim x As double
-                Dim y As double
-                If IsNumeric(a(i, j)) Then
-                    x = a( i, j )
-                Else
-                    x = 0
-                End If
-                  If IsNumeric(b(i, j)) Then
-                    y = b(i, j)
-                Else
-                    y = 0
-                End If
-                s = s + (x - y) ^ 2
-            Next j
-        Next i
-        SDSUM = s
-    Else
-        SDSUM = 0
-    End If
-End Function
-
-Function GEOMDIST(a, b)
-    GEOMDIST = SDSUM(a, b) ^ 0.5
-End Function
-
-Function _TOARRAY(a)
-    If IsArray(a) Then
-        _TOARRAY = a
-    Else
-        Dim a(1,1) As Variant
-        aa(1,1) = a
-        _TOARRAY = aa
-    End If
-End Function
-
-Function HORCAT(a, b)
-    a = _TOARRAY(a)
-    b = _TOARRAY(b)
-    Dim c(UBOUND(a, 1), UBOUND(a, 2) + UBOUND(b, 2)) As Variant
-    For i = 1 To UBOUND( a, 1 )
-        For j = 1 To UBOUND( a, 2 )
-              c(i, j) = a(i, j)
-        Next j
-        For j = 1 To UBOUND( b, 2 )
-             c(i, j + UBOUND( a, 2 )) = b(i, j)
-        Next j
-    Next i
-    HORCAT = c
-End Function
-
-Function HORPEAK(a, b, best)
-    a = _TOARRAY(a)
-    b = _TOARRAY(b)
-    result = 0
-    For i = 1 To UBOUND(a, 1)
-        isBest = 1
-        For j = 1 To UBOUND(b, 2)
-            If best = 1 And a(i,1) > b(i, j) Then
-                isBest = 0
-            ElseIf best <> 1 And a(i,1) < b(i, j) Then                
-                isBest = 0            
-            End If
-        Next j
-        result = result + isBest
-    Next i
-    HORPEAK = result
-End Function
-
-Function _MEDIAN(list)
-    length = UBOUND(list, 1)
-    If length = 0 Then
-        _MEDIAN = 0
-    Else
-        m = INT(length / 2) + 1
-        _SELECT(list, 1, length, m)
-        median = list(m)
-        If 2 * (m - 1) = length Then
-            min = list(m + 1)
-            For i = m + 2 To length
-                If list(i) < min Then
-                    min = list(i)
-                End If
-            Next i
-            median = (median + min) / 2.0
-        End If
-        _MEDIAN = median
-    End If
-End Function
-
-Sub _SWAP(list, i, j)
-    temp = list(i)
-    list(i) = list(j)
-    list(j) = temp
-End Sub
-
-Function _PARTITION(list, left, right)
-        pivotIndex = INT(RND() * (right - left + 1)) + left
-        pivotValue = list(pivotIndex)
-        _SWAP(list, pivotIndex, right)
-        storeIndex = left
-        For i = left To right - 1
-            If list(i) < pivotValue Then
-                _SWAP(list, storeIndex, i)
-                storeIndex = storeIndex + 1
-            End If
-        Next i
-        _SWAP(list, right, storeIndex)
-        _PARTITION = storeIndex
-End Function
-
-FUNCTION _SELECT(list, left, right, k)
-        pivotIndex = _PARTITION(list, left, right)
-        If k = pivotIndex Then
-                _SELECT = list(k)
-        ElseIf k < pivotIndex Then
-                _SELECT = _SELECT(list, left, pivotIndex - 1, k)
-        Else
-                _SELECT = _SELECT(list, pivotIndex + 1, right, k)
-        End If
-End Function
-
-Function HORMEDIAN(a, b, best)
-    a = _TOARRAY(a)
-    b = _TOARRAY(b)
-    result = 0
-    Dim row(UBOUND(b, 2)) As double
-    For i = 1 To UBOUND(a, 1)
-        For j = 1 To UBOUND(b, 2)
-            row(j) = b(i, j)
-        Next j
-        UBOUND(row, 1)
-        median = _MEDIAN(row)
-        If best = 1 And a(i, 1) < median Then
-            result = result + 1
-        ElseIf best <> 1 And a(i, 1) > median Then
-            result = result + 1
-        End If
-    Next i
-    HORMEDIAN = result
-End Function
-'''.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-        zipFile.writestr("Basic/Standard/Functions.xml", '''\
-<?xml version="1.0" encoding="UTF-8"?>\
-<!DOCTYPE script:module PUBLIC "-//OpenOffice.org//DTD OfficeDocument 1.0//EN" "module.dtd">\
-<script:module xmlns:script="http://openoffice.org/2000/script" script:name="Functions" script:language="StarBasic">\
-{0}\
-</script:module>\
-'''.format(script))
         zipFile.writestr("styles.xml", '''\
 <?xml version="1.0" encoding="UTF-8"?>\
 <office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:rpt="http://openoffice.org/2005/report" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2" xmlns:rdfa="http://docs.oasis-open.org/opendocument/meta/rdfa#" office:version="1.2">\
@@ -294,6 +93,8 @@ End Function
 class Cell:
     def __init__(self):
         self.style = None
+    def protect(self, val):
+        return val.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 class StringCell(Cell):
     def __init__(self, val):
@@ -301,7 +102,7 @@ class StringCell(Cell):
         self.val = val
     
     def printSheet(self, out):
-        out.write('<table:table-cell office:value-type="string"><text:p>{0}</text:p></table:table-cell>'.format(self.val))
+        out.write('<table:table-cell office:value-type="string"><text:p>{0}</text:p></table:table-cell>'.format(self.protect(self.val)))
 
 class FloatCell(Cell):
     def __init__(self, val):
@@ -316,16 +117,18 @@ class FloatCell(Cell):
         out.write('<table:table-cell{1} office:value-type="float" office:value="{0}"/>'.format(self.val, style))
 
 class FormulaCell(Cell):
-    def __init__(self, val):
+    def __init__(self, val, arrayForm = False):
         Cell.__init__(self)
-        self.val = val
+        self.val       = val
+        self.arrayForm = arrayForm
     
     def printSheet(self, out):
+        extra = ""
         if self.style != None:
-            style = ' table:style-name="{0}"'.format(self.style)
-        else: 
-            style = ""
-        out.write('<table:table-cell{1} table:formula="{0}" office:value-type="float"/>'.format(self.val, style))
+            extra += ' table:style-name="{0}"'.format(self.style)
+        if self.arrayForm:
+            extra += ' table:number-matrix-columns-spanned="1" table:number-matrix-rows-spanned="1"'
+        out.write('<table:table-cell{1} table:formula="{0}" office:value-type="float"/>'.format(self.protect(self.val), extra))
 
 class Table:
     def __init__(self, name):
@@ -349,14 +152,18 @@ class Table:
     def get(self, row, col):
         return self.content[row][col]
         
-    def cellIndex(self, row, col):
+    def cellIndex(self, row, col, absCol = False, absRow = False):
         radix = ord("Z") - ord("A") + 1
         ret   = ""
         while col >= 0:
             rem = col % radix
             ret = chr(rem + ord("A")) + ret
             col = col / radix - 1
-        return ret + str(row + 1)
+        if absCol: preCol = "$"
+        else: preCol = ""
+        if absRow: preRow = "$"
+        else: preRow = ""
+        return preCol + ret + preRow + str(row + 1)
 
     def printSheet(self, out):
         out.write('<table:table table:name="Instances" table:style-name="ta1" table:print="false">')
@@ -438,6 +245,10 @@ class InstanceTable(Table):
         self.add(self.resultOffset + 2, 0, StringCell("AVG"))
         self.add(self.resultOffset + 3, 0, StringCell("DEV"))
         self.add(self.resultOffset + 4, 0, StringCell("DST"))
+        self.add(self.resultOffset + 5, 0, StringCell("BEST"))
+        self.add(self.resultOffset + 6, 0, StringCell("BETTER"))
+        self.add(self.resultOffset + 7, 0, StringCell("WORSE"))
+        self.add(self.resultOffset + 8, 0, StringCell("WORST"))
     
     def addFooter(self, col):
         self.add(self.resultOffset + 1, col, FormulaCell("of:=SUM([.{0}:.{1}])".format(self.cellIndex(2, col), self.cellIndex(self.resultOffset - 1, col))))
@@ -475,36 +286,92 @@ class InstanceTable(Table):
                     add += 1
             if add == 0: add = 1    
             col += add
-            
-        # generate virtual best solver
-        virtualBest = Column(None, None)
-        virtualBest.offset = self.lastcol = col
-        self.add(0, col, StringCell("virtual best"))
-        for name in measures:
-            if name in floatOccur:
-                self.add(1, col, StringCell(name))
-                for row in xrange(2, self.resultOffset):
-                    minRange = ""
+        
+        self.lastcol  = col
+        resultColumns = []
+        for colName in ["min", "median", "max"]:
+            column = Column(None, None)
+            column .offset = col
+            self.add(0, col, StringCell(colName))
+            resultColumns.append(column)
+            for name in measures:
+                if name in floatOccur:
+                     
+                    self.add(1, col, StringCell(name))
+                    for row in xrange(2, self.resultOffset):
+                        minRange = ""
+                        for colRef in sorted(floatOccur[name]):
+                            if minRange != "": 
+                                minRange += ";" 
+                            minRange += "[.{0}]".format(self.cellIndex(row, colRef, True))
+                        column.addCell(row - 2, name, "float", valueRows.min(name, row - 2))
+                        self.add(row, col, FormulaCell("of:={1}({0})".format(minRange, colName.upper())))
+                        self.addFooter(col)
                     for colRef in sorted(floatOccur[name]):
-                        if minRange != "": 
-                            minRange += ";" 
-                        minRange += "[.{0}]".format(self.cellIndex(row, colRef))
-                    virtualBest.addCell(row - 2, name, "float", valueRows.min(name, row - 2))
-                    self.add(row, col, FormulaCell("of:=MIN({0})".format(minRange)))
-                    self.addFooter(col)
-                for colRef in sorted(floatOccur[name]):
-                    self.add(self.resultOffset + 4, colRef, FormulaCell("of:=GEOMDIST([.{0}:.{1}];[.{2}:.{3}])".format(self.cellIndex(2, colRef), self.cellIndex(self.resultOffset - 1, colRef), self.cellIndex(2, col), self.cellIndex(self.resultOffset - 1, col))))
-                col+= 1
-        virtualBest.calcSummary(self.resultOffset - 2)
+                        if colName == "min":
+                            self.add(
+                                self.resultOffset + 4, 
+                                colRef, 
+                                FormulaCell(
+                                    "of:=SUM(([.{0}:.{1}]-[.{2}:.{3}])^2)^0.5".format(
+                                        self.cellIndex(2, colRef), 
+                                        self.cellIndex(self.resultOffset - 1, colRef), 
+                                        self.cellIndex(2, col, True), 
+                                        self.cellIndex(self.resultOffset - 1, col, True)), 
+                                    True))
+                            self.add(
+                                self.resultOffset + 5, 
+                                colRef, 
+                                FormulaCell(
+                                    "of:=SUM([.{0}:.{1}]=[.{2}:.{3}])".format(
+                                        self.cellIndex(2, colRef), 
+                                        self.cellIndex(self.resultOffset - 1, colRef), 
+                                        self.cellIndex(2, col, True), 
+                                        self.cellIndex(self.resultOffset - 1, col, True)), 
+                                    True))
+                        elif colName == "median":
+                            self.add(
+                                    self.resultOffset + 6, 
+                                    colRef, 
+                                    FormulaCell(
+                                        "of:=SUM([.{0}:.{1}]>[.{2}:.{3}])".format(
+                                            self.cellIndex(2, colRef), 
+                                            self.cellIndex(self.resultOffset - 1, colRef), 
+                                            self.cellIndex(2, col, True), 
+                                            self.cellIndex(self.resultOffset - 1, col, True)), 
+                                        True))
+                            self.add(
+                                    self.resultOffset + 7, 
+                                    colRef, 
+                                    FormulaCell(
+                                        "of:=SUM([.{0}:.{1}]<[.{2}:.{3}])".format(
+                                            self.cellIndex(2, colRef), 
+                                            self.cellIndex(self.resultOffset - 1, colRef), 
+                                            self.cellIndex(2, col, True), 
+                                            self.cellIndex(self.resultOffset - 1, col, True)), 
+                                        True))
+                        elif colName == "max":
+                            self.add(
+                                    self.resultOffset + 8, 
+                                    colRef, 
+                                    FormulaCell(
+                                        "of:=SUM([.{0}:.{1}]=[.{2}:.{3}])".format(
+                                            self.cellIndex(2, colRef), 
+                                            self.cellIndex(self.resultOffset - 1, colRef), 
+                                            self.cellIndex(2, col, True), 
+                                            self.cellIndex(self.resultOffset - 1, col, True)), 
+                                        True))
+                    col+= 1
+            column.calcSummary(self.resultOffset - 2)
         
         # calc values for the footers
-        for column in self.columns.columns:
-            column.calcSummary(self.resultOffset - 2, virtualBest)
-            for name, summary in column.summary.items():
-                valueRows.add(name, summary.sum, self.resultOffset - 2 + 1, column.offsets[name])
-                valueRows.add(name, summary.avg, self.resultOffset - 2 + 2, column.offsets[name])
-                valueRows.add(name, summary.dev, self.resultOffset - 2 + 3, column.offsets[name])
-                valueRows.add(name, summary.dst, self.resultOffset - 2 + 4, column.offsets[name])
+#        for column in self.columns.columns:
+#            column.calcSummary(self.resultOffset - 2, virtualBest)
+#            for name, summary in column.summary.items():
+#                valueRows.add(name, summary.sum, self.resultOffset - 2 + 1, column.offsets[name])
+#                valueRows.add(name, summary.avg, self.resultOffset - 2 + 2, column.offsets[name])
+#                valueRows.add(name, summary.dev, self.resultOffset - 2 + 3, column.offsets[name])
+#                valueRows.add(name, summary.dst, self.resultOffset - 2 + 4, column.offsets[name])
                      
         # apply some styles to the instance sheet
         for name, line, (best, better, worse, worst) in valueRows:
