@@ -24,6 +24,15 @@ def xmlTime(strRep):
     if len(timeout) > 2: hours   = int(timeout[-3])
     return seconds + minutes * 60 + hours * 60 * 60
 
+def medianSorted(sequence):
+    if len(sequence) == 0:
+        return 0
+    middle = len(sequence) / 2
+    value  = sequence[middle]
+    if 2 * middle == len(sequence):
+        value = (median + sequence[middle + 1]) / 2.0
+    return value
+
 def median(sequence):
     def partition(sequence, left, right):
         pivotIndex = random.randint(left, right)

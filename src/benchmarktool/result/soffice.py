@@ -66,20 +66,10 @@ class Spreadsheet:
 <?xml version="1.0" encoding="UTF-8"?>\
 <office:document-styles xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:rpt="http://openoffice.org/2005/report" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2" xmlns:rdfa="http://docs.oasis-open.org/opendocument/meta/rdfa#" office:version="1.2">\
 <office:styles>\
-\
 <style:style style:name="Default" style:family="table-cell"/>\
 <style:style style:name="cellBest" style:family="table-cell" style:parent-style-name="Default">\
 <style:table-cell-properties fo:background-color="#00ff00"/>\
 </style:style>\
-\
-<style:style style:name="cellBetter" style:family="table-cell" style:parent-style-name="Default">\
-<style:table-cell-properties fo:background-color="#80ff00"/>\
-</style:style>\
-\
-<style:style style:name="cellWorse" style:family="table-cell" style:parent-style-name="Default">\
-<style:table-cell-properties fo:background-color="#ff8000"/>\
-</style:style>\
-\
 <style:style style:name="cellWorst" style:family="table-cell" style:parent-style-name="Default">\
 <style:table-cell-properties fo:background-color="#ff0000"/>\
 </style:style>\
@@ -181,34 +171,49 @@ class Table:
         out.write('</table:table>')
 
 class ValueRows:
-    def __init__(self):
-        self.list = {}
+    def __init__(self, highlight):
+        self.highlight = highlight
+        self.list      = {}
     
     def __iter__(self):
         for name, valList in self.list.items():
-            for line in range(0, len(valList)):
-                row =  sorted(valList[line])
-                row.sort()
-                best   = [[], []]
-                worst  = [[], []]
-                # chop best
-                start = 0
-                for i in range(0, 2):
-                    if start < len(row):
-                        first = row[start][0]
-                        while start < len(row) and row[start][0] == first: 
-                            best[i].append(row[start][1])
-                            start += 1  
-                # chop worst
-                end = len(row) - 1
-                for i in range(0, 2):
-                    if end >= start:
-                        first = row[end][0]
-                        while end >= start and row[end][0] == first: 
-                            worst[i].append(row[end][1])
-                            end -= 1  
-                yield name, line, (best[0], best[1], worst[1], worst[0])
-    
+            if name in self.highlight:
+                func = self.highlight[name]
+                for line in range(0, len(valList)):
+                    row = sorted(valList[line])
+                    if len(row) > 1:
+                        minimum = row[0][0]
+                        median  = tools.medianSorted(map(lambda x: x[0], row))
+                        maximum = row[-1][0]
+                        green   = []
+                        red     = []
+                        if func == "t":
+                            if maximum - minimum > 2:
+                                for value, col in row:
+                                    if value <= minimum and value < median:
+                                        green.append(col)
+                                    else:
+                                        break 
+                            if maximum - median > 2:
+                                for value, col in reversed(row):
+                                    if value >= maximum and value > median:
+                                        red.append(col)
+                                    else:
+                                        break
+                        elif func == "to":
+                            if maximum - minimum > 0:
+                                for value, col in row:
+                                    if value <= minimum and value < median:   
+                                        green.append(col)
+                                    else:
+                                        break 
+                            for value, col in reversed(row):
+                                if value > median and value >= maximum:   
+                                    red.append(col)
+                                else:
+                                    break
+                        yield name, line, green, red
+   
     def add(self, name, val, line, col):
         if not name in self.list: self.list[name] = []
         valList =  self.list[name]
@@ -230,7 +235,8 @@ class InstanceTable(Table):
         self.benchmark = benchmark
         self.columns   = columns
         self.results   = {}
-        self.measures  = measures
+        self.measures  = map(lambda x: x[0], measures)
+        self.highlight = dict(measures)
         self.lines     = 0
         self.machines  = set()
         self.lastcol   = None
@@ -259,7 +265,7 @@ class InstanceTable(Table):
     def finish(self):
         col = 1
         floatOccur = {}
-        valueRows = ValueRows()
+        valueRows = ValueRows(self.highlight)
         # generate all columns
         for column in sorted(self.columns.columns):
             column.offset = col
@@ -336,7 +342,7 @@ class InstanceTable(Table):
                                     self.resultOffset + 6, 
                                     colRef, 
                                     FormulaCell(
-                                        "of:=SUM([.{0}:.{1}]>[.{2}:.{3}])".format(
+                                        "of:=SUM([.{0}:.{1}]<[.{2}:.{3}])".format(
                                             self.cellIndex(2, colRef), 
                                             self.cellIndex(self.resultOffset - 1, colRef), 
                                             self.cellIndex(2, col, True), 
@@ -346,7 +352,7 @@ class InstanceTable(Table):
                                     self.resultOffset + 7, 
                                     colRef, 
                                     FormulaCell(
-                                        "of:=SUM([.{0}:.{1}]<[.{2}:.{3}])".format(
+                                        "of:=SUM([.{0}:.{1}]>[.{2}:.{3}])".format(
                                             self.cellIndex(2, colRef), 
                                             self.cellIndex(self.resultOffset - 1, colRef), 
                                             self.cellIndex(2, col, True), 
@@ -374,27 +380,17 @@ class InstanceTable(Table):
                 valueRows.add(name, summary.avg, self.resultOffset - 2 + 2, column.offsets[name])
                 valueRows.add(name, summary.dev, self.resultOffset - 2 + 3, column.offsets[name])
                 valueRows.add(name, summary.dst, self.resultOffset - 2 + 4, column.offsets[name])
-
-#a) Farbkodierung (nur ab mindestens zwei Konfigurationen):
-#  a1) Laufzeit:
-#    - gruen: best, aber nur, wenn (worst-Laufzeit - best-Laufzeit) > 2 sec
-#    - rot : worst, aber nur, wenn (worst-Laufzeit - median-Laufzeit) > 2 sec
-#  a2) Timeouts:
-#    - gruen: best, aber nur, wenn (worst - best) > 0
-#    - rot: alle fuer die timeouts > median
+                valueRows.add(name, -summary.best, self.resultOffset - 2 + 5, column.offsets[name])
+                valueRows.add(name, -summary.better, self.resultOffset - 2 + 6, column.offsets[name])
+                valueRows.add(name, summary.worse, self.resultOffset - 2 + 7, column.offsets[name])
+                valueRows.add(name, summary.worst, self.resultOffset - 2 + 8, column.offsets[name])
 
         # apply some styles to the instance sheet
-        for name, line, (best, better, worse, worst) in valueRows:
-            for i in best:
+        for name, line, red, green in valueRows:
+            for i in red:
                 cell = self.get(2 + line, i)
                 cell.style = "cellBest"
-            for i in better:
-                cell = self.get(2 + line, i)
-                cell.style = "cellBetter"
-            for i in worse:
-                cell = self.get(2 + line, i)
-                cell.style = "cellWorse"
-            for i in worst:
+            for i in green:
                 cell = self.get(2 + line, i)
                 cell.style = "cellWorst"
             
@@ -425,8 +421,8 @@ class Summary:
         self.worst  = 0
     
     def calc(self, n, colA, minmum, median, maximum):
-        self.avg = self.sum // n
-        self.dev = math.sqrt(self.sqsum // n - self.avg * self.avg)
+        self.avg = self.sum / n
+        self.dev = math.sqrt(self.sqsum / n - self.avg * self.avg)
         colA.extend([None for _ in range(0, n - len(colA))])
         # geometric distance, best
         if minmum != None:
@@ -443,9 +439,9 @@ class Summary:
             median.extend([None for _ in range(0, n - len(median))])
             for a, b in zip(colA, median):
                 if a != None:
-                    if a > b:
+                    if a < b:
                         self.better += 1
-                    elif a < b:
+                    elif a > b:
                         self.worse += 1
         # worst 
         if maximum != None:

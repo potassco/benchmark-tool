@@ -12,8 +12,7 @@ if __name__ == '__main__':
     usage  = "usage: %prog [options] [resultfile]"
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-p", "--projects", dest="projects", default="", help="projects to display")
-    parser.add_option("-m", "--measures", dest="measures", default="time,timeout", help="measures to display")
-    parser.add_option("-M", "--peaks",    dest="peaks",    default="time+,timeout-", help="peak values to highlight")
+    parser.add_option("-m", "--measures", dest="measures", default="time:t,timeout:to", help="measures to display")
     
     opts, files = parser.parse_args(sys.argv[1:])
     
@@ -25,8 +24,15 @@ if __name__ == '__main__':
         parser.error("Exactly on file has to be given")
     
     if opts.projects != "":  opts.projects = set(opts.projects.split(","))
-    if opts.measures != "":  opts.measures = opts.measures.split(",")
-    
+    if opts.measures != "":  
+        measures = []
+        for t in opts.measures.split(","):
+            x = t.split(":", 1)
+            if len(x) == 1:
+                measures.append((x[0],None))
+            else:
+                measures.append(tuple(x))
+        opts.measures = measures
     p = Parser()
     res = p.parse(inFile)
     res.genOffice(sys.stdout, opts.projects, opts.measures)
