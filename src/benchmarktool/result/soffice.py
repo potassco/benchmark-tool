@@ -364,16 +364,16 @@ class InstanceTable(Table):
                                             self.cellIndex(self.resultOffset - 1, col, True)), 
                                         True))
                     col+= 1
-            column.calcSummary(self.resultOffset - 2)
+            column.calcSummary(self.resultOffset - 2, [])
         
         # calc values for the footers
-#        for column in self.columns.columns:
-#            column.calcSummary(self.resultOffset - 2, virtualBest)
-#            for name, summary in column.summary.items():
-#                valueRows.add(name, summary.sum, self.resultOffset - 2 + 1, column.offsets[name])
-#                valueRows.add(name, summary.avg, self.resultOffset - 2 + 2, column.offsets[name])
-#                valueRows.add(name, summary.dev, self.resultOffset - 2 + 3, column.offsets[name])
-#                valueRows.add(name, summary.dst, self.resultOffset - 2 + 4, column.offsets[name])
+        for column in self.columns.columns:
+            column.calcSummary(self.resultOffset - 2, resultColumns)
+            for name, summary in column.summary.items():
+                valueRows.add(name, summary.sum, self.resultOffset - 2 + 1, column.offsets[name])
+                valueRows.add(name, summary.avg, self.resultOffset - 2 + 2, column.offsets[name])
+                valueRows.add(name, summary.dev, self.resultOffset - 2 + 3, column.offsets[name])
+                valueRows.add(name, summary.dst, self.resultOffset - 2 + 4, column.offsets[name])
 
 #a) Farbkodierung (nur ab mindestens zwei Konfigurationen):
 #  a1) Laufzeit:
@@ -414,24 +414,45 @@ class InstanceTable(Table):
 
 class Summary:
     def __init__(self):
-        self.sum   = 0
-        self.dev   = 0
-        self.sqsum = 0
-        self.avg   = 0
-        self.dst   = 0
+        self.sum    = 0
+        self.dev    = 0
+        self.sqsum  = 0
+        self.avg    = 0
+        self.dst    = 0
+        self.best   = 0
+        self.better = 0
+        self.worse  = 0
+        self.worst  = 0
     
-    def calc(self, n, colA, colB):
+    def calc(self, n, colA, minmum, median, maximum):
         self.avg = self.sum // n
         self.dev = math.sqrt(self.sqsum // n - self.avg * self.avg)
         colA.extend([None for _ in range(0, n - len(colA))])
-        if colB != None: 
-            colB.extend([None for _ in range(0, n - len(colB))])
+        # geometric distance, best
+        if minmum != None:
+            minmum.extend([None for _ in range(0, n - len(minmum))])
             sdsum = 0
-            for a, b in zip(colA, colB):
-                if a == None: a = 0
-                if b == None: b = 0
-                sdsum += (a - b) * (a - b)
+            for a, b in zip(colA, minmum):
+                if a != None:
+                    if a <= b: 
+                        self.best += 1
+                    sdsum += (a - b) * (a - b)
             self.dst = math.sqrt(sdsum)
+        # better, worse
+        if median != None:
+            median.extend([None for _ in range(0, n - len(median))])
+            for a, b in zip(colA, median):
+                if a != None:
+                    if a > b:
+                        self.better += 1
+                    elif a < b:
+                        self.worse += 1
+        # worst 
+        if maximum != None:
+            maximum.extend([None for _ in range(0, n - len(maximum))])
+            for a, b in zip(colA, maximum):
+                if a != None and a >= b: 
+                    self.worst += 1
         
     def add(self, val):
         self.sum   += val
@@ -459,13 +480,14 @@ class Column:
     def __hash__(self):
         return hash((self.setting, self.machine))
     
-    def calcSummary(self, n, ref = None):
+    def calcSummary(self, n, ref):
         for name, summary in self.summary.items():
-            if ref.__class__ == Column:
-                refCol = ref.content[name]
-            else:
-                refCol = None
-            summary.calc(n, self.content[name], refCol)
+            minimum = maximum = median = None  
+            if len(ref) == 3:
+                minimum = ref[0].content[name]
+                maximum = ref[1].content[name]
+                median  = ref[2].content[name]
+            summary.calc(n, self.content[name], minimum, maximum, median)
     
     def addCell(self, line, name, valueType, value):
         if valueType == "float": 
