@@ -1,2 +1,34 @@
-This directory is completly unstructured and currently serves as a collection of ideas only!
+Structure
+---------
+bgen  - creates start scripts
+beval - evaluates solver runs
+bconv - transforms output of eval into spreadsheets
 
+benchmarks/ - example benchmarks
+doc/        - documentation
+output/     - default output folder for the examples
+programs/   - should contain solver/tool executables
+runscripts/ - contains example run-scripts
+src/        - Python source files
+templates/  - contains example call-scripts
+
+Prerequisites
+-------------
+- lxml (http://codespeak.net/lxml/)
+- python 2.6
+
+Example
+-------
+All the following instruction assume that the current working
+directory is the root directory of the benchmark-tool project.
+To begin, the two executables clasp-1.3.2 and runsolver-3.2.5.
+have to be copied (or symlinked) into the ./programs folder.
+Now, run:
+	./bgen ./runscripts/runscript-big.xml
+This creates a set of start scripts in the ./output folder.
+To start the benchmark, run:
+	./output/clasp-big/houat/start.py
+Once the benchmark is finished, run:
+	./beval ./runscripts/runscript-big.xml | ./bconv > result.ods
+Finally, open the file:
+	soffice result.ods
