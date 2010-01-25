@@ -12,10 +12,12 @@ from benchmarktool import tools
 
 class Spreadsheet:
     def __init__(self, benchmark, columns, measures):
-        self.instSheet = InstanceTable(benchmark, columns, measures, "ta1")
+        self.instSheet  = InstanceTable(benchmark, columns, measures, "ta1")
+        self.classSheet = None
         
     def finish(self):
         self.instSheet.finish()
+        self.classSheet = self.instSheet.classTable()
         
     def printSheet(self, out):
         zipFile = ZipFile(out, "w")
@@ -30,13 +32,14 @@ class Spreadsheet:
 <style:font-face style:name="DejaVu Sans" svg:font-family="'DejaVu Sans'" style:font-family-generic="system" style:font-pitch="variable"/>\
 </office:font-face-decls>\
 <office:automatic-styles>\
-''')        
-        for i in range(0, len(self.instSheet.cowidth)):
-            out.write('''\
+''')
+        for sheet in [self.instSheet, self.classSheet]:
+            for i in range(0, len(sheet.cowidth)):
+                out.write('''\
 <style:style style:name="{0}co{1}" style:family="table-column">\
 <style:table-column-properties fo:break-before="auto" style:column-width="{2}in"/>\
 </style:style>\
-'''.format(self.instSheet.name, i + 1, self.instSheet.cowidth[i]))
+'''.format(sheet.name, i + 1, sheet.cowidth[i]))
 
         out.write('''\
 <style:style style:name="ro1" style:family="table-row">\
@@ -49,7 +52,8 @@ class Spreadsheet:
 <office:body>\
 <office:spreadsheet>''')
         
-        self.instSheet.printSheet(out)
+        self.instSheet.printSheet(out, "Instances")
+        self.classSheet.printSheet(out, "Classes")
         out.write('''</office:spreadsheet></office:body></office:document-content>''')
         zipFile.writestr("mimetype", '''application/vnd.oasis.opendocument.spreadsheet''')
         zipFile.writestr("content.xml", out.getvalue())
@@ -156,8 +160,8 @@ class Table:
         else: preRow = ""
         return preCol + ret + preRow + str(row + 1)
 
-    def printSheet(self, out):
-        out.write('<table:table table:name="Instances" table:style-name="ta1" table:print="false">')
+    def printSheet(self, out, name):
+        out.write('<table:table table:name="{0}" table:style-name="ta1" table:print="false">'.format(name))
         for i in range(0, len(self.cowidth)):
             out.write('''<table:table-column table:style-name="{0}co{1}" table:default-cell-style-name="Default"/>'''.format(self.name, i + 1))
         for row in self.content:
@@ -235,8 +239,7 @@ class InstanceTable(Table):
         self.benchmark = benchmark
         self.columns   = columns
         self.results   = {}
-        self.measures  = map(lambda x: x[0], measures)
-        self.highlight = dict(measures)
+        self.measures  = measures
         self.lines     = 0
         self.machines  = set()
         self.lastcol   = None
@@ -265,13 +268,15 @@ class InstanceTable(Table):
     def finish(self):
         col = 1
         floatOccur = {}
-        valueRows = ValueRows(self.highlight)
+        valueRows = ValueRows(dict(self.measures))
         # generate all columns
         for column in sorted(self.columns.columns):
+            if self.measures == "": 
+                measures = sorted(column.width)
+            else: 
+                measures = map(lambda x: x[0], self.measures)
             column.offset = col
             self.add(0, col, StringCell(column.genName(len(self.machines) > 1)))
-            if self.measures == "": measures = sorted(column.width)
-            else: measures = self.measures
             add = 0
             for name in measures:
                 if name in column.content:
@@ -401,12 +406,19 @@ class InstanceTable(Table):
             for instresult in classresult.instresults:
                 for run in instresult.runs:
                     if self.measures == "": measures = sorted(run.measures.keys())
-                    else: measures = self.measures
+                    else: measures = map(lambda x: x[0], self.measures)
                     for name in measures:
                         if name in run.measures:
                             valueType, value = run.measures[name]
                             if valueType != "float": valueType = "string"
                             column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
+    
+    def classTable(self):
+        # TODO: adjust the columns
+        #for column in self.columns.columns:
+        table = InstanceTable(self.benchmark, self.columns, self.measures, "ta2")
+        table.finish()
+        return table
 
 class Summary:
     def __init__(self):
