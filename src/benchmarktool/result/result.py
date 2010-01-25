@@ -4,7 +4,7 @@ Created on Jan 19, 2010
 @author: Roland Kaminski
 '''
 
-from benchmarktool.result.soffice import Column, Spreadsheet
+from benchmarktool.result.soffice import Spreadsheet
 
 class Result:
     def __init__(self):
@@ -17,49 +17,41 @@ class Result:
     
     def merge(self, projects):
         benchmarks = set()
-        columns    = set()
         for project in projects:
             for runspec in project.runspecs:
-                columns.add(Column(runspec.setting, runspec.machine))
                 for classresult in runspec.classresults:
                     for instresult in classresult.instresults:
                         instresult.instance.maxRuns = max(instresult.instance.maxRuns, len(instresult.runs))
                 benchmarks.add(runspec.benchmark)
-        return BenchmarkMerge(benchmarks), ColumnMerge(columns)
+        return BenchmarkMerge(benchmarks)
         
     def genOffice(self, out, selProjects, measures):
         projects = [] 
         for project in self.projects.values():
             if selProjects == "" or project.name in selProjects:
                 projects.append(project)
-        benchmarkMerge, columnMerge = self.merge(projects)
+        benchmarkMerge = self.merge(projects)
         
-        sheet = Spreadsheet(benchmarkMerge, columnMerge, measures)
+        sheet = Spreadsheet(benchmarkMerge, measures)
         for project in projects:
             for runspec in project.runspecs:
                 sheet.addRunspec(runspec)
         sheet.finish()
         sheet.printSheet(out)
 
-class ColumnMerge:
-    def __init__(self, columns):
-        self.machines = set()
-        self.columns  = {}
-        for column in columns:
-            self.columns[column] = column
-            self.machines.add(column.machine)
-
-    def getColumn(self, runspec):
-        return self.columns[Column(runspec.setting, runspec.machine)]
-    
 class BenchmarkMerge:
     def __init__(self, benchmarks):
         self.benchmarks = benchmarks
-        num             = 0
+        instNum         = 0
+        classNum        = 0
         for benchclass in self:
+            benchclass.line      = classNum
+            benchclass.instStart = instNum
             for instance in benchclass:  
-                instance.line = num
-                num          += max(instance.maxRuns, 1)
+                instance.line = instNum
+                instNum      += max(instance.maxRuns, 1)
+            benchclass.instEnd = instNum - 1
+            classNum          += 1
 
     def __iter__(self):
         for benchmark in sorted(self.benchmarks):

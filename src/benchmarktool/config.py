@@ -10,7 +10,7 @@ import re
 #TODO: some helper methods could be provided ... 
 clasp_models      = re.compile(r"^Models[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_choices     = re.compile(r"^Choices[ ]*:[ ]*([0-9]+)\+?[ ]*$")
-clasp_time        = re.compile(r"^Time[ ]*:[ ]*([0-9]+\.[0-9]+)s[ ]*\(")
+clasp_time        = re.compile(r"^Real time \(s\): ([0-9]+\.[0-9]+)$")
 clasp_conflicts   = re.compile(r"^Conflicts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_restarts    = re.compile(r"^Restarts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_status      = re.compile(r"^(SATISFIABLE|UNSATISFIABLE|UNKNOWN)[ ]*$")
@@ -20,16 +20,14 @@ def clasp(root, runspec):
     result      = []
     interrupted = 0
     status      = None
-    time        = runspec.project.job.timeout
+    timeout     = time = runspec.project.job.timeout
+    # parse some of clasp's stats
     for line in open(os.path.join(root, "runsolver.solver")):
         m = clasp_models.match(line)
         if m: result.append(("models", "float", m.group(1)))
         
         m = clasp_choices.match(line)
         if m: result.append(("choices", "float", m.group(1)))
-        
-        m = clasp_time.match(line)
-        if m: time = m.group(1)
         
         m = clasp_conflicts.match(line)
         if m: result.append(("conflicts", "float", m.group(1)))
@@ -43,13 +41,18 @@ def clasp(root, runspec):
         m = clasp_interrupted.match(line)
         if m: interrupted = 1
     
-    result.append(("time", "float", time))
-    result.append(("status", "string", status))
+    # parse runsolver output
+    for line in open(os.path.join(root, "runsolver.watcher")):
+        m = clasp_time.match(line)
+        if m: time = float(m.group(1))
     
-    if status != "SATISFIABLE" and status != "UNSATISFIABLE":
+    # count suspicious stuff as timeout
+    if (status != "SATISFIABLE" and status != "UNSATISFIABLE") or time >= timeout:
+        time = timeout
         result.append(("timeout", "float", 1))
     else:
         result.append(("timeout", "float", 0))
+    result.append(("status", "string", status))
+    result.append(("time", "float", time))
     result.append(("interrupted", "float", interrupted))
     return result
-        

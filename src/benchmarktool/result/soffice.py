@@ -11,13 +11,13 @@ import math
 from benchmarktool import tools 
 
 class Spreadsheet:
-    def __init__(self, benchmark, columns, measures):
-        self.instSheet  = ResultTable(benchmark, columns, measures, "ta1")
-        self.classSheet = None
+    def __init__(self, benchmark, measures):
+        self.instSheet  = ResultTable(benchmark, measures, "ta1")
+        self.classSheet = ResultTable(benchmark, measures, "ta2", self.instSheet)
         
     def finish(self):
         self.instSheet.finish()
-        self.classSheet = self.instSheet.classTable()
+        self.classSheet.finish()
         
     def printSheet(self, out):
         zipFile = ZipFile(out, "w")
@@ -84,6 +84,7 @@ class Spreadsheet:
         
     def addRunspec(self, runspec):
         self.instSheet.addRunspec(runspec)
+        self.classSheet.addRunspec(runspec)
         
 class Cell:
     def __init__(self):
@@ -129,14 +130,14 @@ class Table:
     def __init__(self, name):
         self.content = []
         self.cowidth = []
-        self.name    = "ta1" 
+        self.name    = name 
     
     def add(self, row, col, cell):
         # estimate some "good" column width 
         while len(self.cowidth) <= col + 1:
             self.cowidth.append(0.8925)
         if cell.__class__ == StringCell:
-            self.cowidth[col] = max(self.cowidth[col], len(cell.val) * 0.07)
+            self.cowidth[col] = max(self.cowidth[col], len(cell.val) * 0.069 + 0.1)
         while len(self.content) <= row: 
             self.content.append([])
         rowRef = self.content[row]
@@ -234,18 +235,25 @@ class ValueRows:
         return func(map(lambda x: x[0], self.list[name][line]))
 
 class ResultTable(Table):
-    def __init__(self, benchmark, columns, measures, name):
+    def __init__(self, benchmark, measures, name, instanceTable = None):
         Table.__init__(self, name)
-        self.benchmark = benchmark
-        self.columns   = columns
-        self.results   = {}
-        self.measures  = measures
-        self.machines  = set()
-        row = 2
-        for benchclass in benchmark:
-            for instance in benchclass:
-                self.add(row, 0, StringCell(instance.benchclass.name + "/" + instance.name))
-                row += instance.maxRuns
+        self.benchmark     = benchmark
+        self.systemColumns = {}
+        self.results       = {}
+        self.measures      = measures
+        self.machines      = set()
+        self.instanceTable = instanceTable
+        if self.instanceTable == None:
+            row = 2
+            for benchclass in benchmark:
+                for instance in benchclass:
+                    self.add(row, 0, StringCell(instance.benchclass.name + "/" + instance.name))
+                    row += instance.maxRuns
+        else:
+            row = 2
+            for benchclass in benchmark:
+                self.add(row, 0, StringCell(benchclass.name))
+                row += 1
         
         self.resultOffset = row
         self.add(self.resultOffset + 1, 0, StringCell("SUM"))
@@ -257,6 +265,9 @@ class ResultTable(Table):
         self.add(self.resultOffset + 7, 0, StringCell("WORSE"))
         self.add(self.resultOffset + 8, 0, StringCell("WORST"))
     
+    def getOffset(self, column, name):
+        return self.systemColumns[(column.setting, column.machine)].columns[name].offset
+    
     def addFooter(self, col):
         self.add(self.resultOffset + 1, col, FormulaCell("of:=SUM([.{0}:.{1}])".format(self.cellIndex(2, col), self.cellIndex(self.resultOffset - 1, col))))
         self.add(self.resultOffset + 2, col, FormulaCell("of:=AVERAGE([.{0}:.{1}])".format(self.cellIndex(2, col), self.cellIndex(self.resultOffset - 1, col))))
@@ -267,41 +278,46 @@ class ResultTable(Table):
         floatOccur = {}
         valueRows = ValueRows(dict(self.measures))
         # generate all columns
-        for column in sorted(self.columns.columns):
-            if self.measures == "":
-                measures = sorted(column.width)
-            else: 
-                measures = map(lambda x: x[0], self.measures)
-            column.offset = col
-            self.add(0, col, StringCell(column.genName(len(self.machines) > 1)))
-            add = 0
-            for name in measures:
-                if name in column.content:
-                    self.add(1, column.offset + add, StringCell(name))
-                    column.offsets[name] = column.offset + add
-                    content = column.content[name]
-                    for line in range(0, len(content)):
-                        value = content[line]
-                        if value.__class__ == __builtin__.float:
-                            self.add(2 + line, column.offset + add, FloatCell(value))
-                            valueRows.add(name, value, line, column.offset + add)
-                        else:
-                            self.add(2 + line, column.offset + add, StringCell(value))
-                    if column.type[name] == "float":
-                        if not name in floatOccur: 
-                            floatOccur[name] = set() 
-                        floatOccur[name].add(col + add)
-                        self.addFooter(col + add)
-                    add += 1
-            if add == 0: add = 1    
-            col += add
-        
+        for systemColumn in sorted(self.systemColumns.values()):
+            systemColumn.offset = col
+            self.add(0, col, StringCell(systemColumn.genName(len(self.machines) > 1)))
+            for column in systemColumn.iter(self.measures):
+                name = column.name
+                column.offset = col
+                self.add(1, col, StringCell(name))
+                for line in range(0, len(column.content)):
+                    value = column.content[line]
+                    if value.__class__ == tuple:
+                        column.content[line] = value[1]
+                        self.add(2 + line, col, FormulaCell("of:=SUM([Instances.{0}:Instances.{1}])".format(self.cellIndex(value[0].instStart + 2, self.getOffset(systemColumn, name)), self.cellIndex(value[0].instEnd + 2, self.getOffset(systemColumn, name)))))
+                        valueRows.add(name, value[1], line, col)
+                    elif value.__class__ == __builtin__.float:
+                        self.add(2 + line, col, FloatCell(value))
+                        valueRows.add(name, value, line, col)
+                    else:
+                        self.add(2 + line, col, StringCell(value))
+                if column.type == "classresult":
+                    if not name in floatOccur: 
+                        floatOccur[name] = set()
+                    floatOccur[name].add(col)
+                    self.addFooter(col)
+                elif column.type == "float":
+                    if not name in floatOccur: 
+                        floatOccur[name] = set() 
+                    floatOccur[name].add(col)
+                    self.addFooter(col)
+                col += 1
+
         resultColumns = []
         for colName in ["min", "median", "max"]:
-            column = Column(None, None)
+            column = SystemColumn(None, None)
             column .offset = col
             self.add(0, col, StringCell(colName))
             resultColumns.append(column)
+            if self.measures == "": 
+                measures = sorted(floatOccur.keys())
+            else:
+                measures = map(lambda x: x[0], self.measures)
             for name in measures:
                 if name in floatOccur:
                     self.add(1, col, StringCell(name))
@@ -374,17 +390,17 @@ class ResultTable(Table):
             column.calcSummary(self.resultOffset - 2, [])
         
         # calc values for the footers
-        for column in self.columns.columns:
-            column.calcSummary(self.resultOffset - 2, resultColumns)
-            for name, summary in column.summary.items():
-                valueRows.add(name, summary.sum, self.resultOffset - 2 + 1, column.offsets[name])
-                valueRows.add(name, summary.avg, self.resultOffset - 2 + 2, column.offsets[name])
-                valueRows.add(name, summary.dev, self.resultOffset - 2 + 3, column.offsets[name])
-                valueRows.add(name, summary.dst, self.resultOffset - 2 + 4, column.offsets[name])
-                valueRows.add(name, -summary.best, self.resultOffset - 2 + 5, column.offsets[name])
-                valueRows.add(name, -summary.better, self.resultOffset - 2 + 6, column.offsets[name])
-                valueRows.add(name, summary.worse, self.resultOffset - 2 + 7, column.offsets[name])
-                valueRows.add(name, summary.worst, self.resultOffset - 2 + 8, column.offsets[name])
+        for systemColumn in self.systemColumns.values():
+            systemColumn.calcSummary(self.resultOffset - 2, resultColumns)
+            for column in systemColumn.columns.values():
+                valueRows.add(column.name, column.summary.sum, self.resultOffset - 2 + 1, column.offset)
+                valueRows.add(column.name, column.summary.avg, self.resultOffset - 2 + 2, column.offset)
+                valueRows.add(column.name, column.summary.dev, self.resultOffset - 2 + 3, column.offset)
+                valueRows.add(column.name, column.summary.dst, self.resultOffset - 2 + 4, column.offset)
+                valueRows.add(column.name, -column.summary.best, self.resultOffset - 2 + 5, column.offset)
+                valueRows.add(column.name, -column.summary.better, self.resultOffset - 2 + 6, column.offset)
+                valueRows.add(column.name, column.summary.worse, self.resultOffset - 2 + 7, column.offset)
+                valueRows.add(column.name, column.summary.worst, self.resultOffset - 2 + 8, column.offset)
 
         # apply some styles to the instance sheet
         for name, line, red, green in valueRows:
@@ -396,22 +412,28 @@ class ResultTable(Table):
                 cell.style = "cellWorst"
     
     def addRunspec(self, runspec):
-        column = self.columns.getColumn(runspec)
+        key = (runspec.setting, runspec.machine)
+        if not key in self.systemColumns:
+            self.systemColumns[key] = SystemColumn(runspec.setting, runspec.machine)
+        column = self.systemColumns[key]
         self.machines.add(column.machine)
         for classresult in runspec:
+            sum = {} 
             for instresult in classresult:
                 for run in instresult:
                     for name, valueType, value in run.iter(self.measures):
                         if valueType != "float": valueType = "string"
-                        column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
+                        if self.instanceTable == None:
+                            column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
+                        elif valueType == "float":
+                            if not name in sum:
+                                sum[name] = 0
+                            sum[name] += float(value)
+                            
+            if not self.instanceTable == None:
+                for name, value in sum.items():
+                    column.addCell(classresult.benchclass.line, name, "classresult", (classresult.benchclass, value))
     
-    def classTable(self):
-        # TODO: adjust the columns
-        #for column in self.columns.columns:
-        table = ResultTable(self.benchmark, self.columns, self.measures, "ta2")
-        table.finish()
-        return table
-
 class Summary:
     def __init__(self):
         self.sum    = 0
@@ -457,16 +479,30 @@ class Summary:
     def add(self, val):
         self.sum   += val
         self.sqsum += val * val
+
+class ValueColumn:
+    def __init__(self, name, type):
+        self.offset   = None
+        self.content  = []
+        self.name     = name
+        self.type     = type
+        self.summary  = Summary()
         
-class Column:
+    def addCell(self, line, value):
+        if self.type == "classresult":
+            self.summary.add(float(value[1]))
+        if self.type == "float":
+            value = float(value)
+            self.summary.add(value)
+        while len(self.content) <= line: 
+            self.content.append(None)
+        self.content[line] = value
+
+class SystemColumn:
     def __init__(self, setting, machine):
         self.setting  = setting
         self.machine  = machine
-        self.offset   = None
-        self.content  = {}
-        self.type     = {}
-        self.summary  = {}
-        self.offsets  = {}
+        self.columns  = {}
     
     def genName(self, addMachine):
         res = self.setting.system.name + "-" + self.setting.system.version + "/" + self.setting.name
@@ -480,25 +516,25 @@ class Column:
     def __hash__(self):
         return hash((self.setting, self.machine))
     
+    def iter(self, measures):
+        if measures == "": 
+            for column in sorted(self.columns, cmp=lambda x: x.name):
+                yield column 
+        else:
+            for name, _ in measures:
+                if name in self.columns:
+                    yield self.columns[name]
+    
     def calcSummary(self, n, ref):
-        for name, summary in self.summary.items():
-            minimum = maximum = median = None
+        for name, column in self.columns.items():
+            minimum = maximum = median = None 
             if len(ref) == 3:
-                minimum = ref[0].content[name]
-                maximum = ref[1].content[name]
-                median  = ref[2].content[name]
-            summary.calc(n, self.content[name], minimum, maximum, median)
+                minimum = ref[0].columns[name].content
+                maximum = ref[1].columns[name].content
+                median  = ref[2].columns[name].content
+            column.summary.calc(n, column.content, minimum, maximum, median)
     
     def addCell(self, line, name, valueType, value):
-        if valueType == "float": 
-            value = float(value)
-            if not name in self.summary: 
-                self.summary[name] = Summary() 
-            self.summary[name].add(value)
-        self.type[name] = valueType
-        if not name in self.content: 
-            self.content[name] = []
-        content = self.content[name]
-        while len(content) <= line: 
-            content.append(None)
-        content[line] = value
+        if not name in self.columns:
+            self.columns[name] = ValueColumn(name, valueType)
+        self.columns[name].addCell(line, value)
