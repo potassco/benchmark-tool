@@ -4,8 +4,6 @@ Created on Jan 19, 2010
 @author: Roland Kaminski
 '''
 
-import heapq
-import itertools
 from benchmarktool.result.soffice import Column, Spreadsheet
 
 class Result:
@@ -27,7 +25,6 @@ class Result:
                     for instresult in classresult.instresults:
                         instresult.instance.maxRuns = max(instresult.instance.maxRuns, len(instresult.runs))
                 benchmarks.add(runspec.benchmark)
-        
         return BenchmarkMerge(benchmarks), ColumnMerge(columns)
         
     def genOffice(self, out, selProjects, measures):
@@ -57,20 +54,17 @@ class ColumnMerge:
     
 class BenchmarkMerge:
     def __init__(self, benchmarks):
-        start = []
-        for benchmark in benchmarks:
-            start = heapq.merge(start, benchmark)
-        self.list = []
-        num = 0
-        for _, instances in itertools.groupby(start, lambda instance: (instance.benchclass.id, instance.id)):
-            maxRuns = 1
-            line = {}
-            for instance in instances:
-                line[instance.benchclass.benchmark] = instance
+        self.benchmarks = benchmarks
+        num             = 0
+        for benchclass in self:
+            for instance in benchclass:  
                 instance.line = num
-                maxRuns = max(instance.maxRuns, maxRuns)
-            self.list.append(line)
-            num = num + maxRuns 
+                num          += max(instance.maxRuns, 1)
+
+    def __iter__(self):
+        for benchmark in sorted(self.benchmarks):
+            for benchclass in benchmark:
+                yield benchclass
 
 class Machine:
     def __init__(self, name, cpu, memory):
@@ -114,34 +108,34 @@ class SeqJob(Job):
         self.parallel = parallel
 
 class Benchmark:
-    class Iterator:
-        def __init__(self, benchmark):
-            self.posclass = iter(sorted(benchmark.classes.values()))
-            self.posinst  = None
-            
-        def next(self):
-            while True:
-                if self.posinst == None:
-                    nextclass    = self.posclass.next()
-                    self.posinst = iter(sorted(nextclass.instances.values()))
-                try:
-                    return self.posinst.next()
-                except StopIteration:
-                    self.posinst = None
-
     def __init__(self, name):
         self.name    = name
         self.classes = {}
         
     def __iter__(self):
-        return Benchmark.Iterator(self)
+        for benchclass in sorted(self.classes.values()):
+            yield benchclass
     
+    def __cmp__(self, other):
+        return cmp(self.name, other.name)
+    
+    def __hash__(self):
+        return hash(self.name)
+
 class Class:
     def __init__(self, benchmark, name, uid):
         self.benchmark = benchmark
         self.name      = name
         self.id        = uid
+        self.line      = None
         self.instances = {}
+    
+    def __cmp__(self, other):
+        return cmp((self.benchmark, self.name), (other.benchmark, other.name)) 
+
+    def __iter__(self):
+        for benchinst in sorted(self.instances.values()):
+            yield benchinst
 
 class Instance:
     def __init__(self, benchclass, name, uid):
@@ -152,13 +146,17 @@ class Instance:
         self.maxRuns    = 0
     
     def __cmp__(self, other):
-        return cmp((self.benchclass.name, self.name, self.benchclass.benchmark.name), (other.benchclass.name, other.name, other.benchclass.benchmark.name))  
+        return cmp((self.benchclass, self.name), (other.benchclass, other.name))
 
 class Project:
     def __init__(self, name, job):
         self.name     = name
         self.job      = job
         self.runspecs = [] 
+    
+    def __iter__(self):
+        for runspec in self.runspecs:
+            yield runspec
 
 class Runspec():
     def __init__(self, system, machine, benchmark, setting):
@@ -167,19 +165,39 @@ class Runspec():
         self.benchmark    = benchmark
         self.setting      = setting
         self.classresults = []
+    
+    def __iter__(self):
+        for classresult in self.classresults:
+            yield classresult
 
 class ClassResult:
     def __init__(self, benchclass):
         self.benchclass  = benchclass
         self.instresults = []
+        
+    def __iter__(self):
+        for instresult in self.instresults:
+            yield instresult
 
 class InstanceResult:
     def __init__(self, instance):
         self.instance = instance
         self.runs     = []
+    
+    def __iter__(self):
+        for run in self.runs:
+            yield run
 
 class Run:
     def __init__(self, instresult, number):
         self.instresult = instresult
         self.number     = number
         self.measures   = {}
+    
+    def iter(self, measures):
+        if measures == "": 
+            for name in sorted(self.measures.keys()):
+                yield name, self.measures[name][0], self.measures[name][1]
+        else:
+            for name, _ in measures:
+                yield name, self.measures[name][0], self.measures[name][1]

@@ -12,7 +12,7 @@ from benchmarktool import tools
 
 class Spreadsheet:
     def __init__(self, benchmark, columns, measures):
-        self.instSheet  = InstanceTable(benchmark, columns, measures, "ta1")
+        self.instSheet  = ResultTable(benchmark, columns, measures, "ta1")
         self.classSheet = None
         
     def finish(self):
@@ -233,22 +233,19 @@ class ValueRows:
             return None
         return func(map(lambda x: x[0], self.list[name][line]))
 
-class InstanceTable(Table):
+class ResultTable(Table):
     def __init__(self, benchmark, columns, measures, name):
         Table.__init__(self, name)
         self.benchmark = benchmark
         self.columns   = columns
         self.results   = {}
         self.measures  = measures
-        self.lines     = 0
         self.machines  = set()
-        self.lastcol   = None
         row = 2
-        for instance in self.benchmark.list:
-            instance = instance.values()[0]
-            self.add(row, 0, StringCell(instance.benchclass.name + "/" + instance.name))
-            row += instance.maxRuns
-            self.lines += instance.maxRuns
+        for benchclass in benchmark:
+            for instance in benchclass:
+                self.add(row, 0, StringCell(instance.benchclass.name + "/" + instance.name))
+                row += instance.maxRuns
         
         self.resultOffset = row
         self.add(self.resultOffset + 1, 0, StringCell("SUM"))
@@ -271,7 +268,7 @@ class InstanceTable(Table):
         valueRows = ValueRows(dict(self.measures))
         # generate all columns
         for column in sorted(self.columns.columns):
-            if self.measures == "": 
+            if self.measures == "":
                 measures = sorted(column.width)
             else: 
                 measures = map(lambda x: x[0], self.measures)
@@ -299,7 +296,6 @@ class InstanceTable(Table):
             if add == 0: add = 1    
             col += add
         
-        self.lastcol  = col
         resultColumns = []
         for colName in ["min", "median", "max"]:
             column = Column(None, None)
@@ -398,25 +394,21 @@ class InstanceTable(Table):
             for i in green:
                 cell = self.get(2 + line, i)
                 cell.style = "cellWorst"
-            
+    
     def addRunspec(self, runspec):
         column = self.columns.getColumn(runspec)
         self.machines.add(column.machine)
-        for classresult in runspec.classresults:
-            for instresult in classresult.instresults:
-                for run in instresult.runs:
-                    if self.measures == "": measures = sorted(run.measures.keys())
-                    else: measures = map(lambda x: x[0], self.measures)
-                    for name in measures:
-                        if name in run.measures:
-                            valueType, value = run.measures[name]
-                            if valueType != "float": valueType = "string"
-                            column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
+        for classresult in runspec:
+            for instresult in classresult:
+                for run in instresult:
+                    for name, valueType, value in run.iter(self.measures):
+                        if valueType != "float": valueType = "string"
+                        column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
     
     def classTable(self):
         # TODO: adjust the columns
         #for column in self.columns.columns:
-        table = InstanceTable(self.benchmark, self.columns, self.measures, "ta2")
+        table = ResultTable(self.benchmark, self.columns, self.measures, "ta2")
         table.finish()
         return table
 
@@ -490,7 +482,7 @@ class Column:
     
     def calcSummary(self, n, ref):
         for name, summary in self.summary.items():
-            minimum = maximum = median = None  
+            minimum = maximum = median = None
             if len(ref) == 3:
                 minimum = ref[0].content[name]
                 maximum = ref[1].content[name]
