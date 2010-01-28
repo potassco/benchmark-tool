@@ -170,17 +170,55 @@ class SeqScriptGen:
 #!/usr/bin/python
 
 import optparse
-import multiprocessing
+import threading
 import subprocess
 import os
 import sys
 
-queue = [%s]
+queue = [{0}]
 
-def run(cmd):
-    print(cmd)
-    path, script = os.path.split(cmd)
-    subprocess.Popen(["bash", script], cwd=path).wait()
+class Main:
+    def __init__(self):
+        self.sem     = threading.BoundedSemaphore({1})
+        self.lock    = threading.Lock()
+        self.running = set()
+    
+    def finish(self, thread):
+        self.lock.acquire()
+        self.running.remove(thread)
+        self.lock.release()
+        self.sem.release()
+
+    
+    def start(self, cmd):
+        self.sem.acquire()
+        self.lock.acquire()
+        thread = Run(cmd, self)
+        print(cmd)
+        self.running.add(thread)
+        thread.start()
+        self.lock.release()
+    
+    def run(self, queue):
+        for cmd in queue:
+            self.start(cmd)
+    
+    def exit(self):
+        self.lock.acquire()
+        for thread in self.running:
+            print("==== WARNING: stopping {{0}} ====".format(thread.cmd))
+        self.lock.release()
+
+class Run(threading.Thread):
+    def __init__(self, cmd, main):
+        threading.Thread.__init__(self)
+        self.cmd  = cmd
+        self.main = main
+    
+    def run(self):
+        path, script = os.path.split(self.cmd)
+        subprocess.Popen(["bash", script], cwd=path).wait()
+        self.main.finish(self)
 
 def gui():
     import Tkinter
@@ -230,7 +268,7 @@ def gui():
     queue = App().start()
 
 if __name__ == '__main__':
-    usage  = "usage: %%prog [options] <runscript>"
+    usage  = "usage: %prog [options] <runscript>"
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-g", "--gui", action="store_true", dest="gui", default=False, help="start gui to selectively start benchmarks") 
 
@@ -239,9 +277,14 @@ if __name__ == '__main__':
     
     os.chdir(os.path.dirname(sys.argv[0]))
     if opts.gui: gui()
-    pool = multiprocessing.Pool(processes=%d)
-    pool.map(run, queue)
-""" % (queue, self.seqJob.parallel))
+
+    m = Main()
+    try:
+        m.run(queue)
+    except:
+        m.exit()
+        sys.exit("interrupted")
+""".format(queue, self.seqJob.parallel))
         startfile.close()
         startstat = os.stat(os.path.join(path, "start.py"))
         os.chmod(os.path.join(path, "start.py"), startstat[0] | stat.S_IXUSR)
