@@ -1,8 +1,10 @@
-'''
-Created on Jan 13, 2010
+"""
+This module contains an XML-parser for run script specifications. 
+It reads and converts a given specification and returns its 
+representation in form of python classes.
+"""
 
-@author: Roland Kaminski
-'''
+__author__ = "Roland Kaminski"
 
 from runscript import Runscript, Project, Benchmark, Config, System, Setting, PbsJob, SeqJob, Machine
 import benchmarktool.tools as tools
@@ -10,6 +12,9 @@ import benchmarktool.tools as tools
 class Parser:
     """A parser to parse xml runscript specifications."""   
     def __init__(self):
+        """
+        Initializes the parser.
+        """
         pass
     
     def parse(self, fileName):
@@ -270,13 +275,13 @@ class Parser:
         run  = Runscript(root.get("name"), root.get("output"))
 
         for node in root.xpath("./pbsjob"):
-            attr = self.filterAttr(node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime"])
+            attr = self._filterAttr(node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime"])
             procs = [int(proc) for proc in node.get("procs").split(None)]
             job = PbsJob(node.get("name"), tools.xmlTime(node.get("timeout")), int(node.get("runs")), int(node.get("ppn")), procs, node.get("script_mode"), tools.xmlTime(node.get("walltime")), attr)
             run.addJob(job)
 
         for node in root.xpath("./seqjob"):
-            attr = self.filterAttr(node, ["name", "timeout", "runs", "parallel"])
+            attr = self._filterAttr(node, ["name", "timeout", "runs", "parallel"])
             job = SeqJob(node.get("name"), tools.xmlTime(node.get("timeout")), int(node.get("runs")), int(node.get("parallel")), attr)
             run.addJob(job)
         
@@ -293,7 +298,7 @@ class Parser:
             system = System(node.get("name"), node.get("version"), node.get("measures"), sytemOrder)
             settingOrder = 0
             for child in node.xpath("setting"):
-                attr = self.filterAttr(child, ["name", "cmdline", "tag"])
+                attr = self._filterAttr(child, ["name", "cmdline", "tag"])
                 if child.get("tag") == None: tag = set()
                 else: tag = set(child.get("tag").split(None))
                 setting = Setting(child.get("name"), child.get("cmdline"), tag, settingOrder, attr)
@@ -333,7 +338,11 @@ class Parser:
         
         return run
     
-    def filterAttr(self, node, skip):
+    def _filterAttr(self, node, skip):
+        """
+        Returns a dictionary containing all attributes of a given node.
+        Attributes whose name occurs in the set skip are ignored.
+        """
         attr = {}
         for key, val in node.items():
             if not key in skip:
