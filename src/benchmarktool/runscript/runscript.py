@@ -362,60 +362,75 @@ class SeqScriptGen:
             else: comma  = True
             queue+= repr(os.path.join(relpath, instname))
         startfile.write("""\
-#!/usr/bin/python
+#!/usr/bin/python -u
 
 import optparse
 import threading
 import subprocess
 import os
 import sys
+import signal
+import time
 
 queue = [{0}]
 
 class Main:
     def __init__(self):
-        self.sem     = threading.BoundedSemaphore({1})
-        self.lock    = threading.Lock()
-        self.running = set()
-        self.started = 0
-        self.total   = None
+        self.running  = set()
+        self.started  = 0
+        self.total    = None
+        self.finished = threading.Condition()
     
     def finish(self, thread):
-        self.lock.acquire()
+        self.finished.acquire()
         self.running.remove(thread)
-        self.lock.release()
-        self.sem.release()
+        self.finished.notify()
+        self.finished.release()
    
     def start(self, cmd):
-        self.sem.acquire()
-        self.lock.acquire()
         thread = Run(cmd, self)
         self.started += 1
         self.running.add(thread)
         print("({{0}}/{{1}}/{{2}}) {{3}}".format(len(self.running), self.started, self.total, cmd))
         thread.start()
-        self.lock.release()
     
     def run(self, queue):
+        signal.signal(signal.SIGTERM, self.exit)
+        signal.signal(signal.SIGINT, self.exit)
+        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+        self.finished.acquire()
         self.total = len(queue)
         for cmd in queue:
-            self.start(cmd)
-    
-    def exit(self):
-        self.lock.acquire()
-        for thread in self.running:
-            print("==== WARNING: stopping {{0}} ====".format(thread.cmd))
-        self.lock.release()
+            if len(self.running) < {1}:
+                self.start(cmd)
+            else:
+                self.finished.wait()
+        while len(self.running) != 0:
+            self.finished.wait()
+        self.finished.release()
+
+    def exit(self, *args):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        print "WARNING: it is not guaranteed that all processes will be terminated!"
+        print "sending sigterm ..."
+        os.killpg(os.getpgid(0), signal.SIGTERM)
+        print "waiting 10s..."
+        time.sleep(10)
+        print "sending sigkill ..."
+        os.killpg(os.getpgid(0), signal.SIGKILL)
 
 class Run(threading.Thread):
     def __init__(self, cmd, main):
         threading.Thread.__init__(self)
         self.cmd  = cmd
         self.main = main
+        self.proc = None
     
     def run(self):
         path, script = os.path.split(self.cmd)
-        subprocess.Popen(["bash", script], cwd=path).wait()
+        self.proc = subprocess.Popen(["bash", script], cwd=path)
+        self.proc.wait()
         self.main.finish(self)
 
 def gui():
@@ -477,11 +492,7 @@ if __name__ == '__main__':
     if opts.gui: gui()
 
     m = Main()
-    try:
-        m.run(queue)
-    except:
-        m.exit()
-        sys.exit("interrupted")
+    m.run(queue)
 """.format(queue, self.seqJob.parallel))
         startfile.close()
         startstat = os.stat(os.path.join(path, "start.py"))
