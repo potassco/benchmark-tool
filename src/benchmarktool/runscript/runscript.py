@@ -377,24 +377,27 @@ class Main:
         self.sem     = threading.BoundedSemaphore({1})
         self.lock    = threading.Lock()
         self.running = set()
+        self.started = 0
+        self.total   = None
     
     def finish(self, thread):
         self.lock.acquire()
         self.running.remove(thread)
         self.lock.release()
         self.sem.release()
-
-    
+   
     def start(self, cmd):
         self.sem.acquire()
         self.lock.acquire()
         thread = Run(cmd, self)
-        print(cmd)
+        self.started += 1
         self.running.add(thread)
+        print("({{0}}/{{1}}/{{2}}) {{3}}".format(len(self.running), self.started, self.total, cmd))
         thread.start()
         self.lock.release()
     
     def run(self, queue):
+        self.total = len(queue)
         for cmd in queue:
             self.start(cmd)
     

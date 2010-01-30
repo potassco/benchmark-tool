@@ -418,7 +418,7 @@ class ResultTable(Table):
         column = self.systemColumns[key]
         self.machines.add(column.machine)
         for classresult in runspec:
-            sum = {} 
+            classSum = {} 
             for instresult in classresult:
                 for run in instresult:
                     for name, valueType, value in run.iter(self.measures):
@@ -426,12 +426,12 @@ class ResultTable(Table):
                         if self.instanceTable == None:
                             column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
                         elif valueType == "float":
-                            if not name in sum:
-                                sum[name] = 0
-                            sum[name] += float(value)
+                            if not name in classSum:
+                                classSum[name] = 0
+                            classSum[name] += float(value)
                             
             if not self.instanceTable == None:
-                for name, value in sum.items():
+                for name, value in classSum.items():
                     column.addCell(classresult.benchclass.line, name, "classresult", (classresult.benchclass, value))
     
 class Summary:
@@ -481,11 +481,11 @@ class Summary:
         self.sqsum += val * val
 
 class ValueColumn:
-    def __init__(self, name, type):
+    def __init__(self, name, valueType):
         self.offset   = None
         self.content  = []
         self.name     = name
-        self.type     = type
+        self.type     = valueType
         self.summary  = Summary()
         
     def addCell(self, line, value):
@@ -503,6 +503,7 @@ class SystemColumn:
         self.setting  = setting
         self.machine  = machine
         self.columns  = {}
+        self.offset   = None
     
     def genName(self, addMachine):
         res = self.setting.system.name + "-" + self.setting.system.version + "/" + self.setting.name
