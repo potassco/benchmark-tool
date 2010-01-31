@@ -882,7 +882,7 @@ class Runscript:
             machine.toXml(out, "\t")
         for config in sorted(configs):
             config.toXml(out, "\t")
-        for system in sorted(systems.keys(), cmp=lambda s: s.order):
+        for system in sorted(systems.keys(), key=lambda s: s.order):
             system.toXml(out, "\t", systems[system])
         for job in sorted(jobs):
             job.toXml(out, "\t")
