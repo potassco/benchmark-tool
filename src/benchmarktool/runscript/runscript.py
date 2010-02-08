@@ -401,10 +401,9 @@ class Main:
         self.finished.acquire()
         self.total = len(queue)
         for cmd in queue:
-            if len(self.running) < {1}:
-                self.start(cmd)
-            else:
+            while len(self.running) >= {1}:
                 self.finished.wait()
+            self.start(cmd)
         while len(self.running) != 0:
             self.finished.wait()
         self.finished.release()
