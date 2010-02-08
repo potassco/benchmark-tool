@@ -65,6 +65,6 @@ def median(sequence):
         for x in sequence[middle + 2:]:
             if x < minimum:
                 minimum = x
-        value = (median + minimum) / 2.0
+        value = (value + minimum) / 2.0
     return value
 
