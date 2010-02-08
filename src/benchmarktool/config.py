@@ -6,6 +6,7 @@ Created on Jan 17, 2010
 
 import os
 import re
+import sys
 
 #TODO: some helper methods could be provided ... 
 clasp_models      = re.compile(r"^Models[ ]*:[ ]*([0-9]+)\+?[ ]*$")
@@ -16,7 +17,7 @@ clasp_restarts    = re.compile(r"^Restarts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_status      = re.compile(r"^(SATISFIABLE|UNSATISFIABLE|UNKNOWN)[ ]*$")
 clasp_interrupted = re.compile(r"^Interrupted[ ]*:[ ]*(1)[ ]*$")
 
-def clasp(root, runspec):
+def clasp(root, runspec, instance):
     result      = []
     interrupted = 0
     status      = None
@@ -47,6 +48,12 @@ def clasp(root, runspec):
         if m: time = float(m.group(1))
     
     # count suspicious stuff as timeout
+    if status == None:
+        result.append(("error", "float", 1))
+        print >> sys.stderr, "*** ERROR: Run {0}/{1} failed with unrecognized status!".format(instance.classname, instance.instance)
+    else:
+        result.append(("error", "float", 0))
+
     if (status != "SATISFIABLE" and status != "UNSATISFIABLE") or time >= timeout:
         time = timeout
         result.append(("timeout", "float", 1))
