@@ -63,3 +63,40 @@ def clasp(root, runspec, instance):
     result.append(("time", "float", time))
     result.append(("interrupted", "float", interrupted))
     return result
+
+smodels_status  = re.compile(r"^(True|False)")
+smodels_choices = re.compile(r"^Number of choice points: ([0-9]+)")
+smodels_time    = re.compile(r"^Real time \(s\): ([0-9]+\.[0-9]+)$")
+
+def smodels(root, runspec, instance):
+    result  = []
+    status  = None
+    timeout = time = runspec.project.job.timeout
+
+    # parse smodels output
+    for line in open(os.path.join(root, "runsolver.solver")):
+        m = smodels_status.match(line)
+        if m: status = m.group(1)
+        m = smodels_choices.match(line)
+        if m: result.append(("choices", "float", float(m.group(1))))
+
+    # parse runsolver output
+    for line in open(os.path.join(root, "runsolver.watcher")):
+        m = smodels_time.match(line)
+        if m: time = float(m.group(1))
+    
+    if status == None or time >= timeout:
+        time = timeout
+        result.append(("timeout", "float", 1))
+    else:
+        result.append(("timeout", "float", 0))
+
+    if status == "True": status = "SATISFIABLE"
+    elif status == "False": status = "UNSATISFIABLE"
+    else: status = "UNKNOWN"
+
+    result.append(("status", "string", status))
+    result.append(("time", "float", time))
+
+    return result
+
