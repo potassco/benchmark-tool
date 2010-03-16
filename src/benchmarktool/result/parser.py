@@ -9,7 +9,13 @@ from benchmarktool import tools
 from benchmarktool.result.result import Benchmark, Class, ClassResult, Config, Instance, InstanceResult, Machine, Project, Result, Run, Runspec, SeqJob, Setting, System
 
 class Parser:
+    """
+    A parser to parse XML result files.
+    """    
     def __init__(self):
+        """
+        Initializes the parser.
+        """
         self.benchclass   = None
         self.systemOrder  = None
         self.result       = None
@@ -24,6 +30,13 @@ class Parser:
         self.run          = None
     
     def parse(self, infile):
+        """
+        Parse a given result file and return its representation 
+        in form of an instance of class Result.
+        
+        Keyword arguments:
+        infile -- The file to parse  
+        """
         # to reduce memory consumption especially for large result files
         # do not use the full blown etree representation 
         parser = etree.XMLParser(target=self)
@@ -31,6 +44,12 @@ class Parser:
         return self.result
         
     def start(self, tag, attrib):
+        """
+        This method is called for every opening XML tag.
+        
+        tag    - The name of the tag
+        attrib - The attributes of the tag  
+        """
         if tag == "result":
             self.systemOrder = 0
             self.result = Result()
@@ -92,4 +111,7 @@ class Parser:
         else: print tag, attrib 
         
     def close(self):
+        """
+        This method is called for every closing XML tag.
+        """
         pass

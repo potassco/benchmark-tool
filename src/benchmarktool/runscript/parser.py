@@ -10,7 +10,9 @@ from runscript import Runscript, Project, Benchmark, Config, System, Setting, Pb
 import benchmarktool.tools as tools
 
 class Parser:
-    """A parser to parse xml runscript specifications."""   
+    """
+    A parser to parse xml runscript specifications.
+    """   
     def __init__(self):
         """
         Initializes the parser.
