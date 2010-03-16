@@ -18,6 +18,10 @@ clasp_status      = re.compile(r"^(SATISFIABLE|UNSATISFIABLE|UNKNOWN)[ ]*$")
 clasp_interrupted = re.compile(r"^Interrupted[ ]*:[ ]*(1)[ ]*$")
 
 def clasp(root, runspec, instance):
+    """
+    Extracts some clasp statistics.
+    (This function was tested with clasp-1.3.2.)   
+    """
     result      = []
     interrupted = 0
     status      = None
@@ -69,6 +73,10 @@ smodels_choices = re.compile(r"^Number of choice points: ([0-9]+)")
 smodels_time    = re.compile(r"^Real time \(s\): ([0-9]+\.[0-9]+)$")
 
 def smodels(root, runspec, instance):
+    """
+    Extracts some smodels statistics.
+    (This function was tested with smodels-2.33.)   
+    """
     result  = []
     status  = None
     timeout = time = runspec.project.job.timeout

@@ -535,6 +535,9 @@ class SeqJob(Job):
 
            
 class PbsJob(Job):
+    """
+    Describes a pbs job.
+    """
     def __init__(self, name, timeout, runs, ppn, procs, script_mode, walltime, attr):
         """
         Initializes a parallel job description.  
@@ -739,7 +742,7 @@ class Benchmark:
 
     class Files:
         """
-        Describes a set of individual file in a benchmark.
+        Describes a set of individual files in a benchmark.
         """
         def __init__(self, path):
             """
@@ -773,21 +776,46 @@ class Benchmark:
                     benchmark.addInstance(self.path, relroot, filename)
                 
     def __init__(self, name):
+        """
+        Initializes an empty benchmark set.
+        
+        Keyword arguments:
+        name - The name of the benchmark set
+        """        
         self.name        = name
         self.elements    = []
         self.instances   = {}
         self.initialized = False
         
     def addElement(self, element):
+        """
+        Adds elements to the benchmark, e.g, files or folders.
+        
+        Keyword arguments:
+        element - The element to add
+        """
         self.elements.append(element)
     
     def addInstance(self, root, relroot, filename):
+        """
+        Adds an instance to the benchmark set. (This function
+        is called during initialization by the benchmark elements)
+        
+        Keyword arguments:
+        root     - The root folder of the instance
+        relroot  - The folder relative to the root folder
+        filename - The filename of the instance
+        """
         classname = Benchmark.Class(relroot)
         if not classname in self.instances: 
             self.instances[classname] = set()
         self.instances[classname].add(Benchmark.Instance(root, classname, filename))
     
     def init(self):
+        """
+        Populates the benchmark set with instances specified by the 
+        benchmark elements added.
+        """
         if not self.initialized:
             for element in self.elements: element.init(self)
             classid = 0
@@ -802,6 +830,13 @@ class Benchmark:
             
 
     def toXml(self, out, indent):
+        """
+        Dump the (pretty-printed) XML-representation of the benchmark set.
+        
+        Keyword arguments:
+        out    - Output stream to write to
+        indent - Amount of indentation
+        """
         self.init()
         out.write('{1}<benchmark name="{0}">\n'.format(self.name, indent))
         for classname in sorted(self.instances.keys()):
@@ -813,13 +848,31 @@ class Benchmark:
         out.write('{0}</benchmark>\n'.format(indent))
         
     def __hash__(self):
+        """
+        Return a hash values using the name of the machine.
+        """
         return hash(self.name)
 
     def __cmp__(self, benchmark):
+        """
+        Compare two benchmark sets.
+        """
         return cmp(benchmark.name, benchmark.name)
 
 class Runspec:
+    """
+    Describes a run specification. This specifies system, settings, machine 
+    to run a benchmark with.  
+    """    
     def __init__(self, machine, setting, benchmark):
+        """
+        Initializes a run specification.
+        
+        Keyword arguments:
+        machine   - The machine to run on
+        setting   - The setting to run with (includes system)
+        benchmark - The benchmark
+        """
         self.machine   = machine
         self.setting   = setting
         self.system    = setting.system
@@ -827,22 +880,126 @@ class Runspec:
         self.project   = None
     
     def path(self):
+        """
+        Returns an output path under which start scripts 
+        and benchmark results are stored.  
+        """
         name = self.setting.system.name + "-" + self.setting.system.version + "-" + self.setting.name
         return os.path.join(self.project.path(), self.machine.name, "results", self.benchmark.name, name)
     
     def genScripts(self, scriptGen):
+        """
+        Generates start scripts needed to start the benchmark described
+        by this run specification. This will simply add all instances 
+        to the given script generator. 
+        
+        Keyword arguments:
+        scriptGen - A generator that is responsible for the start script generation
+        """
         self.benchmark.init()
         for instances in self.benchmark.instances.values():
             for instance in instances:
                 scriptGen.addToScript(self, instance)
     
     def __cmp__(self, runspec):
+        """
+        Compares two run specifications.
+        """
         return cmp((self.machine, self.system, self.setting, self.benchmark), (runspec.machine, runspec.system, runspec.setting, runspec.benchmark)) 
 
+class Project:
+    """
+    Describes a benchmark project, i.e., a set of run specifications
+    that belong together. 
+    """
+    def __init__(self, name):
+        """
+        Initializes an empty project.
+        
+        Keyword arguments:
+        name - The name of the project
+        """
+        self.name      = name
+        self.runspecs  = {}
+        self.runscript = None
+        self.job       = None
+
+    def addRuntag(self, machine, benchmark, tag):
+        """
+        Adds a run tag to the project, i.e., a set of run specifications
+        identified by certain tags.
+        
+        Keyword arguments:
+        machine   - The machine to run on
+        benchmark - The benchmark set to evaluate
+        tag       - The tags of systems+settings to run 
+        """
+        disj = TagDisj(tag)
+        for system in self.runscript.systems.values():
+            for setting in system.settings.values():
+                if disj.match(setting.tag):
+                    self.addRunspec(machine, system.name, system.version, setting.name, benchmark)
+        
+    def addRunspec(self, machine, system, version, setting, benchmark):
+        """
+        Adds a run specification, described by machine, system+settings, and benchmark set,
+        to the project.
+        
+        Keyword arguments:
+        machine   - The machine to run on
+        system    - The system to evaluate
+        version   - The version of the system
+        setting   - The settings to run the system with
+        benchmark - The benchmark set to evaluate
+        """
+        runspec = Runspec(self.runscript.machines[machine],
+                          self.runscript.systems[(system,version)].settings[setting], 
+                          self.runscript.benchmarks[benchmark])
+        runspec.project = self
+        if not machine in self.runspecs: self.runspecs[machine] = []
+        self.runspecs[machine].append(runspec)
+    
+    def path(self):
+        """
+        Returns an output path under which start scripts 
+        and benchmark results are stored for this project.
+        """
+        return os.path.join(self.runscript.path(), self.name)
+    
+    def genScripts(self):
+        """
+        Generates start scripts for this project.
+        """
+        for machine, runspecs in self.runspecs.items():
+            scriptGen = self.job.scriptGen()
+            for runspec in runspecs:
+                runspec.genScripts(scriptGen)
+            scriptGen.genStartScript(os.path.join(self.path(), machine))
+    
+    def __hash__(self):
+        """
+        Return a hash values using the name of the project.
+        """
+        return hash(self.name)
+
+    def __cmp__(self, project):
+        """
+        Compares two projects.
+        """
+        return cmp(project.name, project.name)
 
 class Runscript:
-    def __init__(self, name, output):
-        self.name       = name
+    """
+    Describes a run script, i.e., everything that is needed
+    to start and evaluate a set of benchmarks.   
+    """
+    def __init__(self, output):
+        """
+        Initializes an empty run script.
+        
+        Keyword arguments:
+        output - The output folder to store start scripts and result files 
+        """
         self.output     = output
         self.jobs       = {}
         self.projects   = {}
@@ -852,34 +1009,76 @@ class Runscript:
         self.benchmarks = {}
     
     def addMachine(self, machine):
+        """
+        Adds a given machine to the run script.
+        """
         self.machines[machine.name] = machine
     
     def addSystem(self, system, config):
+        """
+        Adds a given system to the run script.
+        Additionally, each system will be associated with a config.
+        
+        Keyword arguments:
+        system - The system to add
+        config - The name of the config of the system
+        """
         system.config = self.configs[config]
         self.systems[(system.name, system.version)] = system
         
     def addConfig(self, config):
+        """
+        Adds a configuration to the run script.
+        """
         self.configs[config.name] = config
 
     def addBenchmark(self, benchmark):
+        """
+        Adds a benchmark to the run script. 
+        """
         self.benchmarks[benchmark.name] = benchmark
     
     def addJob(self, job):
+        """
+        Adds a job to the runscript.
+        """
         self.jobs[job.name] = job
     
     def addProject(self, project, job):
+        """
+        Adds a project to therun script.
+        Additionally, the project ill be associated with a job.
+        
+        Keyword arguments:
+        project - The project to add
+        job     - The name of the job of the project
+        """
         project.runscript = self
         project.job       = self.jobs[job] 
         self.projects[project.name] = project
 
     def genScripts(self):
+        """
+        Generates the start scripts for all benchmarks described by
+        this run script. 
+        """
         for project in self.projects.values():
             project.genScripts()
     
     def path(self):
+        """
+        Returns the output path of this run script.
+        """
         return self.output
     
     def evalResults(self, out):
+        """
+        Evaluates and prints the results of all benchmarks described
+        by this run script. (Start scripts have to be run first.)
+        
+        Keyword arguments:
+        out - Output stream for xml output 
+        """
         machines   = set()
         jobs       = set()
         configs    = set()
@@ -928,45 +1127,6 @@ class Runscript:
             out.write('\t</project>\n')
         out.write('</result>\n')
          
-class Project:
-    def __init__(self, name):
-        self.name      = name
-        self.runspecs  = {}
-        self.runscript = None
-        self.job       = None
-
-    def addRuntag(self, machine, benchmark, tag):
-        disj = TagDisj(tag)
-        for system in self.runscript.systems.values():
-            for setting in system.settings.values():
-                if disj.match(setting.tag):
-                    self.addRunspec(machine, system.name, system.version, setting.name, benchmark)
-        
-    def addRunspec(self, machine, system, version, setting, benchmark):
-        runspec = Runspec(self.runscript.machines[machine],
-                          self.runscript.systems[(system,version)].settings[setting], 
-                          self.runscript.benchmarks[benchmark])
-        runspec.project = self
-        if not machine in self.runspecs: self.runspecs[machine] = []
-        self.runspecs[machine].append(runspec)
-    
-    def path(self):
-        return os.path.join(self.runscript.path(), self.name)
-    
-    def genScripts(self):
-        for machine, runspecs in self.runspecs.items():
-            scriptGen = self.job.scriptGen()
-            for runspec in runspecs:
-                runspec.genScripts(scriptGen)
-            scriptGen.genStartScript(os.path.join(self.path(), machine))
-    
-    def __hash__(self):
-        return hash(self.name)
-
-    def __cmp__(self, project):
-        return cmp(project.name, project.name)
-
-
 class TagDisj:
     """Represents tags in form of a disjunctive normal form."""
     ALL = 1

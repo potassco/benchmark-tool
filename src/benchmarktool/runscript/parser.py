@@ -272,7 +272,7 @@ class Parser:
         schema.assertValid(doc)
         
         root = doc.getroot()
-        run  = Runscript(root.get("name"), root.get("output"))
+        run  = Runscript(root.get("output"))
 
         for node in root.xpath("./pbsjob"):
             attr = self._filterAttr(node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime"])

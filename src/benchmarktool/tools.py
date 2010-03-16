@@ -17,6 +17,9 @@ def mkdir_p(path):
     if not os.path.exists(path): os.makedirs(path)
 
 def xmlTime(strRep):
+    """
+    Converts [[h:]m:]s time format to integer value in seconds. 
+    """
     timeout = strRep.split(":")
     seconds = int(timeout[-1])
     minutes = hours = 0
@@ -25,6 +28,10 @@ def xmlTime(strRep):
     return seconds + minutes * 60 + hours * 60 * 60
 
 def medianSorted(sequence):
+    """
+    Returns the median of a sorted sequence.
+    (Returns 0 if the sequence is empty.)
+    """
     if len(sequence) == 0:
         return 0
     middle = len(sequence) / 2
@@ -34,7 +41,15 @@ def medianSorted(sequence):
     return value
 
 def median(sequence):
+    """
+    Returns the median of an unordered sequence.
+    (Returns 0 if the sequence is empty.)
+    """
     def partition(sequence, left, right):
+        """
+        Selects a pivot element and moves all smaller(bigger) 
+        elements to the left(right).
+        """        
         pivotIndex = random.randint(left, right)
         pivotValue = sequence[pivotIndex]
         sequence[pivotIndex], sequence[right] = sequence[right], sequence[pivotIndex]
@@ -47,6 +62,9 @@ def median(sequence):
         return storeIndex
     
     def select(sequence, left, right, k):
+        """
+        Selects the k-th element as in the ordered sequence. 
+        """
         pivotIndex = partition(sequence, left, right)
         if k == pivotIndex:
             return sequence[k]
