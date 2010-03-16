@@ -738,14 +738,35 @@ class Benchmark:
                     benchmark.addInstance(self.path, relroot, filename) 
 
     class Files:
+        """
+        Describes a set of individual file in a benchmark.
+        """
         def __init__(self, path):
+            """
+            Initializes to the empty set of files.
+            
+            Keyword arguments:
+            path - Root path, all file paths are relative to this path
+            """
             self.path  = path
             self.files = set()
             
         def addFile(self, path):
+            """
+            Adds a file to the set of files.
+            
+            Keyword arguments:
+            path - Location of the file
+            """
             self.files.add(os.path.normpath(path))
         
         def init(self, benchmark):
+            """
+            Adds a files in the set to the given benchmark (if they exist).
+            
+            Keyword arguments:
+            benchmark - The benchmark to be populated
+            """
             for path in self.files:
                 if os.path.exists(os.path.join(self.path, path)):
                     relroot, filename = os.path.split(path)

@@ -95,7 +95,10 @@ class Cell:
 class StringCell(Cell):
     def __init__(self, val):
         Cell.__init__(self)
-        self.val = val
+        if val == None:
+            self.val = ""
+        else:
+            self.val = val
     
     def printSheet(self, out):
         out.write('<table:table-cell office:value-type="string"><text:p>{0}</text:p></table:table-cell>'.format(self.protect(self.val)))
@@ -445,14 +448,15 @@ class Summary:
         self.better = 0
         self.worse  = 0
         self.worst  = 0
+        self.count  = 0
     
     def calc(self, n, colA, minmum, median, maximum):
-        self.avg = self.sum / n
-        self.dev = math.sqrt(self.sqsum / n - self.avg * self.avg)
-        colA.extend([None for _ in range(0, n - len(colA))])
+        self.avg = self.sum / self.count
+        self.dev = math.sqrt(self.sqsum / self.count - self.avg * self.avg)
+        colA.extend([None for _ in range(0,  - len(colA))])
         # geometric distance, best
         if minmum != None:
-            minmum.extend([None for _ in range(0, n - len(minmum))])
+            minmum.extend([None for _ in range(0, self.count - len(minmum))])
             sdsum = 0
             for a, b in zip(colA, minmum):
                 if a != None:
@@ -462,7 +466,7 @@ class Summary:
             self.dst = math.sqrt(sdsum)
         # better, worse
         if median != None:
-            median.extend([None for _ in range(0, n - len(median))])
+            median.extend([None for _ in range(0, self.count - len(median))])
             for a, b in zip(colA, median):
                 if a != None:
                     if a < b:
@@ -471,7 +475,7 @@ class Summary:
                         self.worse += 1
         # worst 
         if maximum != None:
-            maximum.extend([None for _ in range(0, n - len(maximum))])
+            maximum.extend([None for _ in range(0, self.count - len(maximum))])
             for a, b in zip(colA, maximum):
                 if a != None and a >= b: 
                     self.worst += 1
@@ -479,6 +483,7 @@ class Summary:
     def add(self, val):
         self.sum   += val
         self.sqsum += val * val
+        self.count += 1
 
 class ValueColumn:
     def __init__(self, name, valueType):
@@ -491,10 +496,10 @@ class ValueColumn:
     def addCell(self, line, value):
         if self.type == "classresult":
             self.summary.add(float(value[1]))
-        if self.type == "float":
+        elif self.type == "float" and value != None:
             value = float(value)
             self.summary.add(value)
-        while len(self.content) <= line: 
+        while len(self.content) <= line:
             self.content.append(None)
         self.content[line] = value
 
