@@ -278,19 +278,20 @@ class SeqRun(Run):
         Returns the timeout of this run. 
         """
         return self.job.timeout
-    
-class SeqScriptGen:
+
+class ScriptGen:
     """
-    A class that generates and evaluates start scripts for sequential runs.
+    A class providing basic functionality to generate 
+    start scripts for arbitrary jobs and evaluation of results.
     """
-    def __init__(self, seqJob):
+    def __init__(self, job):
         """
         Initializes the script generator.
         
         Keyword arguments:
-        seqJob - A reference to the associated sequential job.
+        seqJob - A reference to the associated job.
         """
-        self.seqJob     = seqJob
+        self.job        = job
         self.startfiles = []
     
     def _path(self, runspec, instance, run):
@@ -302,8 +303,8 @@ class SeqScriptGen:
         instance - The benchmark instance for the start script
         run      - The number of the run for the start script
         """
-        return os.path.join(runspec.path(), instance.classname.name, instance.instance, "run%d" % run)
-        
+        return os.path.join(runspec.path(), instance.classname.name, instance.instance, "run%d" % run)    
+    
     def addToScript(self, runspec, instance):
         """
         Creates a new start script for the given instance.
@@ -312,18 +313,18 @@ class SeqScriptGen:
         runspec  - The run specification for the start script
         instance - The benchmark instance for the start script
         """
-        for run in range(1, self.seqJob.runs + 1):
+        for run in range(1, self.job.runs + 1):
             path = self._path(runspec, instance, run)
             tools.mkdir_p(path)
             startpath = os.path.join(path, "start.sh")
             template  = pyratemp.Template(filename=runspec.system.config.template)
             startfile = open(startpath, "w")
-            startfile.write(template(run=SeqRun(path, run, self.seqJob, runspec, instance)))
+            startfile.write(template(run=SeqRun(path, run, self.job, runspec, instance)))
             startfile.close()
             self.startfiles.append((path, "start.sh"))
             startstat = os.stat(startpath)
             os.chmod(startpath, startstat[0] | stat.S_IXUSR)
-    
+
     def evalResults(self, out, indent, runspec, instance):
         """
         Parses the results of a given benchmark instance and outputs them as XML.
@@ -336,13 +337,26 @@ class SeqScriptGen:
         """
         # pylint: disable-msg=W0122
         exec("func = benchmarktool.config." + runspec.system.measures)
-        for run in range(1, self.seqJob.runs + 1):
+        for run in range(1, self.job.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
             # pylint: disable-msg=E0602
             result = func(self._path(runspec, instance, run), runspec, instance) #@UndefinedVariable
             for key, valtype, val in sorted(result):
                 out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val))
             out.write('{0}</run>\n'.format(indent))
+            
+class SeqScriptGen(ScriptGen):
+    """
+    A class that generates and evaluates start scripts for sequential runs.
+    """
+    def __init__(self, seqJob):
+        """
+        Initializes the script generator.
+        
+        Keyword arguments:
+        seqJob - A reference to the associated sequential job.
+        """
+        ScriptGen.__init__(self, seqJob)
     
     def genStartScript(self, path):
         """
@@ -492,10 +506,47 @@ if __name__ == '__main__':
 
     m = Main()
     m.run(queue)
-""".format(queue, self.seqJob.parallel))
+""".format(queue, self.job.parallel))
         startfile.close()
         startstat = os.stat(os.path.join(path, "start.py"))
         os.chmod(os.path.join(path, "start.py"), startstat[0] | stat.S_IXUSR)
+
+class PbsScriptGen(ScriptGen):
+    """
+    A class that generates and evaluates start scripts for pbs runs.
+    """
+    def __init__(self, seqJob):
+        """
+        Initializes the script generator.
+        
+        Keyword arguments:
+        seqJob - A reference to the associated sequential job.
+        """
+        ScriptGen.__init__(self, seqJob)
+    
+    def genStartScript(self, path):
+        """
+        Generates a start script that can be used to start all scripts 
+        generated using addToScript().
+        
+        Keyword arguments:
+        path - The target location for the script
+        """
+        tools.mkdir_p(path)
+        #startfile = open(os.path.join(path, "start.py"), 'w')
+        # TODO we need multiple scripts here:
+        # - a script submitting all pbs jobs
+        # - a pbs script that starts (a set of jobs)
+        # - (possibly a python script similar to the above one that 
+        #   schedules jobs due to the available recources)
+        # - modes: 
+        #   - group according to timeout
+        #   - create one pbs script for each job
+        # THE PLAN
+        # - make the number of nodes/processors per node a setting (more natural)
+        # - all the sequential stuff can be kept
+        # - group jobs by the number of nodes (obtainable via the settings)
+
 
 class SeqJob(Job):
     """
@@ -569,6 +620,13 @@ class PbsJob(Job):
         procs    = " ".join(self.procs)
         extra = ' ppn="{0.ppn}" procs={1} script_mode="{0.script_mode}" walltime="{0.walltime}"'.format(self, procs)
         Job._toXml(self, out, indent, "pbsjob", extra)
+
+    def scriptGen(self):
+        """
+        Returns a class that can generate start scripts and evaluate benchmark results.
+        (see SeqScriptGen) 
+        """
+        return PbsScriptGen(self) 
 
 class Config:
     """
