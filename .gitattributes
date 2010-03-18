@@ -40,5 +40,6 @@ src/benchmarktool/runscript/runscript.py -text
 src/benchmarktool/tools.py -text
 src/beval.py -text svneol=unset#text/plain
 src/bgen.py -text
+templates/impi.pbs -text
 templates/pbs-generic.sh -text
 templates/seq-generic.sh -text

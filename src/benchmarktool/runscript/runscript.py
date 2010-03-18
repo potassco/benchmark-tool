@@ -8,7 +8,6 @@ __author__ = "Roland Kaminski"
 
 import benchmarktool.tools as tools
 import os
-import stat
 from benchmarktool.tools import Sortable, cmp
 
 # needed to embed measurements functions via exec 
@@ -322,9 +321,8 @@ class ScriptGen:
             startfile = open(startpath, "w")
             startfile.write(template.format(run=SeqRun(path, run, self.job, runspec, instance)))
             startfile.close()
-            self.startfiles.append((path, "start.sh"))
-            startstat = os.stat(startpath)
-            os.chmod(startpath, startstat[0] | stat.S_IXUSR)
+            self.startfiles.append((runspec, path, "start.sh"))
+            tools.setExecutable(startpath)
 
     def evalResults(self, out, indent, runspec, instance):
         """
@@ -371,7 +369,7 @@ class SeqScriptGen(ScriptGen):
         startfile = open(os.path.join(path, "start.py"), 'w')
         queue = ""
         comma = False
-        for (instpath, instname) in self.startfiles:
+        for (_, instpath, instname) in self.startfiles:
             relpath = os.path.relpath(instpath, path)
             if comma: queue += ","
             else: comma  = True
@@ -509,13 +507,43 @@ if __name__ == '__main__':
     m.run(queue)
 """.format(queue, self.job.parallel))
         startfile.close()
-        startstat = os.stat(os.path.join(path, "start.py"))
-        os.chmod(os.path.join(path, "start.py"), startstat[0] | stat.S_IXUSR)
+        tools.setExecutable(os.path.join(path, "start.py"))
 
 class PbsScriptGen(ScriptGen):
     """
     A class that generates and evaluates start scripts for pbs runs.
     """
+    class PbsScript:
+        def __init__(self, runspec, path, queue):
+            self.runspec      = runspec
+            self.path         = path
+            self.queue        = queue
+            self.script       = None
+            self.num          = 0
+            self.time         = 0
+            self.startscripts = ""
+            self.next()
+        
+        def write(self):
+            template = open(self.runspec[2], "r").read()
+            open(self.script, "w").write(template.format(walltime=tools.pbsTime(self.runspec[3]), nodes=self.runspec[1], ppn=self.runspec[0], jobs=self.startscripts))
+                
+        def next(self):
+            if self.num > 0: self.write()
+            self.script = os.path.join(self.path, "start{0:04}.pbs".format(len(self.queue)))
+            self.num    = 0
+            self.queue.append(self.script)
+            
+        def append(self, startfile):
+            self.num          += 1
+            self.startscripts += startfile + "\n"
+            
+        def __del__(self):
+            if self.num > 0:
+                self.write()
+                self.num = 0
+            
+    
     def __init__(self, seqJob):
         """
         Initializes the script generator.
@@ -534,22 +562,32 @@ class PbsScriptGen(ScriptGen):
         path - The target location for the script
         """
         tools.mkdir_p(path)
-        #pbs_start0001.pbs
-        
-        #startfile = open(os.path.join(path, "start.py"), 'w')
-        # TODO we need multiple scripts here:
-        # - a script submitting all pbs jobs
-        # - a pbs script that starts (a set of jobs)
-        # - (possibly a python script similar to the above one that 
-        #   schedules jobs due to the available recources)
-        # - modes: 
-        #   - group according to timeout
-        #   - create one pbs script for each job
-        # THE PLAN
-        # - make the number of nodes/processors per node a setting (more natural)
-        # - all the sequential stuff can be kept
-        # - group jobs by the number of nodes (obtainable via the settings)
+        startfile = open(os.path.join(path, "start.sh"), 'w')
+        queue      = []
+        pbsScripts = {}
+        for (runspec, instpath, instname) in self.startfiles:
+            relpath   = os.path.relpath(instpath, path)
+            jobScript = os.path.join(relpath, instname)
+            pbsKey    = (runspec.setting.ppn, runspec.setting.procs, runspec.setting.pbstemplate, runspec.project.job.walltime)
+            
+            if not pbsKey in pbsScripts:
+                pbsScript = PbsScriptGen.PbsScript(pbsKey, path, queue)
+                pbsScripts[pbsKey] = pbsScript
+            else: pbsScript = pbsScripts[pbsKey]
+            
+            if self.job.script_mode == "multi":
+                if pbsScript.num > 0: pbsScript.next()
+                pbsScript.append(jobScript)
+            elif self.job.script_mode == "timeout":
+                if pbsScript.time + runspec.project.job.timeout + 300 >= runspec.project.job.walltime:
+                    pbsScript.next()
+                else:
+                    pbsScript.time += runspec.project.job.timeout + 300
+                pbsScript.append(jobScript)
 
+        startfile.write("""#!/bin/bash\n\ncd "$(dirname $0)"\n""" + "\n".join(['qsub "{0}"'.format(x) for x in queue]))
+        startfile.close()
+        tools.setExecutable(os.path.join(path, "start.sh"))
 
 class SeqJob(Job):
     """

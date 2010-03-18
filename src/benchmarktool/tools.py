@@ -5,7 +5,7 @@ Created on Jan 15, 2010
 '''
 
 import os
-import sys
+import stat
 import random
 
 def mkdir_p(path):
@@ -27,6 +27,14 @@ def xmlTime(strRep):
     if len(timeout) > 1: minutes = int(timeout[-2]) 
     if len(timeout) > 2: hours   = int(timeout[-3])
     return seconds + minutes * 60 + hours * 60 * 60
+
+def pbsTime(intRep):
+    s = intRep % 60
+    intRep //= 60
+    m = intRep % 60
+    intRep //= 60
+    h = intRep
+    return "{0:02}:{0:02}:{0:02}".format(h, m, s)
 
 def medianSorted(sequence):
     """
@@ -87,25 +95,28 @@ def median(sequence):
         value = (value + maximum) / 2.0
     return value
 
-# make the benchmark tool forward compatible with python 3
+def setExecutable(filename):
+    filestat = os.stat(filename)
+    os.chmod(filename, filestat[0] | stat.S_IXUSR)
 
+# make the benchmark tool forward compatible with python 3
 def cmp(a, b):
-	if a < b: return -1
-	elif a > b: return 1
-	else: return 0
+    if a < b: return -1
+    elif a > b: return 1
+    else: return 0
 
 class Sortable:
-	def __le__(self, other):
-		return self.__cmp__(other) <= 0
+    def __le__(self, other):
+        return self.__cmp__(other) <= 0
 
-	def __ge__(self, other):
-		return self.__cmp__(other) >= 0
+    def __ge__(self, other):
+        return self.__cmp__(other) >= 0
 
-	def __lt__(self, other):
-		return self.__cmp__(other) < 0
+    def __lt__(self, other):
+        return self.__cmp__(other) < 0
 
-	def __gt__(self, other):
-		return self.__cmp__(other) > 0
+    def __gt__(self, other):
+        return self.__cmp__(other) > 0
 
-	def __eq__(self, other):
-		return self.__cmp__(other) == 0
+    def __eq__(self, other):
+        return self.__cmp__(other) == 0
