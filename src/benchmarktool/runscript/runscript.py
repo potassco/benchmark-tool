@@ -6,17 +6,17 @@ specified by the run script.
 
 __author__ = "Roland Kaminski"
 
-import benchmarktool.pyratemp as pyratemp
 import benchmarktool.tools as tools
 import os
 import stat
+from benchmarktool.tools import Sortable, cmp
 
 # needed to embed measurements functions via exec 
 # pylint: disable-msg=W0611
 import benchmarktool.config #@UnusedImport
 # pylint: enable-msg=W0611
 
-class Machine:
+class Machine(Sortable):
     """
     Describes a machine.
     """
@@ -55,7 +55,7 @@ class Machine:
         """
         return cmp(self.name, machine.name)
     
-class System:
+class System(Sortable):
     """
     Describes a system. This includes a solver description 
     together with a set of settings.  
@@ -116,29 +116,35 @@ class System:
         """
         return cmp((self.name, self.version), (system.name, system.version))
 
-class Setting:
+class Setting(Sortable):
     """
     Describes a setting for a system. This are command line options
     that can be passed to the system. Additionally, settings can be tagged. 
     """
-    def __init__(self, name, cmdline, tag, order, attr):
+    def __init__(self, name, cmdline, tag, order, procs, ppn, pbstemplate, attr):
         """
         Initializes a system.
         
-        name    - A name uniquely identifying a setting. 
-                  (In the scope of a system)
-        cmdline - A string of command line options
-        tag     - A set of tags
-        order   - An integer specifying the order of settings
-                  (This should denote the occurrence in the job specification.
-                  Again in the scope of a system.)
-        attr    - A dictionary of additional optional attributes.  
+        name        - A name uniquely identifying a setting. 
+                      (In the scope of a system)
+        cmdline     - A string of command line options
+        tag         - A set of tags
+        order       - An integer specifying the order of settings
+                      (This should denote the occurrence in the job specification.
+                      Again in the scope of a system.)
+        procs       - Number of processes used by the solver (pbs only)
+        ppn         - Processes per node (pbs only)
+        pbstemplate - Path to pbs-template file (pbs only, related to mpi-version)
+        attr        - A dictionary of additional optional attributes.  
         """
-        self.name    = name
-        self.cmdline = cmdline
-        self.tag     = tag
-        self.order   = order
-        self.attr    = attr
+        self.name        = name
+        self.cmdline     = cmdline
+        self.tag         = tag
+        self.order       = order
+        self.procs       = procs
+        self.ppn         = ppn
+        self.pbstemplate = pbstemplate 
+        self.attr        = attr
 
     def toXml(self, out, indent):
         """
@@ -150,6 +156,12 @@ class Setting:
         """
         tag = " ".join(sorted(self.tag))
         out.write('{1}<setting name="{0.name}" cmdline="{0.cmdline}" tag="{2}"'.format(self, indent, tag))
+        if self.procs != None:
+            out.write(' {0}="{1}"'.format("procs", self.procs))
+        if self.ppn != None:
+            out.write(' {0}="{1}"'.format("ppn", self.ppn))
+        if self.pbstemplate != None:
+            out.write(' {0}="{1}"'.format("pbstemplate", self.pbstemplate))
         for key, val in self.attr.items():
             out.write(' {0}="{1}"'.format(key, val))
         out.write('/>\n')
@@ -167,7 +179,7 @@ class Setting:
         return cmp(self.name, setting.name)
 
         
-class Job:
+class Job(Sortable):
     """
     Base class for all jobs. 
     """
@@ -213,9 +225,13 @@ class Job:
         """
         return cmp(job.name, job.name)
 
-class Run:
+class Run(Sortable):
     """
-    Base class for all runs. 
+    Base class for all runs.
+    
+    Class members:
+    path - Path that holds the target location for start scripts
+    root - directory relative to the location of the run's path.
     """
     def __init__(self, path):
         """
@@ -226,16 +242,21 @@ class Run:
                where the individual start scripts for the job shall be generated 
         """
         self.path = path
-    
-    def root(self):
-        """
-        Returns the root directory relative to the location of the run's path. 
-        """
-        return os.path.relpath(".", self.path)
+        self.root = os.path.relpath(".", self.path) 
     
 class SeqRun(Run):
     """
     Describes a sequential run.
+    
+    Class members:
+    run      - The number of the run
+    job      - A reference to the job description
+    runspec  - A reference to the run description
+    instance - A reference to the instance to benchmark
+    file     - A relative path to the instance
+    args     - The command line arguments for this run
+    solver   - The solver for this run
+    timeout  - The timeout of this run
     """
     def __init__(self, path, run, job, runspec, instance):
         """
@@ -254,30 +275,10 @@ class SeqRun(Run):
         self.job      = job
         self.runspec  = runspec
         self.instance = instance
-    
-    def file(self):
-        """
-        Returns a relative path to the instance. 
-        """
-        return os.path.relpath(self.instance.path(), self.path)
-    
-    def args(self):
-        """
-        Returns the command line arguments for this run.
-        """
-        return self.runspec.setting.cmdline
-    
-    def solver(self):
-        """
-        Returns the solver for this run.
-        """
-        return self.runspec.system.name + "-" + self.runspec.system.version
-    
-    def timeout(self):
-        """
-        Returns the timeout of this run. 
-        """
-        return self.job.timeout
+        self.file     = os.path.relpath(self.instance.path(), self.path)
+        self.args     = self.runspec.setting.cmdline
+        self.solver   = self.runspec.system.name + "-" + self.runspec.system.version
+        self.timeout  = self.job.timeout
 
 class ScriptGen:
     """
@@ -317,9 +318,9 @@ class ScriptGen:
             path = self._path(runspec, instance, run)
             tools.mkdir_p(path)
             startpath = os.path.join(path, "start.sh")
-            template  = pyratemp.Template(filename=runspec.system.config.template)
+            template  = open(runspec.system.config.template).read()
             startfile = open(startpath, "w")
-            startfile.write(template(run=SeqRun(path, run, self.job, runspec, instance)))
+            startfile.write(template.format(run=SeqRun(path, run, self.job, runspec, instance)))
             startfile.close()
             self.startfiles.append((path, "start.sh"))
             startstat = os.stat(startpath)
@@ -533,6 +534,8 @@ class PbsScriptGen(ScriptGen):
         path - The target location for the script
         """
         tools.mkdir_p(path)
+        #pbs_start0001.pbs
+        
         #startfile = open(os.path.join(path, "start.py"), 'w')
         # TODO we need multiple scripts here:
         # - a script submitting all pbs jobs
@@ -589,7 +592,7 @@ class PbsJob(Job):
     """
     Describes a pbs job.
     """
-    def __init__(self, name, timeout, runs, ppn, procs, script_mode, walltime, attr):
+    def __init__(self, name, timeout, runs, script_mode, walltime, attr):
         """
         Initializes a parallel job description.  
         
@@ -597,15 +600,11 @@ class PbsJob(Job):
         name        - A unique name for a job
         timeout     - A timeout in seconds for individual benchmark runs
         runs        - The number of runs per benchmark
-        ppn         - The number of processors per node
-        procs       - A list of processes to start in parallel
         script_mode - Specifies the script generation mode
         walltime    - The walltime for a job submitted via PBS 
         attr        - A dictionary of arbitrary attributes
         """
         Job.__init__(self, name, timeout, runs, attr)
-        self.ppn         = ppn
-        self.procs       = procs
         self.script_mode = script_mode
         self.walltime    = walltime
 
@@ -618,7 +617,7 @@ class PbsJob(Job):
         indent  - Amount of indentation
         """        
         procs    = " ".join(self.procs)
-        extra = ' ppn="{0.ppn}" procs={1} script_mode="{0.script_mode}" walltime="{0.walltime}"'.format(self, procs)
+        extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}"'.format(self, procs)
         Job._toXml(self, out, indent, "pbsjob", extra)
 
     def scriptGen(self):
@@ -628,7 +627,7 @@ class PbsJob(Job):
         """
         return PbsScriptGen(self) 
 
-class Config:
+class Config(Sortable):
     """
     Describes a configuration. Currently, this only specifies a template 
     that is used for start script generation. 
@@ -664,12 +663,12 @@ class Config:
         """
         return cmp(config.name, config.name)
 
-class Benchmark:
+class Benchmark(Sortable):
     """
     Describes a benchmark. This includes a set of classes
     that describe where to find particular instances.
     """
-    class Class:
+    class Class(Sortable):
         """
         Describes a benchmark class.
         """
@@ -695,7 +694,7 @@ class Benchmark:
             """
             return hash(self.name)
             
-    class Instance:
+    class Instance(Sortable):
         """
         Describes a benchmark instance.
         """
@@ -917,7 +916,7 @@ class Benchmark:
         """
         return cmp(benchmark.name, benchmark.name)
 
-class Runspec:
+class Runspec(Sortable):
     """
     Describes a run specification. This specifies system, settings, machine 
     to run a benchmark with.  
@@ -965,7 +964,7 @@ class Runspec:
         """
         return cmp((self.machine, self.system, self.setting, self.benchmark), (runspec.machine, runspec.system, runspec.setting, runspec.benchmark)) 
 
-class Project:
+class Project(Sortable):
     """
     Describes a benchmark project, i.e., a set of run specifications
     that belong together. 

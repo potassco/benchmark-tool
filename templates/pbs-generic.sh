@@ -8,6 +8,7 @@ cd "$(dirname $0)"
 	1> runsolver.stderr \
 	2> runsolver.stdout \
 	-W {run.timeout} \
+	mpiexec -machinefile $PBS_NODEFILE -n $PBS_NODES \
 	"{run.root}/programs/{run.solver}" {run.args} \
 	< "{run.file}"
 

@@ -5,6 +5,7 @@ Created on Jan 15, 2010
 '''
 
 import os
+import sys
 import random
 
 def mkdir_p(path):
@@ -86,3 +87,25 @@ def median(sequence):
         value = (value + maximum) / 2.0
     return value
 
+# make the benchmark tool forward compatible with python 3
+
+def cmp(a, b):
+	if a < b: return -1
+	elif a > b: return 1
+	else: return 0
+
+class Sortable:
+	def __le__(self, other):
+		return self.__cmp__(other) <= 0
+
+	def __ge__(self, other):
+		return self.__cmp__(other) >= 0
+
+	def __lt__(self, other):
+		return self.__cmp__(other) < 0
+
+	def __gt__(self, other):
+		return self.__cmp__(other) > 0
+
+	def __eq__(self, other):
+		return self.__cmp__(other) == 0

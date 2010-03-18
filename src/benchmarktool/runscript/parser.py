@@ -6,7 +6,7 @@ representation in form of python classes.
 
 __author__ = "Roland Kaminski"
 
-from runscript import Runscript, Project, Benchmark, Config, System, Setting, PbsJob, SeqJob, Machine
+from benchmarktool.runscript.runscript import Runscript, Project, Benchmark, Config, System, Setting, PbsJob, SeqJob, Machine
 import benchmarktool.tools as tools
 
 class Parser:
@@ -28,7 +28,7 @@ class Parser:
         fileName -- a string holding a path to a xml file  
         """
         from lxml import etree
-        from StringIO import StringIO
+        from io import StringIO
         
         schemadoc = etree.parse(StringIO("""\
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
@@ -82,6 +82,13 @@ class Parser:
                             <xs:list itemType="nameType"/>
                         </xs:simpleType>
                     </xs:attribute>
+                    <xs:attribute name="ppn" type="xs:positiveInteger"/>
+                    <xs:attribute name="procs">
+                        <xs:simpleType>
+                            <xs:list itemType="xs:integer"/>
+                         </xs:simpleType>
+                    </xs:attribute>
+                    <xs:attribute name="pbstemplate" type="xs:string"/>
                     <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
             </xs:element>
@@ -109,17 +116,10 @@ class Parser:
     <!-- a pbsjob -->
     <xs:complexType name="pbsjobType">
         <xs:attributeGroup ref="jobAttr"/>
-        <xs:attribute name="ppn" type="xs:positiveInteger" use="required"/>
-        <xs:attribute name="procs" use="required">
-            <xs:simpleType>
-                <xs:list itemType="xs:integer"/>
-             </xs:simpleType>
-        </xs:attribute>
         <xs:attribute name="script_mode" use="required">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
                     <xs:enumeration value="single"/>
-                    <xs:enumeration value="multi"/>
                     <xs:enumeration value="timeout"/>
                 </xs:restriction>
              </xs:simpleType>
@@ -278,8 +278,7 @@ class Parser:
 
         for node in root.xpath("./pbsjob"):
             attr = self._filterAttr(node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime"])
-            procs = [int(proc) for proc in node.get("procs").split(None)]
-            job = PbsJob(node.get("name"), tools.xmlTime(node.get("timeout")), int(node.get("runs")), int(node.get("ppn")), procs, node.get("script_mode"), tools.xmlTime(node.get("walltime")), attr)
+            job = PbsJob(node.get("name"), tools.xmlTime(node.get("timeout")), int(node.get("runs")), node.get("script_mode"), tools.xmlTime(node.get("walltime")), attr)
             run.addJob(job)
 
         for node in root.xpath("./seqjob"):
@@ -294,18 +293,35 @@ class Parser:
         for node in root.xpath("./config"):
             config = Config(node.get("name"), node.get("template"))
             run.addConfig(config)
-    
+        
+        compoundSettings = {}
         sytemOrder = 0 
         for node in root.xpath("./system"):
             system = System(node.get("name"), node.get("version"), node.get("measures"), sytemOrder)
             settingOrder = 0
             for child in node.xpath("setting"):
                 attr = self._filterAttr(child, ["name", "cmdline", "tag"])
+                if "procs" in attr:
+                    procs = [int(proc) for proc in attr["procs"].split(None)]
+                    compoundSettings[child.get("name")] = []
+                else: procs = [None]
+                if "ppn" in attr: 
+                    ppn = int(attr["ppn"])
+                else: ppn = None
+                if "pbstemplate" in attr:
+                    pbstemplate = attr["pbstemplate"]
+                else: pbstemplate = None
                 if child.get("tag") == None: tag = set()
                 else: tag = set(child.get("tag").split(None))
-                setting = Setting(child.get("name"), child.get("cmdline"), tag, settingOrder, attr)
-                system.addSetting(setting)
-                settingOrder += 1
+                for num in procs:
+                    name = child.get("name")
+                    if num != None: 
+                        name += "-n{0}".format(num)
+                    compoundSettings[child.get("name")].append(name)
+                    setting = Setting(name, child.get("cmdline"), tag, settingOrder, num, ppn, pbstemplate, attr)
+                    system.addSetting(setting)
+                    settingOrder += 1
+
             run.addSystem(system, node.get("config"))
             sytemOrder += 1
             
@@ -327,11 +343,12 @@ class Parser:
             project = Project(node.get("name"))
             run.addProject(project, node.get("job"))
             for child in node.xpath("./runspec"):
-                project.addRunspec(child.get("machine"),
-                                   child.get("system"),
-                                   child.get("version"),
-                                   child.get("setting"),
-                                   child.get("benchmark"))
+                for setting in compoundSettings[child.get("setting")]: 
+                    project.addRunspec(child.get("machine"),
+                                       child.get("system"),
+                                       child.get("version"),
+                                       setting,
+                                       child.get("benchmark"))
                 
             for child in node.xpath("./runtag"):
                 project.addRuntag(child.get("machine"), 

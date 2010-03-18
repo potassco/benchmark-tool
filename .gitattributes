@@ -30,7 +30,6 @@ runscripts/runscript-seq.xml -text svneol=unset#text/plain
 src/bconv.py -text svneol=unset#text/plain
 src/benchmarktool/__init__.py -text
 src/benchmarktool/config.py -text svneol=unset#text/plain
-src/benchmarktool/pyratemp.py -text
 src/benchmarktool/result/__init__.py -text
 src/benchmarktool/result/parser.py -text svneol=unset#text/plain
 src/benchmarktool/result/result.py -text svneol=unset#text/plain
@@ -41,4 +40,5 @@ src/benchmarktool/runscript/runscript.py -text
 src/benchmarktool/tools.py -text
 src/beval.py -text svneol=unset#text/plain
 src/bgen.py -text
+templates/pbs-generic.sh -text
 templates/seq-generic.sh -text
