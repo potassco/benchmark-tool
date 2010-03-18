@@ -2,18 +2,23 @@
 	<!-- two example machines -->
 	<machine name="belle-ile" cpu="2xE6750@2.66GHz" memory="2GB"/>
 	<machine name="minquiers" cpu="2xE6750@2.66GHz" memory="2GB"/>
+	<machine name="houat"     cpu="8xE5520@2.27GHz" memory="24GB"/>
 	
 	<!-- an example configuration for clasp -->
 	<config name="seq-generic" template="templates/seq-generic.sh"/>
 	<system name="clasp" version="1.3.2" measures="clasp" config="seq-generic">
 		<!-- optionally allows for tagging settings -->
-		<setting name="one-as" tag="seq one-as" cmdline="--stats 1"/>
-		<!-- allows for arbitrary additional arbitrary args to pass to the template -->
-		<setting name="all-as" tag="seq all-as" cmdline="--stats 0" any="bla"/>
+		<setting name="default"  cmdline="--stats 1"/>
+		<setting name="vsids"    cmdline="--stats --heu=vsids 1"/>
+		<setting name="progress" cmdline="--stats --save-progress 1"/>
+		<setting name="estimate" cmdline="--stats --estimate 1"/>
+		<setting name="recstr"   cmdline="--stats --recursive-str 1"/>
+		<setting name="nodel"    cmdline="--stats --del=no 1"/>
+		<setting name="norest"   cmdline="--stats --restarts=no 1"/>
 	</system>
 	
 	<!-- a job specification (allows for arbitrary additional arguments args to pass to the template) -->
-	<seqjob name="clasp-job" timeout="10" runs="1" parallel="4" any="yes"/>
+	<seqjob name="clasp-job" timeout="120" runs="1" parallel="8" any="yes"/>
 
 	<!-- an example benchmark -->
 	<benchmark name="clasp-benchmark">
@@ -30,13 +35,9 @@
 	</benchmark>
 
 	<!-- example projects -->
-	<project name="clasp-all-as" job="clasp-job">
-		<!-- individually add runs to the project -->
-		<runspec machine="belle-ile" benchmark="clasp-benchmark" system="clasp" version="1.3.2" setting="all-as"/>
-	</project>
-	<project name="clasp-one-as" job="clasp-job">
+	<project name="clasp-big" job="clasp-job">
 		<!-- choose all systems with settings that have the specified tags -->
-		<runtag machine="belle-ile" benchmark="clasp-benchmark"	tag="seq one-as"/>
+		<runtag machine="houat" benchmark="clasp-benchmark" tag="*all*"/>
 	</project>
 </runscript>
 

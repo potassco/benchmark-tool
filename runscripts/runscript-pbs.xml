@@ -2,16 +2,16 @@
 	<!-- an example for claspar -->
 	<machine name="zuse" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
 	
-	<config name="claspar-config" template="templates/claspar.pyratemp"/>
+	<config name="claspar-config" template="templates/pbs-generic.sh"/>
 	<system name="claspar-system" version="2.1.0" measures="claspar" config="claspar-config">
-		<setting name="one-as" tag="par one-as" cmdline="--stats 1"/>
-		<setting name="all-as" tag="par all-as" cmdline="--stats 0"/>
+		<setting name="one-as" tag="par one-as" cmdline="--stats 1" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
+		<setting name="all-as" tag="par all-as" cmdline="--stats -q 0" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
 	</system>
 	
-	<pbsjob name="claspar-job" timeout="10" runs="1" ppn="2" procs="1 2 4 8" script_mode="multi" walltime="23:59:59"/>
+	<pbsjob name="claspar-job" timeout="10" runs="1" script_mode="timeout" walltime="23:59:59"/>
 
 	<benchmark name="claspar-benchmark">
-		<folder path="benchmarks/claspar"/>
+		<folder path="benchmarks/clasp"/>
 	</benchmark>
 
 	<!-- example projects -->

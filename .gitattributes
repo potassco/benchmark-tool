@@ -25,9 +25,8 @@ benchmarks/clasp/random/n60-unsat-b9.lp -text
 /bgen -text
 doc/README -text
 runscripts/runscript-all.xml -text
-runscripts/runscript-big.xml -text svneol=unset#text/plain
 runscripts/runscript-pbs.xml -text
-runscripts/runscript-seq.xml -text
+runscripts/runscript-seq.xml -text svneol=unset#text/plain
 src/bconv.py -text svneol=unset#text/plain
 src/benchmarktool/__init__.py -text
 src/benchmarktool/config.py -text svneol=unset#text/plain
