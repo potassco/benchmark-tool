@@ -301,9 +301,9 @@ class Parser:
             settingOrder = 0
             for child in node.xpath("setting"):
                 attr = self._filterAttr(child, ["name", "cmdline", "tag"])
+                compoundSettings[child.get("name")] = []
                 if "procs" in attr:
                     procs = [int(proc) for proc in attr["procs"].split(None)]
-                    compoundSettings[child.get("name")] = []
                 else: procs = [None]
                 if "ppn" in attr: 
                     ppn = int(attr["ppn"])
