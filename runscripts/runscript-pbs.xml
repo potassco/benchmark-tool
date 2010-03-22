@@ -4,7 +4,7 @@
 	
 	<config name="pbs-generic" template="templates/pbs-generic.sh"/>
 	<system name="claspar" version="2.1.0" measures="claspar" config="pbs-generic">
-		<setting name="one-as" tag="one-as" cmdline="--stats 1" ppn="2" procs="1 2 4 8 16 28" pbstemplate="templates/impi.pbs"/>
+		<setting name="one-as" tag="one-as" cmdline="--stats 1" ppn="8" procs="1 2 4 8 16 28" pbstemplate="templates/impi.pbs"/>
 	</system>
 	
 	<pbsjob name="pbs-generic" timeout="1200" runs="1" script_mode="timeout" walltime="23:59:59"/>
@@ -13,7 +13,7 @@
 		<folder path="benchmarks/clasp"/>
 	</benchmark>
 
-	<project name="claspar-all-as" job="pbs-generic">
+	<project name="claspar-one-as" job="pbs-generic">
 		<runtag machine="zuse" benchmark="pbs-suite" tag="*all*"/>
 	</project>
 
