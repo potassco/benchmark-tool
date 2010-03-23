@@ -3,6 +3,7 @@
 #PBS -r n
 #PBS -l walltime={walltime}
 #PBS -l nodes={nodes}:ppn={ppn}
+#PBS -W x=NACCESSPOLICY:SINGLEJOB
 
 module load intel/impi
 module load intel/compiler/64
@@ -14,18 +15,19 @@ function cleanup()
 
 trap 'cleanup' SIGTERM
 
-PBS_NODES=$(wc -l < $PBS_NODEFILE)
-PBS_NODES_UNIQ=$(sort < $PBS_NODEFILE | uniq | wc -l)
+export PBS_NODES=$(wc -l < $PBS_NODEFILE)
+pbs_nodes_uniq=$(sort < $PBS_NODEFILE | uniq | wc -l)
 
 # initialization
 echo "mpdcleanup --rsh=ssh -f $PBS_NODEFILE"
 mpdcleanup --rsh=ssh -a -f $PBS_NODEFILE
+# really clean up everything
 for node in $(sort < $PBS_NODEFILE | uniq); do
-	ssh $node killall -9 python2.4 &>/dev/null &
+	ssh $node pkill python &>/dev/null &
 done
 wait
-echo "mpdboot --rsh=ssh -n $PBS_NODES_UNIQ -f $PBS_NODEFILE"
-mpdboot --rsh=ssh -n $PBS_NODES_UNIQ -f $PBS_NODEFILE
+echo "mpdboot --rsh=ssh -n $pbs_nodes_uniq -f $PBS_NODEFILE"
+mpdboot --rsh=ssh -n $pbs_nodes_uniq -f $PBS_NODEFILE
 
 cd $PBS_O_WORKDIR
 
