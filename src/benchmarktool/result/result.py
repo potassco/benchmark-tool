@@ -5,6 +5,7 @@ Created on Jan 19, 2010
 '''
 
 from benchmarktool.result.soffice import Spreadsheet
+from benchmarktool.tools import Sortable, cmp
 
 class Result:
     """
@@ -196,12 +197,32 @@ class SeqJob(Job):
         timeout  - Timeout of the job
         runs     - Number of repetitions per instance
         parallel - Number of processes to start in parallel 
-        attr     - Arbitrary extra arguments 
+        attrib   - Arbitrary extra arguments 
         """
         Job.__init__(self, name, timeout, runs, attrib)
         self.parallel = parallel
 
-class Benchmark:
+class PbsJob(Job):
+    """
+    Represents a pbs job.
+    """
+    def __init__(self, name, timeout, runs, script_mode, walltime, attrib):
+        """
+        Initializes a job.
+    
+        Keyword arguments:
+        name     - The name of the job
+        timeout  - Timeout of the job
+        runs     - Number of repetitions per instance
+        script_mode - Specifies the script generation mode
+        walltime    - The walltime for a job submitted via PBS 
+        attrib   - Arbitrary extra arguments 
+        """
+        Job.__init__(self, name, timeout, runs, attrib)
+        self.script_mode = script_mode
+        self.walltime    = walltime
+
+class Benchmark(Sortable):
     """
     Represents a benchmark, i.e., a set of instances.
     """
@@ -234,7 +255,7 @@ class Benchmark:
         """
         return hash(self.name)
 
-class Class:
+class Class(Sortable):
     """
     Represents a benchmark class.
     """
@@ -266,7 +287,7 @@ class Class:
         for benchinst in sorted(self.instances.values()):
             yield benchinst
 
-class Instance:
+class Instance(Sortable):
     """
     Represents a benchmark instance.
     """

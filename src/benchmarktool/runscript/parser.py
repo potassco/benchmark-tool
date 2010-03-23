@@ -304,12 +304,15 @@ class Parser:
                 compoundSettings[child.get("name")] = []
                 if "procs" in attr:
                     procs = [int(proc) for proc in attr["procs"].split(None)]
+                    del attr["procs"]
                 else: procs = [None]
                 if "ppn" in attr: 
                     ppn = int(attr["ppn"])
+                    del attr["ppn"]
                 else: ppn = None
                 if "pbstemplate" in attr:
                     pbstemplate = attr["pbstemplate"]
+                    del attr["pbstemplate"]
                 else: pbstemplate = None
                 if child.get("tag") == None: tag = set()
                 else: tag = set(child.get("tag").split(None))

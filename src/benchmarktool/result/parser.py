@@ -6,7 +6,7 @@ Created on Jan 19, 2010
 
 from lxml import etree
 from benchmarktool import tools
-from benchmarktool.result.result import Benchmark, Class, ClassResult, Config, Instance, InstanceResult, Machine, Project, Result, Run, Runspec, SeqJob, Setting, System
+from benchmarktool.result.result import Benchmark, Class, ClassResult, Config, Instance, InstanceResult, Machine, Project, Result, Run, Runspec, SeqJob, PbsJob, Setting, System
 
 class Parser:
     """
@@ -78,6 +78,15 @@ class Parser:
             parallel = int(attrib.pop("parallel"))
             job = SeqJob(name, timeout, runs, parallel, attrib)
             self.result.jobs[job.name] = job
+        elif tag == "pbsjob":
+            name        = attrib.pop("name")
+            timeout     = tools.xmlTime(attrib.pop("timeout"))
+            runs        = int(attrib.pop("runs"))
+            script_mode = attrib.pop("script_mode")
+            walltime    = attrib.pop("walltime")
+            job = PbsJob(name, timeout, runs, script_mode, walltime, attrib)
+            self.result.jobs[job.name] = job
+            pass
         elif tag == "benchmark":
             self.benchscope = True 
             self.benchmark = Benchmark(attrib["name"])

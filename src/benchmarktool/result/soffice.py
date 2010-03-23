@@ -8,6 +8,7 @@ from zipfile import ZipFile
 from io import StringIO
 import math
 from benchmarktool import tools 
+from benchmarktool.tools import Sortable, cmp
 
 class Spreadsheet:
     def __init__(self, benchmark, measures):
@@ -190,7 +191,7 @@ class ValueRows:
                     row = sorted(valList[line])
                     if len(row) > 1:
                         minimum = row[0][0]
-                        median  = tools.medianSorted(map(lambda x: x[0], row))
+                        median  = tools.medianSorted(list(map(lambda x: x[0], row)))
                         maximum = row[-1][0]
                         green   = []
                         red     = []
@@ -234,7 +235,7 @@ class ValueRows:
             return None
         if len(self.list[name][line]) == 0:
             return None
-        return func(map(lambda x: x[0], self.list[name][line]))
+        return func(list(map(lambda x: x[0], self.list[name][line])))
 
 class ResultTable(Table):
     def __init__(self, benchmark, measures, name, instanceTable = None):
@@ -293,7 +294,7 @@ class ResultTable(Table):
                         column.content[line] = value[1]
                         self.add(2 + line, col, FormulaCell("of:=SUM([Instances.{0}:Instances.{1}])".format(self.cellIndex(value[0].instStart + 2, self.getOffset(systemColumn, name)), self.cellIndex(value[0].instEnd + 2, self.getOffset(systemColumn, name)))))
                         valueRows.add(name, value[1], line, col)
-                    elif value.__class__ == __builtin__.float:
+                    elif value.__class__ == float:
                         self.add(2 + line, col, FloatCell(value))
                         valueRows.add(name, value, line, col)
                     else:
@@ -323,7 +324,7 @@ class ResultTable(Table):
             for name in measures:
                 if name in floatOccur:
                     self.add(1, col, StringCell(name))
-                    for row in xrange(2, self.resultOffset):
+                    for row in range(2, self.resultOffset):
                         minRange = ""
                         for colRef in sorted(floatOccur[name]):
                             if minRange != "": 
@@ -502,7 +503,7 @@ class ValueColumn:
             self.content.append(None)
         self.content[line] = value
 
-class SystemColumn:
+class SystemColumn(Sortable):
     def __init__(self, setting, machine):
         self.setting  = setting
         self.machine  = machine

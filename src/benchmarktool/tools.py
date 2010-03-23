@@ -43,7 +43,7 @@ def medianSorted(sequence):
     """
     if len(sequence) == 0:
         return 0
-    middle = len(sequence) / 2
+    middle = len(sequence) // 2
     value  = sequence[middle]
     if 2 * middle == len(sequence):
         value = (value + sequence[middle - 1]) / 2.0
@@ -84,7 +84,7 @@ def median(sequence):
         
     if len(sequence) == 0:
         return 0
-    middle = len(sequence) / 2
+    middle = len(sequence) // 2
     select(sequence, 0, len(sequence) - 1, middle)
     value = sequence[middle]
     if 2 * middle == len(sequence):
