@@ -11,7 +11,6 @@ function run()
 	# does not work because this will only kill mpiexec
 	trap abort SIGUSR1
 	/usr/bin/time -f "Real time (s): %e" -o runsolver.watcher \
-	mpiexec -machinefile $PBS_NODEFILE -n $PBS_NODES \
 	"{run.root}/programs/{run.solver}" {run.args} \
 	-f "{run.file}" \
 	> runsolver.solver 2>&1 &
@@ -29,7 +28,7 @@ function run2()
 		mpiexec -machinefile $PBS_NODEFILE -n $PBS_NODES \
 		"{run.root}/programs/{run.solver}" {run.args} \
 		-f "{run.file}" \
-		> runsolver.solver 2>&1 &
+		> runsolver.solver 2>&1
 }}
 
 
