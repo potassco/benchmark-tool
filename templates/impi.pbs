@@ -31,6 +31,7 @@ mpdboot --rsh=ssh -n $pbs_nodes_uniq -f $PBS_NODEFILE
 
 cd $PBS_O_WORKDIR
 
+echo running jobs...
 {jobs}
 
 cleanup
