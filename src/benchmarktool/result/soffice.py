@@ -5,8 +5,7 @@ Created on Jan 20, 2010
 '''
 
 from zipfile import ZipFile
-from StringIO import StringIO
-import __builtin__
+from io import StringIO
 import math
 from benchmarktool import tools 
 

@@ -1,2 +1,6 @@
 #!/bin/bash
-PYTHONPATH="src" python src/beval.py "$@"
+PYTHON=$(which python3)
+if [ ! -x $PYTHON ]; then
+	PYTHON=$(which python)
+fi
+PYTHONPATH="src" $PYTHON src/beval.py "$@"

@@ -108,3 +108,42 @@ def smodels(root, runspec, instance):
 
     return result
 
+claspar_models    = re.compile(r"^Models[ ]*:[ ]*([0-9]+)\+?[ ]*$")
+claspar_choices   = re.compile(r"^Choices[ ]*:[ ]*([0-9]+)\+?[ ]*$")
+claspar_time      = re.compile(r"^Real time \(s\): ([0-9]+\.[0-9]+)$")
+claspar_conflicts = re.compile(r"^Conflicts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
+
+def claspar(root, runspec, instance):
+    """
+    Extracts some claspar statistics.
+    (This function was tested with the latest claspar trunk)
+    """
+    result      = []
+    timeout     = time = runspec.project.job.timeout
+    # parse some of clasp's stats
+    for line in open(os.path.join(root, "runsolver.solver")):
+        m = clasp_models.match(line)
+        if m: result.append(("models", "float", m.group(1)))
+        
+        m = clasp_choices.match(line)
+        if m: result.append(("choices", "float", m.group(1)))
+        
+        m = clasp_conflicts.match(line)
+        if m: result.append(("conflicts", "float", m.group(1)))
+        
+        m = clasp_restarts.match(line)
+        if m: result.append(("restarts", "float", m.group(1)))
+        
+    # parse runsolver output
+    for line in open(os.path.join(root, "runsolver.watcher")):
+        m = clasp_time.match(line)
+        if m: time = float(m.group(1))
+    
+    # count suspicious stuff as timeout
+    if time >= timeout:
+        time = timeout
+        result.append(("timeout", "float", 1))
+    else:
+        result.append(("timeout", "float", 0))
+    result.append(("time", "float", time))
+    return result

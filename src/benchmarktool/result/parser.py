@@ -108,8 +108,7 @@ class Parser:
             self.instresult.runs.append(self.run)
         elif tag == "measure":
             self.run.measures[attrib["name"]] = (attrib["type"], attrib["val"]) 
-        else: print tag, attrib 
-        
+
     def close(self):
         """
         This method is called for every closing XML tag.

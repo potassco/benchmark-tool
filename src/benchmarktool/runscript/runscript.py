@@ -334,12 +334,9 @@ class ScriptGen:
         runspec - The run specification of the benchmark
         runspec - The benchmark instance
         """
-        # pylint: disable-msg=W0122
-        exec("func = benchmarktool.config." + runspec.system.measures)
         for run in range(1, self.job.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
-            # pylint: disable-msg=E0602
-            result = func(self._path(runspec, instance, run), runspec, instance) #@UndefinedVariable
+            result = getattr(benchmarktool.config, runspec.system.measures)(self._path(runspec, instance, run), runspec, instance)
             for key, valtype, val in sorted(result):
                 out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val))
             out.write('{0}</run>\n'.format(indent))
@@ -654,8 +651,7 @@ class PbsJob(Job):
         out     - Output stream to write to
         indent  - Amount of indentation
         """        
-        procs    = " ".join(self.procs)
-        extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}"'.format(self, procs)
+        extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}"'.format(self)
         Job._toXml(self, out, indent, "pbsjob", extra)
 
     def scriptGen(self):
