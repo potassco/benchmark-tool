@@ -8,6 +8,8 @@ __author__ = "Roland Kaminski"
 
 from benchmarktool.runscript.runscript import Runscript, Project, Benchmark, Config, System, Setting, PbsJob, SeqJob, Machine
 import benchmarktool.tools as tools
+try: from StringIO import StringIO
+except: from io import StringIO
 
 class Parser:
     """
@@ -28,7 +30,6 @@ class Parser:
         fileName -- a string holding a path to a xml file  
         """
         from lxml import etree
-        from io import StringIO
         
         schemadoc = etree.parse(StringIO("""\
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">

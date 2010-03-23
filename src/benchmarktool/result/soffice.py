@@ -5,7 +5,8 @@ Created on Jan 20, 2010
 '''
 
 from zipfile import ZipFile
-from io import StringIO
+try: from StringIO import StringIO
+except: from io import StringIO
 import math
 from benchmarktool import tools 
 from benchmarktool.tools import Sortable, cmp
