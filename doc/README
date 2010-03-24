@@ -15,20 +15,54 @@ templates/  - contains example call-scripts
 Prerequisites
 -------------
 - lxml (http://codespeak.net/lxml/)
-- python 2.6
+- >= python-2.6
 
-Example
--------
-All the following instruction assume that the current working
-directory is the root directory of the benchmark-tool project.
-To begin, the two executables clasp-1.3.2 and runsolver-3.2.5.
-have to be copied (or symlinked) into the ./programs folder.
+Example 1
+---------
+The first example assumes that you want to run a benchmark that
+shall be started using simple bash scripts. All the following 
+instruction assume that the current working directory is the 
+root directory of the benchmark-tool project. To begin, the two
+executables clasp-1.3.2 [1] and runsolver-3.2.5 [2]. have to be
+copied (or symlinked) into the ./programs folder.
 Now, run:
-	./bgen ./runscripts/runscript-big.xml
+	./bgen ./runscripts/runscript-seq.xml
 This creates a set of start scripts in the ./output folder.
 To start the benchmark, run:
 	./output/clasp-big/houat/start.py
 Once the benchmark is finished, run:
-	./beval ./runscripts/runscript-big.xml | ./bconv > result.ods
+	./beval ./runscripts/runscript-seq.xml | ./bconv > result.ods
 Finally, open the file:
 	soffice result.ods
+
+Example 2
+---------
+The second example assumes that you want to run a benchmark on 
+a cluster using mpi. The example is tailored to the intel-MPI
+implementation running on the zuse cluster [3] at the university
+of Potsdam. Again, all the following instruction assume that the 
+current working directory is the root directory of the 
+benchmark-tool project. To begin, an executable of the parallel 
+solver claspar [4] has to be copied (or symlinked) into the
+./programs folder.
+Note that there is only python-2.4 installed on zuse. You either 
+have to run the scripts bgen, beval, and bconv on systems with a 
+newer python version installed. Or alternatively, you can use my 
+local python-3.1 installation; simply add it to your path:
+	/home/kaminski/local/python3/bin
+
+Now, run:
+	./bgen ./runscripts/runscript-pbs.xml
+This creates a set of start scripts in the ./output folder.
+To start the benchmark, run (on the cluster):
+	./output/claspar-one-as/zuse/start.sh
+Once the benchmark is finished, run:
+	./beval ./runscripts/runscript-pbs.xml | ./bconv > result.ods
+Finally, open the file:
+	soffice result.ods
+
+[1] http://www.cs.uni-potsdam.de/clasp
+[2] http://www.cril.univ-artois.fr/~roussel/runsolver/
+[3] http://www.cs.uni-potsdam.de/bs/research/labs/zuse.xhtm
+[4] https://potassco.svn.sourceforge.net/svnroot/potassco/trunk/claspar
+    (for now only internally available)
