@@ -43,11 +43,11 @@ implementation running on the zuse cluster [3] at the university
 of Potsdam. Again, all the following instruction assume that the 
 current working directory is the root directory of the 
 benchmark-tool project. To begin, an executable of the parallel 
-solver claspar [4] has to be copied (or symlinked) into the
+solver claspar-2.1.0 [4] has to be copied (or symlinked) into the
 ./programs folder.
 Note that there is only python-2.4 installed on zuse. You either 
 have to run the scripts bgen, beval, and bconv on systems with a 
-newer python version installed. Or alternatively, you can use my 
+newer python version installed, or alternatively, you can use my 
 local python-3.1 installation; simply add it to your path:
 	/home/kaminski/local/python3/bin
 
