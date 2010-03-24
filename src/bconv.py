@@ -35,4 +35,4 @@ if __name__ == '__main__':
         opts.measures = measures
     p = Parser()
     res = p.parse(inFile)
-    res.genOffice(sys.stdout, opts.projects, opts.measures)
+    res.genOffice(sys.stdout.buffer, opts.projects, opts.measures)
