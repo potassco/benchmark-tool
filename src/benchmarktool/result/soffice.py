@@ -158,7 +158,7 @@ class Table:
         while col >= 0:
             rem = col % radix
             ret = chr(rem + ord("A")) + ret
-            col = col / radix - 1
+            col = col // radix - 1
         if absCol: preCol = "$"
         else: preCol = ""
         if absRow: preRow = "$"
