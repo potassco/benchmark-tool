@@ -34,7 +34,7 @@ def pbsTime(intRep):
     m = intRep % 60
     intRep //= 60
     h = intRep
-    return "{0:02}:{0:02}:{0:02}".format(h, m, s)
+    return "{0:02}:{1:02}:{2:02}".format(h, m, s)
 
 def medianSorted(sequence):
     """

@@ -25,6 +25,7 @@ benchmarks/clasp/random/n60-unsat-b9.lp -text
 /bgen -text
 doc/README -text
 runscripts/runscript-all.xml -text
+runscripts/runscript-ggp.xml -text
 runscripts/runscript-pbs.xml -text
 runscripts/runscript-seq.xml -text svneol=unset#text/plain
 src/bconv.py -text svneol=unset#text/plain
@@ -43,3 +44,4 @@ src/bgen.py -text
 templates/impi.pbs -text
 templates/pbs-generic.sh -text
 templates/seq-generic.sh -text
+templates/single.pbs -text

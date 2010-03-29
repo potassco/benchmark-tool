@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -j oe
+#PBS -r n
+#PBS -l walltime={walltime}
+#PBS -l nodes={nodes}:ppn={ppn}
+#PBS -W x=NACCESSPOLICY:SINGLEJOB
+
+module load intel/compiler/64
+
+cd $PBS_O_WORKDIR
+
+echo running jobs...
+{jobs}
+

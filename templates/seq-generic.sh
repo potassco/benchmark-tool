@@ -2,6 +2,10 @@
 
 cd "$(dirname $0)"
 
+{run.root}/programs/gringo-2.0.5 "{run.file}" > "{run.file}.sm"
+
+exit 0
+
 [[ .finished -nt start.sh ]] || "{run.root}/programs/runsolver-3.2.5" \
 	-w runsolver.watcher \
 	-o runsolver.solver \
