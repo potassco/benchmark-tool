@@ -41,7 +41,7 @@ case $1 in
 		;;
     *)    
 		cd "$(dirname $0)"
-		[[ .finished -nt start.sh ]] || /usr/bin/time -f "Real time (s): %e" -o runsolver.watcher "./$(basename $0)" run2
+		[[ -e .finished ]] || /usr/bin/time -f "Real time (s): %e" -o runsolver.watcher "./$(basename $0)" run2
 		touch .finished
 		;;
 esac
