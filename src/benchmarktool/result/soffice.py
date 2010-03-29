@@ -293,7 +293,7 @@ class ResultTable(Table):
                     value = column.content[line]
                     if value.__class__ == tuple:
                         column.content[line] = value[1]
-                        self.add(2 + line, col, FormulaCell("of:=SUM([Instances.{0}:Instances.{1}])".format(self.cellIndex(value[0].instStart + 2, self.getOffset(systemColumn, name)), self.cellIndex(value[0].instEnd + 2, self.getOffset(systemColumn, name)))))
+                        self.add(2 + line, col, FormulaCell("of:=AVERAGE([Instances.{0}:Instances.{1}])".format(self.cellIndex(value[0].instStart + 2, self.getOffset(systemColumn, name)), self.cellIndex(value[0].instEnd + 2, self.getOffset(systemColumn, name)))))
                         valueRows.add(name, value[1], line, col)
                     elif value.__class__ == float:
                         self.add(2 + line, col, FloatCell(value))
@@ -431,12 +431,12 @@ class ResultTable(Table):
                             column.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
                         elif valueType == "float":
                             if not name in classSum:
-                                classSum[name] = 0
-                            classSum[name] += float(value)
+                                classSum[name] = (0.0, 0)
+                            classSum[name] = (float(value) + classSum[name][0], 1 + classSum[name][1])
                             
             if not self.instanceTable == None:
                 for name, value in classSum.items():
-                    column.addCell(classresult.benchclass.line, name, "classresult", (classresult.benchclass, value))
+                    column.addCell(classresult.benchclass.line, name, "classresult", (classresult.benchclass, value[0] / value[1]))
     
 class Summary:
     def __init__(self):
