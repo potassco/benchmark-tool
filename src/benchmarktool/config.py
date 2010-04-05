@@ -54,7 +54,7 @@ def clasp(root, runspec, instance):
     # count suspicious stuff as timeout
     if status == None:
         result.append(("error", "float", 1))
-        print >> sys.stderr, "*** ERROR: Run {0}/{1} failed with unrecognized status!".format(instance.classname, instance.instance)
+        sys.stderr.write("*** ERROR: Run {0}/{1} failed with unrecognized status!\n".format(instance.classname, instance.instance))
     else:
         result.append(("error", "float", 0))
 
