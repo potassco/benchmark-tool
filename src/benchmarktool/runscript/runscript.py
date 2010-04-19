@@ -522,12 +522,14 @@ class PbsScriptGen(ScriptGen):
             self.next()
         
         def write(self):
-            template = open(self.runspec[2], "r").read()
-            open(self.script, "w").write(template.format(walltime=tools.pbsTime(self.runspec[3]), nodes=self.runspec[1], ppn=self.runspec[0], jobs=self.startscripts))
-            self.queue.append(self.script)
+            if self.num > 0:
+                template = open(self.runspec[2], "r").read()
+                open(self.script, "w").write(template.format(walltime=tools.pbsTime(self.runspec[3]), nodes=self.runspec[1], ppn=self.runspec[0], jobs=self.startscripts))
+                self.queue.append(self.script)
+                self.num = 0
                 
         def next(self):
-            if self.num > 0: self.write()
+            self.write()
             self.script       = os.path.join(self.path, "start{0:04}.pbs".format(len(self.queue)))
             self.startscripts = ""
             self.num          = 0
@@ -537,12 +539,6 @@ class PbsScriptGen(ScriptGen):
             self.num          += 1
             self.startscripts += startfile + "\n"
             
-        def __del__(self):
-            if self.num > 0:
-                self.write()
-                self.num = 0
-            
-    
     def __init__(self, seqJob):
         """
         Initializes the script generator.
@@ -583,6 +579,8 @@ class PbsScriptGen(ScriptGen):
                 else:
                     pbsScript.time += runspec.project.job.timeout + 300
                 pbsScript.append(jobScript)
+
+        for pbsScript in pbsScripts: pbsScript.write()
 
         startfile.write("""#!/bin/bash\n\ncd "$(dirname $0)"\n""" + "\n".join(['qsub "{0}"'.format(os.path.basename(x)) for x in queue]))
         startfile.close()
