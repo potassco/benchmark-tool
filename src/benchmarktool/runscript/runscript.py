@@ -580,7 +580,7 @@ class PbsScriptGen(ScriptGen):
                     pbsScript.time += runspec.project.job.timeout + 300
                 pbsScript.append(jobScript)
 
-        for pbsScript in pbsScripts: pbsScript.write()
+        for pbsScript in pbsScripts.values(): pbsScript.write()
 
         startfile.write("""#!/bin/bash\n\ncd "$(dirname $0)"\n""" + "\n".join(['qsub "{0}"'.format(os.path.basename(x)) for x in queue]))
         startfile.close()
