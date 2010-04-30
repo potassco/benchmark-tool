@@ -515,7 +515,6 @@ class PbsScriptGen(ScriptGen):
             self.runspec      = runspec
             self.path         = path
             self.queue        = queue
-            self.script       = None
             self.num          = 0
             self.time         = None
             self.startscripts = None
@@ -523,14 +522,14 @@ class PbsScriptGen(ScriptGen):
         
         def write(self):
             if self.num > 0:
-                template = open(self.runspec[2], "r").read()
-                open(self.script, "w").write(template.format(walltime=tools.pbsTime(self.runspec[3]), nodes=self.runspec[1], ppn=self.runspec[0], jobs=self.startscripts))
-                self.queue.append(self.script)
                 self.num = 0
-                
+                template = open(self.runspec[2], "r").read()
+                script   = os.path.join(self.path, "start{0:04}.pbs".format(len(self.queue)))
+                open(script, "w").write(template.format(walltime=tools.pbsTime(self.runspec[3]), nodes=self.runspec[1], ppn=self.runspec[0], jobs=self.startscripts))
+                self.queue.append(script)
+                    
         def next(self):
             self.write()
-            self.script       = os.path.join(self.path, "start{0:04}.pbs".format(len(self.queue)))
             self.startscripts = ""
             self.num          = 0
             self.time         = 0
