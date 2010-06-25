@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -eu
+
+function mount()
+{
+	if [ ! -e output.zip ]; then
+		if [ -d output ]; then
+			echo "status: zipping output folder"
+			(
+				cd output
+				zip -r ../output.zip .
+			)
+		fi
+		touch dummy
+		zip output.zip dummy
+		rm dummy
+		rm -rf output
+	fi
+	mkdir -p output
+	if [[ "$(find output -maxdepth 0 -type d -empty)" == output ]]; then
+		fuse-zip output.zip output
+	else
+		echo "error: output is not empty"
+		exit 1
+	fi
+}
+
+function umount()
+{
+	fusermount -u output
+}
+
+cd $(dirname $0)
+if [[ $# == 1 && $1 == "-u" ]]; then
+	umount
+else
+	mount
+fi
+
