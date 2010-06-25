@@ -10,14 +10,14 @@ function mount()
 	if [ ! -e ${zipname} ]; then
 		if [ -d ${outname} ]; then
 			echo "status: zipping ${outname}"
-			(
-				cd ${outname}
-				zip -r ../${zipname} .
-			)
+		else
+			mkdir -p ${outname}
 		fi
-		touch dummy
-		zip ${zipname} dummy
-		rm dummy
+		(
+			cd ${outname}
+			touch dummy
+			zip -r ../${zipname} .
+		)
 		rm -rf ${outname}
 	fi
 	mkdir -p ${outname}
