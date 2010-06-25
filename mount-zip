@@ -2,33 +2,36 @@
 
 set -eu
 
+outname=output
+zipname=${outname}.zip
+
 function mount()
 {
-	if [ ! -e output.zip ]; then
-		if [ -d output ]; then
-			echo "status: zipping output folder"
+	if [ ! -e ${zipname} ]; then
+		if [ -d ${outname} ]; then
+			echo "status: zipping ${outname}"
 			(
-				cd output
-				zip -r ../output.zip .
+				cd ${outname}
+				zip -r ../${zipname} .
 			)
 		fi
 		touch dummy
-		zip output.zip dummy
+		zip ${zipname} dummy
 		rm dummy
-		rm -rf output
+		rm -rf ${outname}
 	fi
-	mkdir -p output
-	if [[ "$(find output -maxdepth 0 -type d -empty)" == output ]]; then
-		fuse-zip output.zip output
+	mkdir -p ${outname}
+	if [[ "$(find ${outname} -maxdepth 0 -type d -empty)" == ${outname} ]]; then
+		fuse-zip ${zipname} ${outname}
 	else
-		echo "error: output is not empty"
+		echo "error: ${outname} is not empty"
 		exit 1
 	fi
 }
 
 function umount()
 {
-	fusermount -u output
+	fusermount -u ${outname}
 }
 
 cd $(dirname $0)
