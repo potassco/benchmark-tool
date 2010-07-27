@@ -5,6 +5,7 @@
 #PBS -l nodes={nodes}:ppn={ppn}
 #PBS -W x=NACCESSPOLICY:SINGLEJOB
 
+. /etc/profile.d/modules.sh
 module load intel/impi
 module load intel/compiler/64
 
