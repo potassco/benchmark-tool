@@ -64,6 +64,7 @@ class Spreadsheet:
 <manifest:file-entry manifest:media-type="application/vnd.oasis.opendocument.spreadsheet" manifest:version="1.2" manifest:full-path="/"/>\
 <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="content.xml"/>\
 <manifest:file-entry manifest:media-type="text/xml" manifest:full-path="styles.xml"/>\
+<manifest:file-entry manifest:media-type="text/xml" manifest:full-path="settings.xml"/>\
 </manifest:manifest>\
 ''')
 
@@ -81,8 +82,41 @@ class Spreadsheet:
 </office:styles>\
 </office:document-styles>\
 ''')
+
+	settings = '''\
+<office:document-settings xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" xmlns:ooo="http://openoffice.org/2004/office" office:version="1.2">\
+<office:settings>\
+<config:config-item-set config:name="ooo:view-settings">\
+<config:config-item-map-indexed config:name="Views">\
+<config:config-item-map-entry>\
+<config:config-item config:name="ViewId" config:type="string">View1</config:config-item>\
+<config:config-item-map-named config:name="Tables">\
+'''
+        for name in ["Instances", "Classes"]:
+		settings += '''\
+<config:config-item-map-entry config:name="{name}">\
+<config:config-item config:name="HorizontalSplitMode" config:type="short">2</config:config-item>\
+<config:config-item config:name="VerticalSplitMode" config:type="short">2</config:config-item>\
+<config:config-item config:name="HorizontalSplitPosition" config:type="int">1</config:config-item>\
+<config:config-item config:name="VerticalSplitPosition" config:type="int">2</config:config-item>\
+<config:config-item config:name="ActiveSplitRange" config:type="short">3</config:config-item>\
+<config:config-item config:name="PositionLeft" config:type="int">0</config:config-item>\
+<config:config-item config:name="PositionRight" config:type="int">0</config:config-item>\
+<config:config-item config:name="PositionTop" config:type="int">0</config:config-item>\
+<config:config-item config:name="PositionBottom" config:type="int">2</config:config-item>\
+</config:config-item-map-entry>\
+'''.format(name=name)
+	settings += '''\
+</config:config-item-map-named>\
+</config:config-item-map-entry>\
+</config:config-item-map-indexed>\
+</config:config-item-set>\
+</office:settings>\
+</office:document-settings>\
+'''
+        zipFile.writestr("settings.xml", settings)
         zipFile.close()
-        
+ 
     def addRunspec(self, runspec):
         self.instSheet.addRunspec(runspec)
         self.classSheet.addRunspec(runspec)
