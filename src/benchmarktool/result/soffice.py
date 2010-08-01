@@ -4,7 +4,7 @@ Created on Jan 20, 2010
 @author: Roland Kaminski
 '''
 
-from zipfile import ZipFile
+import zipfile
 try: from StringIO import StringIO
 except: from io import StringIO
 import math
@@ -21,7 +21,7 @@ class Spreadsheet:
         self.classSheet.finish()
         
     def printSheet(self, out):
-        zipFile = ZipFile(out, "w")
+        zipFile = zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED)
         out = StringIO()
         
         out.write('''\
