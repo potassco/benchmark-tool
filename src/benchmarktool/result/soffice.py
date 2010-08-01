@@ -83,7 +83,7 @@ class Spreadsheet:
 </office:document-styles>\
 ''')
 
-	settings = '''\
+        settings = '''\
 <office:document-settings xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" xmlns:ooo="http://openoffice.org/2004/office" office:version="1.2">\
 <office:settings>\
 <config:config-item-set config:name="ooo:view-settings">\
@@ -93,7 +93,7 @@ class Spreadsheet:
 <config:config-item-map-named config:name="Tables">\
 '''
         for name in ["Instances", "Classes"]:
-		settings += '''\
+            settings += '''\
 <config:config-item-map-entry config:name="{name}">\
 <config:config-item config:name="HorizontalSplitMode" config:type="short">2</config:config-item>\
 <config:config-item config:name="VerticalSplitMode" config:type="short">2</config:config-item>\
@@ -106,7 +106,7 @@ class Spreadsheet:
 <config:config-item config:name="PositionBottom" config:type="int">2</config:config-item>\
 </config:config-item-map-entry>\
 '''.format(name=name)
-	settings += '''\
+        settings += '''\
 </config:config-item-map-named>\
 </config:config-item-map-entry>\
 </config:config-item-map-indexed>\
