@@ -27,7 +27,7 @@ function run2()
 	MPIEXEC_TIMEOUT={run.timeout} \
 		mpiexec -machinefile $PBS_NODEFILE -n $PBS_NODES \
 		"{run.root}/programs/{run.solver}" {run.args} \
-		-f "{run.file}" \
+		-f instance \
 		> runsolver.solver 2>&1
 }}
 
@@ -39,9 +39,11 @@ case $1 in
 	run2)
 		run2
 		;;
-    *)    
+	*)    
 		cd "$(dirname $0)"
+		zcat "{run.file}" > instance
 		[[ -e .finished ]] || /usr/bin/time -f "Real time (s): %e" -o runsolver.watcher "./$(basename $0)" run2
 		touch .finished
+		rm -f instance
 		;;
 esac
