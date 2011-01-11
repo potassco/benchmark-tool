@@ -69,10 +69,10 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 									try:							
 										out = ""
 										if (labels == True):
-											out += irr.measures["time"][1]+","
+											out += irr.measures["time"][1]+" "
 										out += dic_name_features[cr.benchclass.name+ir.instance.name]
 										if (instname == True):
-											out += ","+ir.instance.name
+											out += " "+ir.instance.name
 										outfile.write(out+"\n")
 									except KeyError: # if instance hasn't any features measures it will be skipped
 										pass
@@ -88,17 +88,17 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 								dic_name_su[cr.benchclass.name+ir.instance.name] = irr.measures['status'][1]
 		
 		outfile = open("su.feat","w")
-		for k,v in dic_name_features:
+		for k,v in dic_name_features.items():
 			try:
-				status_k = dic_name_su(k)
-				value = -1
+				status_k = dic_name_su[k]
+				value = 0
 				if (status_k == status_max[0]): # SAT
-					value = 0
-				if (status_k == status_max[1]): #UNSAT
 					value = 1
+				if (status_k == status_max[1]): #UNSAT
+					value = -1
 				if (status_k == status_max[2]): #unknown
 					continue
-				out.write(str(status)+","+v+"\n")
+				outfile.write(str(value)+" "+v+"\n")
 			except KeyError:
 				pass
 		outfile.close()
@@ -116,7 +116,7 @@ def libSVMFormat (features,maxF):
 		if (id != maxF+1):
 			return ""
 		else:
-			return ",".join(svm_form)
+			return " ".join(svm_form)
 			
 	
 if __name__ == '__main__':
@@ -128,7 +128,7 @@ if __name__ == '__main__':
 	parser.add_option("--libSVM", dest="libSVM", action="store_true", default=False, help="print features in libSVM format (id:value)")
 	parser.add_option("--FeatureLabel", dest="flab", action="store", default="Features", help="name of setting which generates features")
 	parser.add_option("--SATUNSAT", dest="su", action="store_true", default=False, help="print features in libSVM format with classification between SAT and UNSAT")
-	parser.add_option("--maxFeatures", dest="maxF", action="store", default=83, help="print only datas with <arg> features")
+	parser.add_option("--maxFeatures", dest="maxF", action="store", default=86, help="print only datas with <arg> features")
 	
 	
 	opts, files = parser.parse_args(sys.argv[1:])
