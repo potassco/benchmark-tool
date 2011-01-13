@@ -17,8 +17,9 @@ from benchmarktool.result.parser import Parser
 import optparse
 import sys
 import math
+import random
 
-def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Features",su=False,maxF=83,norm="",log=False,pA=False):
+def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Features",su=False,maxF=83,norm="",log=False,pA=False,hyper=False):
 	'''
 		print features of claspre
 		results: parsing of xml-file
@@ -49,13 +50,17 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 					for ir in cr.instresults:
 						for irr in ir.runs:
 							try:
-								dic_name_features[cr.benchclass.name+ir.instance.name] = irr.measures['features'][1]
+								dic_name_features[cr.benchclass.name+"/"+ir.instance.name] = irr.measures['features'][1]
 							except KeyError: # if instance hasn't any features measures it will be skipped
 								pass
 
 	# normalize features
 	if (norm != ""):
 		dic_name_features = normalize(dic_name_features, norm, maxF,pA)
+		
+	if (hyper == True):
+		latin_hyper(dic_name_features,maxF)
+		return
 	
 	if (libSVM == True):
 		dic_name_features = libSVMFormat(dic_name_features,maxF)
@@ -64,7 +69,7 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 		for v in results.projects.values():
 			for r in v.runspecs:
 				if (r.setting.name.count(flab) == 0):
-					print("write file model"+status_min[status]+str(conf_id)+".feat"+" with "+r.setting.cmdline) # print configuration
+					print("write file model"+status_min[status]+str(conf_id)+".feat"+" with "+r.setting.cmdline+" [" +r.setting.name+ "]") # print configuration
 					outfile = open("model"+status_min[status]+str(conf_id)+".feat","w")
 					conf_id = conf_id + 1
 					for cr in r.classresults:
@@ -78,7 +83,7 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 												out += str(math.log(float(irr.measures["time"][1])))+" "
 											else:
 												out += irr.measures["time"][1]+" "
-										out += dic_name_features[cr.benchclass.name+ir.instance.name]
+										out += dic_name_features[cr.benchclass.name+"/"+ir.instance.name]
 										if (instname == True):
 											out += " "+ir.instance.name
 										outfile.write(out+"\n")
@@ -93,7 +98,7 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 					for cr in r.classresults:
 						for ir in cr.instresults:
 							for irr in ir.runs:
-								dic_name_su[cr.benchclass.name+ir.instance.name] = irr.measures['status'][1]
+								dic_name_su[cr.benchclass.name+"/"+ir.instance.name] = irr.measures['status'][1]
 		
 		outfile = open("su.feat","w")
 		for k,v in dic_name_features.items():
@@ -110,6 +115,39 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 			except KeyError:
 				pass
 		outfile.close()
+				
+def latin_hyper (features,maxF):
+	''' cut feature space in #cut section for each feature
+		for each section in the feature space n samples will be generated
+		'''
+	local = cut(features, maxF)
+	n = 1
+	#print(len(local))
+	#print(len(features))
+	for i in range(0,n):
+		for l in local:
+			keys = list(l.keys())
+			s = len(keys)
+			#print(s)
+			k = random.randint(0,s-1)
+			print(keys[k])
+		
+def cut(features,maxF):
+	cuts = [-1.0,-0.5,0.0,0.5,1.01] # assumption minmax normalization on [-1.0,1.0]
+	local = [features]
+	for index in range(0,maxF):
+		newlocal = []
+		for loc in local:
+			for cut_index in range(0,len(cuts)-1):
+				newloc = {}
+				for inst,feat in loc.items():
+					current = float(feat.split(",")[index])
+					if((cuts[cut_index] <= current) and (current < cuts[cut_index+1])):
+						newloc[inst] = feat
+				if (len(newloc) != 0):
+					newlocal.append(newloc)
+		local = newlocal
+	return local
 				
 def normalize(features_dic,mode,maxF,pA):
 	dfeatures = divide_features(features_dic,maxF) 
@@ -253,9 +291,13 @@ if __name__ == '__main__':
 	parser.add_option("--normalize", dest="norm", action="store", default="", help="normalize Features [minmax|zscore]")
 	parser.add_option("--logLabel", dest="log", action="store_true", default=False, help="log-shrinking of labels")
 	parser.add_option("--printArith", dest="pA", action="store_true", default=False, help="print min, max, mean, std of features")
+	parser.add_option("--latinHyperCube", dest="hyper", action="store_true", default=False, help="select instances based on latin hyper cube")
 	
 	
 	opts, files = parser.parse_args(sys.argv[1:])
+	
+	if(opts.hyper == True):
+		opts.norm = "minmax"
 	
 	if (opts.status != "") and (opts.status != "0") and (opts.status != "1") and (opts.status != "2"):
 		parser.error("Status has three possible values: 0, 1 or 2")
@@ -269,4 +311,4 @@ if __name__ == '__main__':
 	
 	p = Parser()
 	results = p.parse(inFile)
-	printFeat(results,opts.label,opts.iname,opts.status,opts.libSVM,opts.flab,opts.su,opts.maxF,opts.norm,opts.log,opts.pA)
+	printFeat(results,opts.label,opts.iname,opts.status,opts.libSVM,opts.flab,opts.su,opts.maxF,opts.norm,opts.log,opts.pA, opts.hyper)
