@@ -57,7 +57,7 @@ def clasp(root, runspec, instance):
 	# count suspicious stuff as timeout
 	if status == None:
 		result.append(("error", "float", 1))
-		sys.stderr.write("*** ERROR: Run {0}/{1} failed with unrecognized status!\n".format(instance.classname, instance.instance))
+		sys.stderr.write("*** ERROR: Run {0}/{1} failed with unrecognized status!\n".format(instance.classname.name, instance.instance))
 	else:
 		result.append(("error", "float", 0))
 
@@ -71,7 +71,7 @@ def clasp(root, runspec, instance):
 	result.append(("interrupted", "float", interrupted))
 	return result
 	
-claspre_features 	= re.compile(r"^Features[ ]*:[ ]*(([0-9]+\.?[0-9]*)([,]([0-9]+\.?[0-9]*))*)\+?[ ]*$")	
+claspre_features 	= re.compile(r"^Features[ ]*:[ ]*(([0-9]+\.?[0-9]*)([,](.+\.?.*))*)\+?[ ]*$")	
 	
 def claspre(root, runspec, instance):
 	result = clasp(root, runspec, instance)
