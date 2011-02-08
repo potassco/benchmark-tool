@@ -17,7 +17,8 @@ clasp_time		= re.compile(r"^Real time \(s\): ([0-9]+\.[0-9]+)$")
 clasp_conflicts   = re.compile(r"^Conflicts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_restarts	= re.compile(r"^Restarts[ ]*:[ ]*([0-9]+)\+?[ ]*$")
 clasp_status	  = re.compile(r"^(SATISFIABLE|UNSATISFIABLE|UNKNOWN)[ ]*$")
-clasp_interrupted = re.compile(r"^Interrupted[ ]*:[ ]*(1)[ ]*$")
+clasp_interrupted = re.compile(r"^.*INTERRUPTED!.*$")
+#clasp_interrupted = re.compile(r"^Interrupted[ ]*:[ ]*(1)[ ]*$")
 
 def clasp(root, runspec, instance):
 	"""
@@ -46,7 +47,11 @@ def clasp(root, runspec, instance):
 		if m: status =  m.group(1)
 		
 		m = clasp_interrupted.match(line)
-		if m: interrupted = 1
+#		if m: interrupted = 1
+		if m: 
+			interrupted = 1
+			status = "UNKNOWN"
+
 	
 	# parse runsolver output
 	import codecs
@@ -72,12 +77,15 @@ def clasp(root, runspec, instance):
 	return result
 	
 claspre_features 	= re.compile(r"^Features[ ]*:[ ]*(([0-9]+\.?[0-9]*)([,](.+\.?.*))*)\+?[ ]*$")	
+claspre_conf = re.compile(r"^Chosen configuration:[ ]*(.*)\+?[ ]*$")
 	
 def claspre(root, runspec, instance):
 	result = clasp(root, runspec, instance)
 	for line in open(os.path.join(root, "runsolver.solver")):
 		m = claspre_features.match(line)
 		if m: result.append(("features", "list float", m.group(1)))
+		m = claspre_conf.match(line)
+		if m: result.append(("configuration", "string", m.group(1)))
 	return result
 
 smodels_status  = re.compile(r"^(True|False)")

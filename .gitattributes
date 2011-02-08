@@ -24,6 +24,7 @@ benchmarks/clasp/random/n60-unsat-b9.lp -text
 /beval -text
 /bfeat -text
 /bgen -text
+/bstats -text
 doc/README -text
 /mount-zip -text
 runscripts/runscript-all.xml -text
@@ -47,6 +48,7 @@ src/benchmarktool/tools.py -text
 src/beval.py -text svneol=unset#text/plain
 src/bfeat.py -text
 src/bgen.py -text
+src/bstats.py -text svneol=unset#text/plain
 templates/impi.pbs -text
 templates/pbs-generic.sh -text
 templates/seq-generic.sh -text
