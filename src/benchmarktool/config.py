@@ -7,6 +7,7 @@ Created on Jan 17, 2010
 import os
 import re
 import sys
+import codecs
 
 from benchmarktool.resultparser.claspar import claspar
 
@@ -147,7 +148,7 @@ def clasp_sat(root, runspec, instance):
 	status	  = None
 	timeout	 = time = runspec.project.job.timeout
 	# parse some of clasp's stats
-	for line in open(os.path.join(root, "runsolver.solver")):
+	for line in codecs.open(os.path.join(root, "runsolver.solver"), errors='ignore', encoding='utf-8'):
 		m = clasp_sat_models.match(line)
 		if m: result.append(("models", "float", m.group(1)))
 		
@@ -167,7 +168,7 @@ def clasp_sat(root, runspec, instance):
 		if m: interrupted = 1
 	
 	# parse runsolver output
-	for line in open(os.path.join(root, "runsolver.watcher")):
+	for line in codecs.open(os.path.join(root, "runsolver.watcher"), errors='ignore', encoding='utf-8'):
 		m = clasp_sat_time.match(line)
 		if m: time = float(m.group(1))
 	
