@@ -39,6 +39,7 @@ src/benchmarktool/result/parser.py -text svneol=unset#text/plain
 src/benchmarktool/result/result.py -text svneol=unset#text/plain
 src/benchmarktool/result/soffice.py -text svneol=unset#text/plain
 src/benchmarktool/resultparser/__init__.py -text
+src/benchmarktool/resultparser/clasp.py -text
 src/benchmarktool/resultparser/claspar.py -text
 src/benchmarktool/resultparser/cudf.py -text
 src/benchmarktool/runscript/__init__.py -text
