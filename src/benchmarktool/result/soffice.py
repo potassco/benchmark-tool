@@ -92,20 +92,20 @@ class Spreadsheet:
 <config:config-item config:name="ViewId" config:type="string">View1</config:config-item>\
 <config:config-item-map-named config:name="Tables">\
 '''
-        for name in ["Instances", "Classes"]:
+        for name, arange, right in [("Instances", 3, 1), ("Classes", 2, 0)]:
             settings += '''\
 <config:config-item-map-entry config:name="{name}">\
 <config:config-item config:name="HorizontalSplitMode" config:type="short">2</config:config-item>\
 <config:config-item config:name="VerticalSplitMode" config:type="short">2</config:config-item>\
 <config:config-item config:name="HorizontalSplitPosition" config:type="int">1</config:config-item>\
 <config:config-item config:name="VerticalSplitPosition" config:type="int">2</config:config-item>\
-<config:config-item config:name="ActiveSplitRange" config:type="short">3</config:config-item>\
+<config:config-item config:name="ActiveSplitRange" config:type="short">{arange}</config:config-item>\
 <config:config-item config:name="PositionLeft" config:type="int">0</config:config-item>\
-<config:config-item config:name="PositionRight" config:type="int">0</config:config-item>\
+<config:config-item config:name="PositionRight" config:type="int">{right}</config:config-item>\
 <config:config-item config:name="PositionTop" config:type="int">0</config:config-item>\
 <config:config-item config:name="PositionBottom" config:type="int">2</config:config-item>\
 </config:config-item-map-entry>\
-'''.format(name=name)
+'''.format(name=name, arange=arange, right=right)
         settings += '''\
 </config:config-item-map-named>\
 </config:config-item-map-entry>\
@@ -568,6 +568,8 @@ class SystemColumn(Sortable):
     
     def calcSummary(self, n, ref):
         for name, column in self.columns.items():
+            # TODO: do something about this
+            if name == "optimum" or name == "optima": continue
             minimum = maximum = median = None 
             if len(ref) == 3:
                 minimum = ref[0].columns[name].content

@@ -31,8 +31,8 @@ class Result:
         """
         benchmarks = set()
         for project in projects:
-            for runspec in project.runspecs:
-                for classresult in runspec.classresults:
+            for runspec in project:
+                for classresult in runspec:
                     for instresult in classresult.instresults:
                         instresult.instance.maxRuns = max(instresult.instance.maxRuns, len(instresult.runs))
                 benchmarks.add(runspec.benchmark)
@@ -55,7 +55,7 @@ class Result:
         
         sheet = Spreadsheet(benchmarkMerge, measures)
         for project in projects:
-            for runspec in project.runspecs:
+            for runspec in project:
                 sheet.addRunspec(runspec)
         sheet.finish()
         sheet.printSheet(out)
@@ -273,6 +273,12 @@ class Class(Sortable):
         self.id        = uid
         self.line      = None
         self.instances = {}
+
+    def __hash__(self):
+        """
+        Hash for a class based on its name. 
+        """
+        return hash((self.benchmark, self.name))
     
     def __cmp__(self, other):
         """
@@ -310,6 +316,12 @@ class Instance(Sortable):
         Compares two benchmark instances. 
         """
         return cmp((self.benchclass, self.name), (other.benchclass, other.name))
+
+    def __hash__(self):
+        """
+        Hash for an instance based on its name. 
+        """
+        return hash((self.benchclass, self.name))
 
 class Project:
     """

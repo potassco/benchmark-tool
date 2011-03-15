@@ -10,6 +10,7 @@ import sys
 import codecs
 
 from benchmarktool.resultparser.claspar import claspar
+from benchmarktool.resultparser.cudf import cudf
 
 #TODO: some helper methods could be provided ... 
 clasp_models	  = re.compile(r"^Models[ ]*:[ ]*([0-9]+)\+?[ ]*$")

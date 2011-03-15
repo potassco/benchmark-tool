@@ -5,7 +5,7 @@
 #PBS -l nodes={nodes}:ppn={ppn}
 ##PBS -W x=NACCESSPOLICY:SINGLEJOB
 
-module load intel/compiler/64
+source ~/.bashrc
 
 cd $PBS_O_WORKDIR
 
