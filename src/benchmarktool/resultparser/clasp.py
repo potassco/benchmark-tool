@@ -19,6 +19,7 @@ clasp_re = {
     "status"      : ("string", re.compile(r"^(s )?(?P<val>SATISFIABLE|UNSATISFIABLE|UNKNOWN|OPTIMUM FOUND)[ ]*$")),
     "interrupted" : ("string", re.compile(r"(c )?(?P<val>INTERRUPTED!)")),
     "error"       : ("string", re.compile(r"^\*\*\* clasp ERROR: (?P<val>.*)$")),
+    "memerror"    : ("string", re.compile(r"^Maximum VSize (?P<val>exceeded): sending SIGTERM then SIGKILL")),
 }
 
 def clasp(root, runspec, instance):
@@ -34,6 +35,10 @@ def clasp(root, runspec, instance):
                 m = reg[1].match(line)
                 if m: res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
 
+    if "memerror" in res:
+        res["error"]  = ("string", "std::bad_alloc")
+        res["status"] = ("string", "UNKNOWN")
+        del res["memerror"]
     result   = []
     error    = not "status" in res or ("error" in res and res["error"][1] != "std::bad_alloc")
     memout   = "error" in res and res["error"][1] == "std::bad_alloc"
