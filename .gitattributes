@@ -27,6 +27,7 @@ benchmarks/clasp/random/n60-unsat-b9.lp -text
 /bstats -text
 doc/README -text
 /mount-zip -text
+programs/gcat.sh -text
 runscripts/runscript-all.xml -text
 runscripts/runscript-ggp.xml -text
 runscripts/runscript-pbs.xml -text
