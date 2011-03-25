@@ -50,6 +50,9 @@ def clasp(root, runspec, instance):
     result.append(("timeout", "float", int(timedout)))
     result.append(("memout", "float", int(memout)))
 
+    if "optimum" in res and not " " in res["optimum"][1]:
+        result.append("optimum", "float", float(res["optimum"][1]))
+        del res["optimum"]
     if "interrupted" in res: del res["interrupted"]
     if "error" in res: del res["error"]
     for key, val in res.items(): result.append((key, val[0], val[1]))

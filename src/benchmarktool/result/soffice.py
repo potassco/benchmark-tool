@@ -568,8 +568,6 @@ class SystemColumn(Sortable):
     
     def calcSummary(self, n, ref):
         for name, column in self.columns.items():
-            # TODO: do something about this
-            if name == "optimum" or name == "optima": continue
             minimum = maximum = median = None 
             if len(ref) == 3:
                 minimum = ref[0].columns[name].content
