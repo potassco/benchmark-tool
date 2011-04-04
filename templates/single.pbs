@@ -3,6 +3,7 @@
 #PBS -r n
 #PBS -l walltime={walltime}
 #PBS -l nodes={nodes}:ppn={ppn}
+#PBS -l nice=-20
 ##PBS -W x=NACCESSPOLICY:SINGLEJOB
 
 source ~/.bashrc
