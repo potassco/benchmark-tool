@@ -575,8 +575,7 @@ class PbsScriptGen(ScriptGen):
             elif self.job.script_mode == "timeout":
                 if pbsScript.time + runspec.project.job.timeout + 300 >= runspec.project.job.walltime:
                     pbsScript.next()
-                else:
-                    pbsScript.time += runspec.project.job.timeout + 300
+                pbsScript.time += runspec.project.job.timeout + 300
                 pbsScript.append(jobScript)
 
         for pbsScript in pbsScripts.values(): pbsScript.write()
