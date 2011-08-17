@@ -52,6 +52,9 @@ src/bfeat.py -text
 src/bgen.py -text
 src/bstats.py -text svneol=unset#text/plain
 templates/impi.pbs -text
+templates/mask.py -text
 templates/pbs-generic.sh -text
+templates/seq-generic-tmp.sh -text
 templates/seq-generic.sh -text
+templates/seq-genericPP.sh -text
 templates/single.pbs -text
