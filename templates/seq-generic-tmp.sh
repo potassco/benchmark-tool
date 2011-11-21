@@ -23,4 +23,5 @@ rm $TF
 
 echo $HOSTNAME > hostname.txt
 
-touch .finished
+[[ -e runsolver.watcher ]] && touch .finished
+
