@@ -17,4 +17,4 @@ MASK=`qstat -f $ID | python {run.root}/templates/mask.py`
 	-W {run.timeout} \
 	"{run.root}/programs/{run.solver}" {run.args}
 
-touch .finished
+[[ -e runsolver.watcher ]] && touch .finished
