@@ -8,6 +8,7 @@ import zipfile
 try: from StringIO import StringIO
 except: from io import StringIO
 import math
+import sys
 from benchmarktool import tools 
 from benchmarktool.tools import Sortable, cmp
 
@@ -327,7 +328,9 @@ class ResultTable(Table):
                     value = column.content[line]
                     if value.__class__ == tuple:
                         column.content[line] = value[1]
-                        self.add(2 + line, col, FormulaCell("of:=AVERAGE([Instances.{0}:Instances.{1}])".format(self.cellIndex(value[0].instStart + 2, self.getOffset(systemColumn, name)), self.cellIndex(value[0].instEnd + 2, self.getOffset(systemColumn, name)))))
+                        op = "AVERAGE"
+                        if (name == "timeout"): op = "SUM"
+                        self.add(2 + line, col, FormulaCell("of:="+op+"([Instances.{0}:Instances.{1}])".format(self.cellIndex(value[0].instStart + 2, self.getOffset(systemColumn, name)), self.cellIndex(value[0].instEnd + 2, self.getOffset(systemColumn, name)))))
                         valueRows.add(name, value[1], line, col)
                     elif value.__class__ == float:
                         self.add(2 + line, col, FloatCell(value))
@@ -470,7 +473,10 @@ class ResultTable(Table):
                             
             if not self.instanceTable == None:
                 for name, value in classSum.items():
-                    column.addCell(classresult.benchclass.line, name, "classresult", (classresult.benchclass, value[0] / value[1]))
+                    resTemp = value[0] / value[1]
+                    if (name == "timeout"): resTemp = value[0]
+                    print("Name={0}, Value={1}, Num={2}, Result={3}".format(name, value[0], value[1], resTemp), file=sys.stderr)
+                    column.addCell(classresult.benchclass.line, name, "classresult", (classresult.benchclass, resTemp))
     
 class Summary:
     def __init__(self):
