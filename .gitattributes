@@ -55,6 +55,7 @@ templates/impi.pbs -text
 templates/mask.py -text
 templates/pbs-generic.sh -text
 templates/seq-generic-tmp.sh -text
+templates/seq-generic-ts.sh -text
 templates/seq-generic.sh -text
 templates/seq-genericPP.sh -text
 templates/single.pbs -text

@@ -387,21 +387,32 @@ queue = [{0}]
 class Main:
     def __init__(self):
         self.running  = set()
+        self.cores    = set()
         self.started  = 0
         self.total    = None
         self.finished = threading.Condition()
+        self.coreLock = threading.Lock()
+        c = 0
+        while len(self.cores) < {1}:
+            self.cores.add(c)
+            c += 1
     
     def finish(self, thread):
         self.finished.acquire()
         self.running.remove(thread)
+        with self.coreLock:
+            self.cores.add(thread.core)
         self.finished.notify()
         self.finished.release()
    
     def start(self, cmd):
-        thread = Run(cmd, self)
+        core     = 0
+        with self.coreLock:
+            core = self.cores.pop()
+        thread = Run(cmd, self, core)
         self.started += 1
         self.running.add(thread)
-        print("({{0}}/{{1}}/{{2}}) {{3}}".format(len(self.running), self.started, self.total, cmd))
+        print("({{0}}/{{1}}/{{2}}/{{4}}) {{3}}".format(len(self.running), self.started, self.total, cmd, core))
         thread.start()
     
     def run(self, queue):
@@ -430,15 +441,16 @@ class Main:
         os.killpg(os.getpgid(0), signal.SIGKILL)
 
 class Run(threading.Thread):
-    def __init__(self, cmd, main):
+    def __init__(self, cmd, main, core):
         threading.Thread.__init__(self)
         self.cmd  = cmd
         self.main = main
+        self.core = core
         self.proc = None
     
     def run(self):
         path, script = os.path.split(self.cmd)
-        self.proc = subprocess.Popen(["bash", script], cwd=path)
+        self.proc = subprocess.Popen(["bash", script, str(self.core)], cwd=path)
         self.proc.wait()
         self.main.finish(self)
 
