@@ -1,3 +1,5 @@
+#!/bin/python
+
 '''
 Created on Jan 13, 2010
 
@@ -19,7 +21,7 @@ import sys
 import math
 import random
 
-def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Features",su=False,maxF=83,norm="",log=False,pA=False,hyper=False,ff="",wpf=False):
+def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Features",su=False,maxF=83,norm="",log=True,pA=False,hyper=False,ff="",wpf=False,to=600):
 	'''
 		print features of claspre
 		results: parsing of xml-file
@@ -46,12 +48,14 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 
 	states = {} 
 	
+	alpha = to / 2
+	beta = alpha / 6
+	
 	var_results = ""
 	if (ff != ""):
 		var_results = ff
 	else:
 		var_results = results
-		
 	# first search for features
 	dic_name_features = {}
 	for v in var_results.projects.values():
@@ -65,16 +69,19 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 							except KeyError: # if instance hasn't any features measures it will be skipped
 								pass
 							
-							try:
-								states[irr.measures['status']] = states[irr.measures['status']] + 1
-							except KeyError: # if instance hasn't any features measures it will be skipped
-								states[irr.measures['status']] = 1
-	print(states)
+							if (irr.measures.get('status') != None):
+								try:
+									states[irr.measures['status']] = states[irr.measures['status']] + 1
+								except KeyError: # if instance hasn't any features measures it will be skipped
+									states[irr.measures['status']] = 1
+	print("States : "+str(states))
 	#print(dic_name_features)
 
 	# normalize features
-	if (norm != ""):
-		dic_name_features = normalize(dic_name_features, norm, maxF,pA)
+	portfolio=""
+	[dic_name_features,arith] = normalize(dic_name_features, norm, maxF,pA)
+	portfolio += "@means:"+(",".join(convertListSD(arith['mean'])))+"\n"
+	portfolio += "@stds:"+(",".join(convertListSD(arith['std'])))+"\n"
 		
 	if (hyper == True):
 		latin_hyper(dic_name_features,maxF)
@@ -84,38 +91,52 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 		dic_name_features = libSVMFormat(dic_name_features,maxF)
 		
 	if (labels == False):
-		for features in dic_name_features.values():
-			print(features)
+		for k,v in dic_name_features.items():
+                      if (instname == True):
+                           print(k+","+v)
+                      else:
+                           print(features)
 		return
 
-	portfolio=""
+	dic_name_su = get_su(results,flab)
+	
 	if (su == False):
 		for v in results.projects.values():
 			for r in v.runspecs:
 				if (r.setting.name.count(flab) == 0):
-					print("write file model"+status_min[status]+str(conf_id)+".feat"+" with "+r.setting.cmdline+" [" +r.setting.name+ "]") # print configuration
 					filtered_set = r.setting.cmdline.replace("--stats","")
-					filtered_setting = r.setting.name.split("-")[0]
+					filtered_set = r.setting.cmdline.replace("--q","")
+					filtered_setting = r.setting.name.replace("-n1","").replace("-","")
 					portfolio+="["+filtered_setting+"]: "+filtered_set+"\n"
-					outfile = open("model"+status_min[status]+str(conf_id)+".feat","w")
-					conf_id = conf_id + 1
+					print("write file model"+status_min[status]+str(filtered_setting)+".feat"+" with "+r.setting.cmdline+" [" +filtered_setting+ "]") # print configuration
+					outfile = open("model"+status_min[status]+str(filtered_setting)+".feat","w")
 					for cr in r.classresults:
 						for ir in cr.instresults:
 							for irr in ir.runs:
-								if (status == -1) or (status_max[status] == irr.measures['status'][1]):
-									try:							
-										out = ""
-										if (labels == True):
-											if (log == True):
-												out += str(math.log(float(irr.measures["time"][1])))+" "
-											else:
-												out += irr.measures["time"][1]+" "
-										out += dic_name_features[cr.benchclass.name+"/"+ir.instance.name]
-										if (instname == True):
-											out += " "+ir.instance.name
-										outfile.write(out+"\n")
-									except KeyError: # if instance hasn't any features measures it will be skipped
-										pass
+								if (dic_name_su.get(cr.benchclass.name+"/"+ir.instance.name) != None):
+									if (status == -1) or (status_max[status] == dic_name_su[cr.benchclass.name+"/"+ir.instance.name]):
+										try:							
+											#print(dic_name_su[cr.benchclass.name+"/"+ir.instance.name] +" : "+irr.measures["status"][1])
+											out = ""
+											if (labels == True):
+												time = float(irr.measures["time"][1])
+												#print("#"+status_max[2]+"#"+irr.measures['status'][1])
+												if (irr.measures.get('error')[1] != "0") or (status_max[2] == irr.measures['status'][1]):
+													time  = time * 10
+													#print(str(math.log(time+1)))
+												if (log == True):
+													#out += str(math.log(time+1))+" "
+												   y = 1 / (1 + math.exp(-1*(time-alpha)/beta))
+												   #y = -y + 1
+												   out += str(y)+" "
+												else:
+													out += str(time)+" "
+											out += dic_name_features[cr.benchclass.name+"/"+ir.instance.name]
+											if (instname == True):
+												out += " "+ir.instance.name
+											outfile.write(out+"\n")
+										except KeyError: # if instance hasn't any features measures it will be skipped
+											pass
 					outfile.close()
 		if (wpf == True):			
 			print("write portfolio file: portfolio.txt")
@@ -123,15 +144,6 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 			outfile.write(portfolio)
 			outfile.close()
 	else:
-		dic_name_su = {}
-		for v in results.projects.values():
-			for r in v.runspecs:
-				if (r.setting.name != flab):
-					for cr in r.classresults:
-						for ir in cr.instresults:
-							for irr in ir.runs:
-								dic_name_su[cr.benchclass.name+"/"+ir.instance.name] = irr.measures['status'][1]
-		
 		outfile = open("su.feat","w")
 		for k,v in dic_name_features.items():
 			try:
@@ -148,6 +160,24 @@ def printFeat(results,labels=False,instname=False,status="",libSVM=True,flab="Fe
 				pass
 		outfile.close()
 		
+def get_su(results,flab):
+	''' collect status (SAT|UNSAT) of all instances) '''
+	dic_name_su = {}
+	for v in results.projects.values():
+		for r in v.runspecs:
+			if (r.setting.name != flab):
+				for cr in r.classresults:
+					for ir in cr.instresults:
+						for irr in ir.runs:
+							if (irr.measures.get('status') != None):
+								dic_name_su[cr.benchclass.name+"/"+ir.instance.name] = irr.measures['status'][1]
+	return 	dic_name_su
+
+def convertListSD(list):
+	ret = []
+	for l in list:
+		ret.append(str(l))
+	return ret
 				
 def latin_hyper (features,maxF):
 	''' cut feature space in #cut section for each feature
@@ -186,18 +216,19 @@ def normalize(features_dic,mode,maxF,pA):
 	dfeatures = divide_features(features_dic,maxF) 
 	arr = build_feature_arr(dfeatures)
 	arith = arithmetics(arr)
-	defeatures = {}
+	defeatures = dfeatures
 	if (mode == "minmax"):
 		defeatures = min_max(dfeatures, arith)
-	else: 
-		if (mode == "zscore"):
-			defeatures = zscore(dfeatures, arith)
+	if (mode == "zscore"):
+		defeatures = zscore(dfeatures, arith)
+	if (mode == "log"):
+		defeatures = nlog(dfeatures, arith)
 	if (pA == True):
 		print("min: "+str(arith["min"]))
 		print("max: "+str(arith["max"]))
 		print("mean: "+str(arith["mean"]))
 		print("std: "+str(arith["std"]))
-	return ori_format(defeatures)
+	return [ori_format(defeatures),arith]
 
 def ori_format(features):
 	''' Input: dictionary: inst_name -> feature_list
@@ -241,6 +272,19 @@ def zscore(dfeatures,arith):
 			else:
 				n = 0
 			i += 1
+			nfeat.append(str(n))
+		nfeatures[inst] = nfeat
+	return nfeatures
+
+def nlog(dfeatures,arith):
+	nfeatures = {}
+	for inst,feat in dfeatures.items():
+		nfeat = []
+		for f in feat:
+			if (float(f) > 0):
+				n = math.log(1+math.log(1+float(f))) 
+			else:
+				n = 0
 			nfeat.append(str(n))
 		nfeatures[inst] = nfeat
 	return nfeatures
@@ -331,12 +375,13 @@ if __name__ == '__main__':
 	parser.add_option("--FeatureLabel", dest="flab", action="store", default="Features", help="name of setting which were generating features")
 	parser.add_option("--SATUNSAT", dest="su", action="store_true", default=False, help="print features in libSVM format with classification between SAT and UNSAT")
 	parser.add_option("--maxFeatures", dest="maxF", action="store", default=86, help="print only datas with <arg> features")
-	parser.add_option("--normalize", dest="norm", action="store", default="", help="normalize Features [minmax|zscore]")
-	parser.add_option("--logLabel", dest="log", action="store_true", default=False, help="log-shrinking of labels")
+	parser.add_option("--normalize", dest="norm", action="store", default="", help="normalize Features [minmax|zscore|log]")
+	parser.add_option("--logLabel", dest="log", action="store_true", default=False, help="sigmoid function of labels")
 	parser.add_option("--printArith", dest="pA", action="store_true", default=False, help="print min, max, mean, std of features")
 	parser.add_option("--latinHyperCube", dest="hyper", action="store_true", default=False, help="select instances based on latin hyper cube")
 	parser.add_option("--featurefile", dest="ff", action="store", default="", help="feature xml-file")
 	parser.add_option("--writepfile", dest="wpf", action="store_true", default=False, help="write portfolio file for clasp")
+	parser.add_option("--to", dest="to", action="store", type="int", default=600, help="timeout of clasp")
 	
 	opts, files = parser.parse_args(sys.argv[1:])
 	
@@ -362,4 +407,4 @@ if __name__ == '__main__':
 		p2 = Parser()
 		results2 = p.parse(secondIn)
 		
-	printFeat(results,opts.label,opts.iname,opts.status,opts.libSVM,opts.flab,opts.su,int(opts.maxF),opts.norm,opts.log,opts.pA, opts.hyper,results2,opts.wpf)
+	printFeat(results,opts.label,opts.iname,opts.status,opts.libSVM,opts.flab,opts.su,int(opts.maxF),opts.norm,opts.log,opts.pA, opts.hyper,results2,opts.wpf,opts.to)
