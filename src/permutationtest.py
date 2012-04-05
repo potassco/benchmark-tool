@@ -104,10 +104,10 @@ def doTest(col1,col2,alpha,permutations,name1,name2,noise):
     pValue = getPValue(col1,col2,permutations,oriAVG)
     if (pValue < alpha):
         print("Reject Null Hypothesis (p-value: "+str(pValue)+")")
-        return [1,switched]
+        return [1,switched,pValue]
     else:
         print("Don't reject Null Hypothesis (p-value: "+str(pValue)+")")
-        return [0,switched]
+        return [0,switched,pValue]
             
 if __name__ == '__main__':
 
