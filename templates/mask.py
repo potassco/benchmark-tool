@@ -16,24 +16,28 @@ def binary(n, digits=8):
 
 if __name__ == '__main__':
 
-    input = sys.stdin
-    start = False
-    ressources = ""
-    for line in input:
-        if (start == True and line.find('exec_port') == -1):
-            ressources += line.replace('\t','')
-        if (start == True and line.find('exec_port') != -1):
-            break
-        if (line.find('exec_host') != -1):
-            ressources = line.replace('    exec_host = ','').replace('\n','')
-            start = True
+    try:
+        input = sys.stdin
+        start = False
+        ressources = ""
+        for line in input:
+            if (start == True and line.find('exec_port') == -1):
+                ressources += line.replace('\t','')
+            if (start == True and line.find('exec_port') != -1):
+                break
+            if (line.find('exec_host') != -1):
+                ressources = line.replace('    exec_host = ','').replace('\n','')
+                start = True
+            
+        ressources = ressources.split("+")
+        mask = 0
+        for res in ressources:
+            res = int(res.split("/")[1])
+            if res != 0:
+                mask += 2**res
+        #print(mask)
+        #print(binary(mask,8))
+        print(hex(mask))
+    except:
+        print("0xfe")
         
-    ressources = ressources.split("+")
-    mask = 0
-    for res in ressources:
-        res = int(res.split("/")[1])
-        if res != 0:
-            mask += 2**res
-    #print(mask)
-    #print(binary(mask,8))
-    print(hex(mask))
