@@ -12,6 +12,7 @@ import codecs
 from benchmarktool.resultparser.claspar import claspar
 from benchmarktool.resultparser.cudf import cudf
 from benchmarktool.resultparser.clasp import clasp
+from benchmarktool.resultparser.claspD import claspD
 
 claspre_features 	= re.compile(r"^Features[ ]*:[ ]*(([0-9]+\.?[0-9]*)([,](.+\.?.*))*)\+?[ ]*$")	
 claspre_conf = re.compile(r"^Chosen configuration:[ ]*(.*)\+?[ ]*$")
