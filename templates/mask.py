@@ -35,7 +35,9 @@ if __name__ == '__main__':
             res = int(res.split("/")[1])
             if res != 0:
                 mask += 2**res
-        #print(mask)
+        if (mask == 0):
+		raise
+	#print(mask)
         #print(binary(mask,8))
         print(hex(mask))
     except:
