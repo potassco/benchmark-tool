@@ -20,7 +20,7 @@ import os
 from subprocess import Popen, PIPE
 from operator import itemgetter
 
-def print_csv(input,ev,ke,ign,sat,df):
+def print_csv(input,ev,ke,ign,sat,df,scatter):
     dic_name_k = {}
     dic_name_sat = {}
     errors = 0
@@ -45,12 +45,22 @@ def print_csv(input,ev,ke,ign,sat,df):
                         else:
                            dic_name_k[key].append(ev)
     
-    #print(dic_name_sat)                       
+    #print(dic_name_sat)               
+    filtered_num = 0        
     if (sat != "0"):
         filtered_times = []
         for k,v in dic_name_k.items():
-            if(dic_name_sat.get(k) != None and sat==dic_name_sat[k]):
-                filtered_times.append(v)
+            if (sat == "1" or sat == "-1"): # filter SAT or UNSAT
+                if(dic_name_sat.get(k) != None and sat==dic_name_sat[k]):
+                    filtered_times.append(v)
+                else:
+                    filtered_num += 1
+            if (sat == "2"): #filter instances which aren't solvable at all
+                if(dic_name_sat.get(k) != None):
+                    filtered_times.append(v)
+                else:
+                    filtered_num += 1
+        print("Filtered Instances : "+str(filtered_num))
     else: 
         filtered_times = list(dic_name_k.values())
 
@@ -96,22 +106,30 @@ def print_csv(input,ev,ke,ign,sat,df):
     set_row = []      
     fp = open("./"+df+".data","w")
     #for c,d in d_c.items():
-    for index,avg in sortedAvgs:
-        c = sets[index]
-        d = d_c[c]
-        set_row.append(c)
-        for data in d:
-            fp.write(data+"\n")
-        fp.write("\n")
-        fp.write("\n")
+    if (scatter == False):
+        for index,avg in sortedAvgs:
+            c = sets[index]
+            d = d_c[c]
+            set_row.append(c)
+            for data in d:
+                fp.write(data+"\n")
+            fp.write("\n")
+            fp.write("\n")
+    else:
+        for inst,times in dic_name_k.items():
+            fp.write(" ".join(times)+"\n")
+        set_row = sets
     fp.close()
+      
+    return df,set_row,d_c,dic_name_k,sets
 
-
+    
+def writeGnuplot(df,set_row,ev):
     colored = True
     
     fp = open("./"+df+".gpl","w")
     #fp.write("set term postscript eps enhanced color 8\n")
-    fp.write("set term postscript eps enhanced\n")
+    fp.write("set term postscript eps enhanced 28\n")
     fp.write("set output \""+df+".eps\"\n")
     
     fp.write("set title 'SCD-Plot-"+df+"'\n")
@@ -119,11 +137,13 @@ def print_csv(input,ev,ke,ign,sat,df):
     fp.write("set xrange [1:"+ev+"]\n")
     fp.write("set xlabel 't in sec'\n")
     fp.write("set ylabel 'p(x<=t)'\n")
+    fp.write("set ytics 0.1\n")
     #fp.write("set key right bottom\n")
-    fp.write("set key outside\n")
+    fp.write("set key below\n")
     #fp.write("set origin 0.4,0.4\n")
     fp.write("set logscale x\n")
     fp.write("set grid\n")
+    fp.write("set size ratio 1\n")
     fp.write("set xtics nomirror\n")
     fp.write("set ytics nomirror\n")
     fp.write("set pointsize 2\n")
@@ -131,7 +151,7 @@ def print_csv(input,ev,ke,ign,sat,df):
 
     index = 0
     white = 256 # 0xFF    
-    colors = []
+    colors = ["FF0000"] # first color red
     splits = int(math.pow(len(set_row),1/3)+1)
     for indexR in range(0,splits):
         R = hex(int(white * ((indexR+2)/(splits+2))))
@@ -158,8 +178,7 @@ def print_csv(input,ev,ke,ign,sat,df):
         else:
             fp.write(",\\\n'"+df+".data' index "+str(index)+" using 2:1 title '"+c+"' with steps ls "+str(index+1))
         index += 1
-    fp.close()
-    
+    fp.close()    
 
 def sortedDictValues1(adict):
     return sorted(adict.items(), key=itemgetter(1))
@@ -191,12 +210,239 @@ def callGnuplot(df):
     gnuplotFile = "./"+df+".gpl"
     epsFile = "./"+df+".eps"
     cmd = ["gnuplot",gnuplotFile]
+    print("CALL: "+" ".join(cmd))
     p = Popen(cmd)
     p.communicate()
     cmd = ["ps2pdf","-dEPSCrop",epsFile]
+    print("CALL: "+" ".join(cmd))
     p = Popen(cmd)
     p.communicate()
     
+    
+def writeScatter(df,set_row,ev,s1,s2):
+    index = 0
+    index1 = -1
+    index2 = -1
+    for s in set_row:
+        if (s1 in s):
+            index1 = index
+        if (s2 in s):
+            index2 = index
+        index += 1
+    if (index1 == -1):
+        sys.stderr.write("ERROR: first solver for scatter plot not found!\n")
+        sys.stderr.write(str(set_row)+"\n")
+        sys.exit(1)
+    if (index2 == -1):
+        sys.stderr.write("ERROR: second solver for scatter plot not found!\n")
+        sys.stderr.write(str(set_row)+"\n")
+        sys.exit(1)
+    print(str(index1)+ " : "+set_row[index1])
+    print(str(index2)+ " : "+set_row[index2])
+    
+    fp = open("./"+df+".gpl","w")
+    #fp.write("set term postscript eps enhanced color 8\n")
+    fp.write("set term postscript eps enhanced 28\n")
+    fp.write("set output \""+df+".eps\"\n")
+    
+    fp.write("set title 'Scatter-Plot-"+df+"'\n")
+    fp.write("set size ratio 1\n")
+    fp.write("set yrange [1:"+ev+"]\n")
+    fp.write("set xrange [1:"+ev+"]\n")
+    fp.write("set xlabel 't in sec ("+set_row[index1]+")'\n")
+    fp.write("set ylabel 't in sec ("+set_row[index2]+")'\n")
+    #fp.write("set key right bottom\n")
+    #fp.write("set key outside\n")
+    #fp.write("set origin 0.4,0.4\n")
+    fp.write("set logscale x\n")
+    fp.write("set logscale y\n")
+    fp.write("set grid\n")
+    fp.write("set xtics nomirror\n")
+    fp.write("set ytics nomirror\n")
+    fp.write("set pointsize 2\n")
+    fp.write("plot '"+df+".data' using "+str(index1+1)+":"+str(index2+1)+" ti '', x ti '' \n")
+    
+def checkDominace(d_c,set_row,s1,s2):
+    index1,index2 = findSolver(s1,s2,set_row)
+    
+    data1 = d_c[set_row[index1]]
+    data2 = d_c[set_row[index2]]
+    
+    j1 = 0
+    j2 = 0
+    dominant = 1
+    while (j1+1 < len(data1) and j2+1 < len(data2)):
+        point1 = data1[j1]
+        point1 = point1.split(" ")
+        y1 = float(point1[0])
+        x1 = float(point1[1])
+        point2 = data2[j2]
+        point2 = point2.split(" ")
+        y2 = float(point2[0])
+        x2 = float(point2[1])
+        
+        #print(str(x1)+" : "+str(y1)+" vs. "+str(x2)+" : "+str(y2))
+        
+        if (y2 > y1):
+            if (dominant != 2):
+                print(">>>>>>>>> Change Dominance to 2!")
+                dominant = 2
+                print(str(x1)+" : "+str(y1)+" vs. "+str(x2)+" : "+str(y2))
+        else:
+            if (dominant != 1):
+                print(">>>>>>>>> Change Dominance to 1!")
+                dominant = 1
+                print(str(x1)+" : "+str(y1)+" vs. "+str(x2)+" : "+str(y2))
+        
+        point1N = data1[j1+1]
+        point1N = point1N.split(" ")
+        x1N = float(point1N[1])
+        point2N = data2[j2+1]
+        point2N = point2N.split(" ")
+        x2N = float(point2N[1])
+        if (x1N > x2N):
+            j2 += 1
+        if (x2N > x1N):
+            j1 += 1
+        if (x2N == x2N):
+            j1 += 1
+            j2 += 1
+        
+def checkBetter(dic_name_k,osets,s1,s2,noise,ev,df,dPlot):
+    index1,index2 = findSolver(s1,s2,osets)
+    
+    better = 0
+    equal = 0
+    worse = 0
+    diffs = []
+    quots = []
+    
+    usedFilter = 0
+    usedFilterSpd = 0
+    
+    for inst,times in dic_name_k.items():
+      #  print(str(inst) + " : "+str(times[index1]) + " - "+str(times[index2]))
+        t1 = float(times[index1])
+        t2 = float(times[index2])
+        if (t1 != ev or t2 != ev):
+            if (noise > 0):
+                delta = math.sqrt(noise/2) * math.sqrt((t1+t2)/2)  
+                avgI = (t1+t2)/2
+                if (abs(delta) > abs(avgI-t1)):
+                    #print(str(t1)+" : "+str(t2))
+                    t1 = t2
+                    usedFilter += 1
+            if (t1 < t2):
+                better += 1
+            if (t1 > t2):
+                worse += 1
+            if (t1 == t2):
+                equal += 1
+        if (t1 != ev or t2 != ev):
+            diffs.append(float(times[index2])-float(times[index1]))
+            quots.append(float(times[index2])/float(times[index1]))
+            usedFilterSpd += 1
+    print("Filtered Speedup : "+str(usedFilterSpd))
+    
+    print("better:\t"+str(better))
+    print("equal:\t"+str(equal))
+    print("worse:\t"+str(worse))
+    
+    index = 1
+    l = len(diffs)
+    fp = open(df+"-speedupcdf.data","w")
+    sortedQuots = sorted(quots)
+    for d in sortedQuots:
+        #print(d)
+        fp.write(str(index/l)+" "+str(d)+"\n")
+        index +=1
+
+    index = 1
+    l = len(diffs)
+    fp = open(df+"-diffcdf.data","w")
+    sortedDiffs = sorted(diffs)
+    for d in sortedDiffs:
+        #print(d)
+        fp.write(str(index/l)+" "+str(d)+"\n")
+        index +=1
+    
+    print("Average speedup: "+str(sum(quots)/len(quots)))
+    print("Median speedup: "+str(sortedQuots[int(len(sortedQuots)/2)]))
+    print("Geometric Average speedup: "+str(geoAverage(quots)))
+
+    print("Average diffs: "+str(sum(diffs)/len(diffs)))
+    print("Median diffs: "+str(sortedDiffs[int(len(sortedDiffs)/2)]))
+    #print("Geometric Average diffs: "+str(geoAverage(diffs)))
+
+    if (dPlot == False):
+        suffix = "speedupcdf"
+        xrange = str(sortedDiffs[len(diffs)-1])
+        fp = writeCDFs(suffix,df,"0.1",xrange,"speedup",True)
+        callGnuplot(df+"-"+suffix)
+        
+        suffix = "diffcdf"
+        xrange = str(sortedDiffs[len(diffs)-1])
+        fp = writeCDFs(suffix,df,"1",xrange,"difference",True)
+        callGnuplot(df+"-"+suffix)
+    
+def writeCDFs(suffix,df,xrangeBeg,xrangeEnd,xlabel,logScale):
+    fp = open("./"+df+"-"+suffix+".gpl","w")
+
+    fp.write("set term postscript eps enhanced 18\n")
+    fp.write("set output \""+df+"-"+suffix+".eps\"\n")
+    
+   # fp.write("set title 'CDF-Plot-"+df+"'\n")
+    fp.write("set yrange [0:1]\n")
+    fp.write("set xrange ["+xrangeBeg+":"+xrangeEnd+"]\n")
+    fp.write("set xlabel '"+xlabel+"'\n")
+    fp.write("set ylabel 'p(x<=s)'\n")
+    fp.write("set ytics 0.1\n")
+    #fp.write("set key right bottom\n")
+    fp.write("set key below\n")
+    fp.write("set size ratio 1\n")
+    #fp.write("set origin 0.4,0.4\n")
+    if (logScale == True):
+        fp.write("set logscale x\n")
+    fp.write("set grid\n")
+    fp.write("set xtics nomirror\n")
+    fp.write("set ytics nomirror\n")
+    fp.write("set pointsize 2\n")
+    fp.write("plot '"+df+"-"+suffix+".data' using 2:1 title '"+xlabel+" CDF' with steps lw 4\n")
+    fp.flush()
+    fp.close()
+    return fp
+    
+def geoAverage(list):
+    logSum = 0
+    for l in list:
+        logSum += math.log(l)
+    logSum = logSum * (1/len(list))
+    return math.exp(logSum) 
+    
+    
+def findSolver(s1,s2,sets):
+    index1 = -1
+    index2 = -1
+    index = 0
+    for c in sets:
+        if (s1 in c):
+            index1 = index
+        if (s2 in c):
+            index2 = index
+        index += 1
+
+    if (index1 == -1):
+        sys.stderr.write("ERROR: first solver for scatter plot not found!\n")
+        sys.stderr.write(str(sets)+"\n")
+        sys.exit(1)
+    if (index2 == -1):
+        sys.stderr.write("ERROR: second solver for scatter plot not found!\n")
+        sys.stderr.write(str(sets)+"\n")
+        sys.exit(1)
+    print("Solver 1: "+str(index1)+ " : "+sets[index1])
+    print("Solver 2: "+str(index2)+ " : "+sets[index2])
+    
+    return index1,index2
     
 if __name__ == '__main__':
     usage  = "usage: %prog [options] [xml-file]"
@@ -204,16 +450,20 @@ if __name__ == '__main__':
     parser.add_option("--key", dest="key", action="store", default="time", help="key to extract")
     parser.add_option("--evalue", dest="ev", action="store", default="-1", help="value in case of error or timeout")
     parser.add_option("--ignore", dest="ign", action="store_true", default=False, help="ignore timeout filter")
-    parser.add_option("--sat", dest="sat", action="store", default="0", help="-1:UNSAT 1:SAT")
+    parser.add_option("--sat", dest="sat", action="store", default="0", help="-1:UNSAT 1:SAT 2:OracleFilter")
     parser.add_option("--fname", dest="dF", action="store", default="", help="output file to print datas and gnuplot script")
-    
+    parser.add_option("--scatter", dest="scatter", action="store_true", default=False, help="generate a scatter plot")
+    parser.add_option("--s1", dest="s1", action="store", default="", help="name of first solver for scatter plot")
+    parser.add_option("--s2", dest="s2", action="store", default="", help="name of second solver for scatter plot")
+    parser.add_option("--checkDom", dest="cDom", action="store_true", default=False, help="check stochastic dominance of s1 against s2")
+    parser.add_option("--better", dest="better", action="store_true", default=False, help="check how often s1 is better than s2")
+    parser.add_option("--noise", dest="noise", action="store", default="-1", help="set noise filter (>0)")
+    parser.add_option("--dontPlot", dest="dPlot", action="store_true", default=False, help="don't plot!")
+
     opts, files = parser.parse_args(sys.argv[1:])
     
-    if(os.path.isfile("./"+opts.dF+".data") == True):
-        print("df exists - EXIT")
-        sys.exit(-1)
-    if(os.path.isfile("./"+opts.dF+".gpl") == True):
-        print("gG exists - EXIT")
+    if(os.path.isfile("./"+opts.dF+".pdf") == True and opts.dPlot == False):
+        print("df.pdf exists - EXIT")
         sys.exit(-1)
     
     if len(files) == 0:
@@ -231,7 +481,19 @@ if __name__ == '__main__':
     p = Parser()
     results = p.parse(inFile)
     
-    print_csv(results, opts.ev,opts.key,opts.ign,opts.sat,opts.dF)
-    callGnuplot(opts.dF)
+    df,set_row,d_c,dic_name_k,osets = print_csv(results, opts.ev,opts.key,opts.ign,opts.sat,opts.dF,opts.scatter)
     
-
+    if (opts.scatter == True):
+        writeScatter(df,set_row,opts.ev,opts.s1,opts.s2)
+        if (opts.dPlot == False):
+            callGnuplot(opts.dF)
+    else:
+        writeGnuplot(df,set_row,opts.ev)
+        if (opts.dPlot == False):
+            callGnuplot(opts.dF)
+    
+    if (opts.cDom == True):
+        checkDominace(d_c,set_row,opts.s1,opts.s2)
+        
+    if (opts.better == True):
+        checkBetter(dic_name_k,osets,opts.s1,opts.s2,float(opts.noise),float(opts.ev),opts.dF,opts.dPlot)
