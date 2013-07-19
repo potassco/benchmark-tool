@@ -1,4 +1,5 @@
 #!/bin/bash
+# http://www.cril.univ-artois.fr/~roussel/runsolver/
 
 CAT="{run.root}/programs/gcat.sh"
 
@@ -8,7 +9,7 @@ cd "$(dirname $0)"
 
 core=$(($1+2))
 
-[[ -e .finished ]] || $CAT "{run.file}" | taskset -c $core "{run.root}/programs/runsolver-3.2.5" \
+[[ -e .finished ]] || $CAT "{run.file}" | taskset -c $core "{run.root}/programs/runsolver-3.3.3" \
 	-M 4000 \
 	-w runsolver.watcher \
 	-o runsolver.solver \

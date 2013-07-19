@@ -1,4 +1,5 @@
 #!/bin/bash
+# http://www.cril.univ-artois.fr/~roussel/runsolver/
 
 CAT="{run.root}/programs/gcat.sh"
 
@@ -11,7 +12,7 @@ MASK=`qstat -f $ID | python {run.root}/templates/mask.py`
 TF=`mktemp -p .`
 $CAT "{run.file}" > $TF 
 
-[[ -e .finished ]] || taskset $MASK  "{run.root}/programs/runsolver-3.2.5" \
+[[ -e .finished ]] || taskset $MASK  "{run.root}/programs/runsolver-3.3.3" \
 	-M 100000 \
 	-w runsolver.watcher \
 	-o runsolver.solver \
