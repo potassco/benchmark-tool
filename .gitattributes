@@ -53,6 +53,7 @@ src/beval.py -text svneol=unset#text/plain
 src/bfeat.py -text
 src/bgen.py -text
 src/bstats.py -text svneol=unset#text/plain
+src/coseal.py -text svneol=unset#text/plain
 src/csvOut.py -text svneol=unset#text/plain
 src/permutationtest.py -text svneol=unset#text/plain
 src/scc.py -text svneol=unset#text/plain
