@@ -1,6 +1,15 @@
 #!/bin/bash
-PYTHON=$(which python3)
-if [ ! -x $PYTHON ]; then
-	PYTHON=$(which python)
-fi
-PYTHONPATH="src" $PYTHON src/bgen.py "$@"
+
+function check_python() {
+	PYTHON=$1
+	shift
+	if [ -x "$PYTHON" ] && echo "import lxml" | "$PYTHON" &> /dev/null; then
+		PYTHONPATH="src" exec "$PYTHON" src/bgen.py "$@"
+	fi
+}
+
+check_python "$(which python)" "$@"
+check_python "$(which python3)" "$@"
+
+echo "error: no python interpreter with lxml module found"
+exit 1

@@ -11,8 +11,8 @@ import sys
 if __name__ == '__main__':
     usage  = "usage: %prog [options] [resultfile]"
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-p", "--projects", dest="projects", default="", help="projects to display")
-    parser.add_option("-m", "--measures", dest="measures", default="time:t,timeout:to", help="measures to display")
+    parser.add_option("-p", "--projects", dest="projects", default="", help="projects to display (by default all projects are shown)")
+    parser.add_option("-m", "--measures", dest="measures", default="time:t,timeout:to", help="comma separated list of measures of form name[:{t,to,-}] to include in table (optional argument determines coloring)")
 
     opts, files = parser.parse_args(sys.argv[1:])
 
