@@ -13,18 +13,18 @@ if __name__ == '__main__':
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-p", "--projects", dest="projects", default="", help="projects to display")
     parser.add_option("-m", "--measures", dest="measures", default="time:t,timeout:to", help="measures to display")
-    
+
     opts, files = parser.parse_args(sys.argv[1:])
-    
+
     if len(files) == 0:
         inFile = sys.stdin
     elif len(files) == 1:
         inFile = open(files[0])
     else:
         parser.error("Exactly on file has to be given")
-    
+
     if opts.projects != "":  opts.projects = set(opts.projects.split(","))
-    if opts.measures != "":  
+    if opts.measures != "":
         measures = []
         for t in opts.measures.split(","):
             x = t.split(":", 1)
@@ -35,4 +35,9 @@ if __name__ == '__main__':
         opts.measures = measures
     p = Parser()
     res = p.parse(inFile)
-    res.genOffice(sys.stdout.buffer, opts.projects, opts.measures)
+
+    try:
+        out = sys.stdout.buffer
+    except AttributeError:
+        out = sys.stdout
+    res.genOffice(out, opts.projects, opts.measures)

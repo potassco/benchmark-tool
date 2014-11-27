@@ -9,22 +9,22 @@ try: from StringIO import StringIO
 except: from io import StringIO
 import math
 import sys
-from benchmarktool import tools 
+from benchmarktool import tools
 from benchmarktool.tools import Sortable, cmp
 
 class Spreadsheet:
     def __init__(self, benchmark, measures):
         self.instSheet  = ResultTable(benchmark, measures, "ta1")
         self.classSheet = ResultTable(benchmark, measures, "ta2", self.instSheet)
-        
+
     def finish(self):
         self.instSheet.finish()
         self.classSheet.finish()
-        
+
     def printSheet(self, out):
         zipFile = zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED)
         out = StringIO()
-        
+
         out.write('''\
 <?xml version="1.0" encoding="UTF-8"?>\
 <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:xforms="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:rpt="http://openoffice.org/2005/report" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2" xmlns:rdfa="http://docs.oasis-open.org/opendocument/meta/rdfa#" xmlns:field="urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:field:1.0" xmlns:formx="urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0" office:version="1.2">\
@@ -53,7 +53,7 @@ class Spreadsheet:
 </office:automatic-styles>\
 <office:body>\
 <office:spreadsheet>''')
-        
+
         self.instSheet.printSheet(out, "Instances")
         self.classSheet.printSheet(out, "Classes")
         out.write('''</office:spreadsheet></office:body></office:document-content>''')
@@ -117,11 +117,11 @@ class Spreadsheet:
 '''
         zipFile.writestr("settings.xml", settings)
         zipFile.close()
- 
+
     def addRunspec(self, runspec):
         self.instSheet.addRunspec(runspec)
         self.classSheet.addRunspec(runspec)
-        
+
 class Cell:
     def __init__(self):
         self.style = None
@@ -135,7 +135,7 @@ class StringCell(Cell):
             self.val = ""
         else:
             self.val = val
-    
+
     def printSheet(self, out):
         out.write('<table:table-cell office:value-type="string"><text:p>{0}</text:p></table:table-cell>'.format(self.protect(self.val)))
 
@@ -143,7 +143,7 @@ class FloatCell(Cell):
     def __init__(self, val):
         Cell.__init__(self)
         self.val = val
-    
+
     def printSheet(self, out):
         if self.style != None:
             style = ' table:style-name="{0}"'.format(self.style)
@@ -156,7 +156,7 @@ class FormulaCell(Cell):
         Cell.__init__(self)
         self.val       = val
         self.arrayForm = arrayForm
-    
+
     def printSheet(self, out):
         extra = ""
         if self.style != None:
@@ -169,15 +169,15 @@ class Table:
     def __init__(self, name):
         self.content = []
         self.cowidth = []
-        self.name    = name 
-    
+        self.name    = name
+
     def add(self, row, col, cell):
-        # estimate some "good" column width 
+        # estimate some "good" column width
         while len(self.cowidth) <= col + 1:
             self.cowidth.append(0.8925)
         if cell.__class__ == StringCell:
             self.cowidth[col] = max(self.cowidth[col], len(cell.val) * 0.069 + 0.1)
-        while len(self.content) <= row: 
+        while len(self.content) <= row:
             self.content.append([])
         rowRef = self.content[row]
         while len(rowRef) <= col:
@@ -186,7 +186,7 @@ class Table:
 
     def get(self, row, col):
         return self.content[row][col]
-        
+
     def cellIndex(self, row, col, absCol = False, absRow = False):
         radix = ord("Z") - ord("A") + 1
         ret   = ""
@@ -218,7 +218,7 @@ class ValueRows:
     def __init__(self, highlight):
         self.highlight = highlight
         self.list      = {}
-    
+
     def __iter__(self):
         for name, valList in self.list.items():
             if name in self.highlight:
@@ -237,7 +237,7 @@ class ValueRows:
                                     if value <= minimum and value < median:
                                         green.append(col)
                                     else:
-                                        break 
+                                        break
                             if maximum - median > 2:
                                 for value, col in reversed(row):
                                     if value >= maximum and value > median:
@@ -247,25 +247,25 @@ class ValueRows:
                         elif func == "to":
                             if maximum - minimum > 0:
                                 for value, col in row:
-                                    if value <= minimum and value < median:   
+                                    if value <= minimum and value < median:
                                         green.append(col)
                                     else:
-                                        break 
+                                        break
                             for value, col in reversed(row):
-                                if value > median and value >= maximum:   
+                                if value > median and value >= maximum:
                                     red.append(col)
                                 else:
                                     break
                         yield name, line, green, red
-   
+
     def add(self, name, val, line, col):
         if not name in self.list: self.list[name] = []
         valList =  self.list[name]
-        while len(valList) <= line: valList.append([])  
+        while len(valList) <= line: valList.append([])
         valList[line].append((val,col))
-    
+
     def map(self, name, line, func):
-        if not name in self.list: 
+        if not name in self.list:
             return None
         if line >= len(self.list[name]):
             return None
@@ -293,7 +293,7 @@ class ResultTable(Table):
             for benchclass in benchmark:
                 self.add(row, 0, StringCell(benchclass.name))
                 row += 1
-        
+
         self.resultOffset = row
         self.add(self.resultOffset + 1, 0, StringCell("SUM"))
         self.add(self.resultOffset + 2, 0, StringCell("AVG"))
@@ -303,15 +303,15 @@ class ResultTable(Table):
         self.add(self.resultOffset + 6, 0, StringCell("BETTER"))
         self.add(self.resultOffset + 7, 0, StringCell("WORSE"))
         self.add(self.resultOffset + 8, 0, StringCell("WORST"))
-    
+
     def getOffset(self, column, name):
         return self.systemColumns[(column.setting, column.machine)].columns[name].offset
-    
+
     def addFooter(self, col):
         self.add(self.resultOffset + 1, col, FormulaCell("of:=SUM([.{0}:.{1}])".format(self.cellIndex(2, col), self.cellIndex(self.resultOffset - 1, col))))
         self.add(self.resultOffset + 2, col, FormulaCell("of:=AVERAGE([.{0}:.{1}])".format(self.cellIndex(2, col), self.cellIndex(self.resultOffset - 1, col))))
         self.add(self.resultOffset + 3, col, FormulaCell("of:=STDEV([.{0}:.{1}])".format(self.cellIndex(2, col), self.cellIndex(self.resultOffset - 1, col))))
-    
+
     def finish(self):
         col = 1
         floatOccur = {}
@@ -338,13 +338,13 @@ class ResultTable(Table):
                     else:
                         self.add(2 + line, col, StringCell(value))
                 if column.type == "classresult":
-                    if not name in floatOccur: 
+                    if not name in floatOccur:
                         floatOccur[name] = set()
                     floatOccur[name].add(col)
                     self.addFooter(col)
                 elif column.type == "float":
-                    if not name in floatOccur: 
-                        floatOccur[name] = set() 
+                    if not name in floatOccur:
+                        floatOccur[name] = set()
                     floatOccur[name].add(col)
                     self.addFooter(col)
                 col += 1
@@ -355,7 +355,7 @@ class ResultTable(Table):
             column .offset = col
             self.add(0, col, StringCell(colName))
             resultColumns.append(column)
-            if self.measures == "": 
+            if self.measures == "":
                 measures = sorted(floatOccur.keys())
             else:
                 measures = map(lambda x: x[0], self.measures)
@@ -365,8 +365,8 @@ class ResultTable(Table):
                     for row in range(2, self.resultOffset):
                         minRange = ""
                         for colRef in sorted(floatOccur[name]):
-                            if minRange != "": 
-                                minRange += ";" 
+                            if minRange != "":
+                                minRange += ";"
                             minRange += "[.{0}]".format(self.cellIndex(row, colRef, True))
                         self.add(row, col, FormulaCell("of:={1}({0})".format(minRange, colName.upper())))
                         self.addFooter(col)
@@ -376,60 +376,60 @@ class ResultTable(Table):
                     for colRef in sorted(floatOccur[name]):
                         if colName == "min":
                             self.add(
-                                self.resultOffset + 4, 
-                                colRef, 
+                                self.resultOffset + 4,
+                                colRef,
                                 FormulaCell(
                                     "of:=SUM(([.{0}:.{1}]-[.{2}:.{3}])^2)^0.5".format(
-                                        self.cellIndex(2, colRef), 
-                                        self.cellIndex(self.resultOffset - 1, colRef), 
-                                        self.cellIndex(2, col, True), 
-                                        self.cellIndex(self.resultOffset - 1, col, True)), 
+                                        self.cellIndex(2, colRef),
+                                        self.cellIndex(self.resultOffset - 1, colRef),
+                                        self.cellIndex(2, col, True),
+                                        self.cellIndex(self.resultOffset - 1, col, True)),
                                     True))
                             self.add(
-                                self.resultOffset + 5, 
-                                colRef, 
+                                self.resultOffset + 5,
+                                colRef,
                                 FormulaCell(
                                     "of:=SUM([.{0}:.{1}]=[.{2}:.{3}])".format(
-                                        self.cellIndex(2, colRef), 
-                                        self.cellIndex(self.resultOffset - 1, colRef), 
-                                        self.cellIndex(2, col, True), 
-                                        self.cellIndex(self.resultOffset - 1, col, True)), 
+                                        self.cellIndex(2, colRef),
+                                        self.cellIndex(self.resultOffset - 1, colRef),
+                                        self.cellIndex(2, col, True),
+                                        self.cellIndex(self.resultOffset - 1, col, True)),
                                     True))
                         elif colName == "median":
                             self.add(
-                                    self.resultOffset + 6, 
-                                    colRef, 
+                                    self.resultOffset + 6,
+                                    colRef,
                                     FormulaCell(
                                         "of:=SUM([.{0}:.{1}]<[.{2}:.{3}])".format(
-                                            self.cellIndex(2, colRef), 
-                                            self.cellIndex(self.resultOffset - 1, colRef), 
-                                            self.cellIndex(2, col, True), 
-                                            self.cellIndex(self.resultOffset - 1, col, True)), 
+                                            self.cellIndex(2, colRef),
+                                            self.cellIndex(self.resultOffset - 1, colRef),
+                                            self.cellIndex(2, col, True),
+                                            self.cellIndex(self.resultOffset - 1, col, True)),
                                         True))
                             self.add(
-                                    self.resultOffset + 7, 
-                                    colRef, 
+                                    self.resultOffset + 7,
+                                    colRef,
                                     FormulaCell(
                                         "of:=SUM([.{0}:.{1}]>[.{2}:.{3}])".format(
-                                            self.cellIndex(2, colRef), 
-                                            self.cellIndex(self.resultOffset - 1, colRef), 
-                                            self.cellIndex(2, col, True), 
-                                            self.cellIndex(self.resultOffset - 1, col, True)), 
+                                            self.cellIndex(2, colRef),
+                                            self.cellIndex(self.resultOffset - 1, colRef),
+                                            self.cellIndex(2, col, True),
+                                            self.cellIndex(self.resultOffset - 1, col, True)),
                                         True))
                         elif colName == "max":
                             self.add(
-                                    self.resultOffset + 8, 
-                                    colRef, 
+                                    self.resultOffset + 8,
+                                    colRef,
                                     FormulaCell(
                                         "of:=SUM([.{0}:.{1}]=[.{2}:.{3}])".format(
-                                            self.cellIndex(2, colRef), 
-                                            self.cellIndex(self.resultOffset - 1, colRef), 
-                                            self.cellIndex(2, col, True), 
-                                            self.cellIndex(self.resultOffset - 1, col, True)), 
+                                            self.cellIndex(2, colRef),
+                                            self.cellIndex(self.resultOffset - 1, colRef),
+                                            self.cellIndex(2, col, True),
+                                            self.cellIndex(self.resultOffset - 1, col, True)),
                                         True))
                     col+= 1
             column.calcSummary(self.resultOffset - 2, [])
-        
+
         # calc values for the footers
         for systemColumn in self.systemColumns.values():
             systemColumn.calcSummary(self.resultOffset - 2, resultColumns)
@@ -451,7 +451,7 @@ class ResultTable(Table):
             for i in green:
                 cell = self.get(2 + line, i)
                 cell.style = "cellWorst"
-    
+
     def addRunspec(self, runspec):
         key = (runspec.setting, runspec.machine)
         if not key in self.systemColumns:
@@ -459,7 +459,7 @@ class ResultTable(Table):
         column = self.systemColumns[key]
         self.machines.add(column.machine)
         for classresult in runspec:
-            classSum = {} 
+            classSum = {}
             for instresult in classresult:
                 for run in instresult:
                     for name, valueType, value in run.iter(self.measures):
@@ -470,14 +470,13 @@ class ResultTable(Table):
                             if not name in classSum:
                                 classSum[name] = (0.0, 0)
                             classSum[name] = (float(value) + classSum[name][0], 1 + classSum[name][1])
-                            
+
             if not self.instanceTable == None:
                 for name, value in classSum.items():
                     resTemp = value[0] / value[1]
                     if (name == "timeout"): resTemp = value[0]
-                    print("Name={0}, Value={1}, Num={2}, Result={3}".format(name, value[0], value[1], resTemp), file=sys.stderr)
                     column.addCell(classresult.benchclass.line, name, "classresult", (classresult.benchclass, resTemp))
-    
+
 class Summary:
     def __init__(self):
         self.sum    = 0
@@ -490,7 +489,7 @@ class Summary:
         self.worse  = 0
         self.worst  = 0
         self.count  = 0
-    
+
     def calc(self, n, colA, minmum, median, maximum):
         self.avg = self.sum / self.count
         self.dev = math.sqrt(self.sqsum / self.count - self.avg * self.avg)
@@ -501,7 +500,7 @@ class Summary:
             sdsum = 0
             for a, b in zip(colA, minmum):
                 if a != None:
-                    if a <= b: 
+                    if a <= b:
                         self.best += 1
                     sdsum += (a - b) * (a - b)
             self.dst = math.sqrt(sdsum)
@@ -514,13 +513,13 @@ class Summary:
                         self.better += 1
                     elif a > b:
                         self.worse += 1
-        # worst 
+        # worst
         if maximum != None:
             maximum.extend([None for _ in range(0, self.count - len(maximum))])
             for a, b in zip(colA, maximum):
-                if a != None and a >= b: 
+                if a != None and a >= b:
                     self.worst += 1
-        
+
     def add(self, val):
         self.sum   += val
         self.sqsum += val * val
@@ -533,7 +532,7 @@ class ValueColumn:
         self.name     = name
         self.type     = valueType
         self.summary  = Summary()
-        
+
     def addCell(self, line, value):
         if self.type == "classresult":
             self.summary.add(float(value[1]))
@@ -550,37 +549,37 @@ class SystemColumn(Sortable):
         self.machine  = machine
         self.columns  = {}
         self.offset   = None
-    
+
     def genName(self, addMachine):
         res = self.setting.system.name + "-" + self.setting.system.version + "/" + self.setting.name
         if addMachine:
-            res += " ({0})".format(self.machine.name) 
-        return res         
-    
+            res += " ({0})".format(self.machine.name)
+        return res
+
     def __cmp__(self, other):
         return cmp((self.setting.system.order, self.setting.order, self.machine.name), (other.setting.system.order, other.setting.order, other.machine.name))
-    
+
     def __hash__(self):
         return hash((self.setting, self.machine))
-    
+
     def iter(self, measures):
-        if measures == "": 
+        if measures == "":
             for column in sorted(self.columns, cmp=lambda x: x.name):
-                yield column 
+                yield column
         else:
             for name, _ in measures:
                 if name in self.columns:
                     yield self.columns[name]
-    
+
     def calcSummary(self, n, ref):
         for name, column in self.columns.items():
-            minimum = maximum = median = None 
+            minimum = maximum = median = None
             if len(ref) == 3:
                 minimum = ref[0].columns[name].content
                 maximum = ref[1].columns[name].content
                 median  = ref[2].columns[name].content
             column.summary.calc(n, column.content, minimum, maximum, median)
-    
+
     def addCell(self, line, name, valueType, value):
         if not name in self.columns:
             self.columns[name] = ValueColumn(name, valueType)

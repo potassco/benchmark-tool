@@ -7,11 +7,6 @@
 		<!-- optionally allows for tagging settings -->
 		<setting name="default"  cmdline="--stats 1"/>
 		<setting name="vsids"    cmdline="--stats --heu=vsids 1"/>
-		<setting name="progress" cmdline="--stats --save-progress 1"/>
-		<setting name="estimate" cmdline="--stats --estimate 1"/>
-		<setting name="recstr"   cmdline="--stats --recursive-str 1"/>
-		<setting name="nodel"    cmdline="--stats --del=no 1"/>
-		<setting name="norest"   cmdline="--stats --restarts=no 1"/>
 	</system>
 	
 	<seqjob name="seq-generic" timeout="120" runs="1" parallel="8"/>
