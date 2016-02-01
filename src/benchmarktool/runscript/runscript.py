@@ -291,8 +291,12 @@ class ScriptGen:
         Keyword arguments:
         seqJob - A reference to the associated job.
         """
+        self.skip       = False
         self.job        = job
         self.startfiles = []
+    
+    def setSkip(self, skip):
+        self.skip = skip
     
     def _path(self, runspec, instance, run):
         """
@@ -313,10 +317,14 @@ class ScriptGen:
         runspec  - The run specification for the start script
         instance - The benchmark instance for the start script
         """
+        skip = self.skip
         for run in range(1, self.job.runs + 1):
             path = self._path(runspec, instance, run)
             tools.mkdir_p(path)
             startpath = os.path.join(path, "start.sh")
+            finish    = os.path.join(path, ".finished")
+            if skip and os.path.isfile(finish):
+                continue
             template  = open(runspec.system.config.template).read()
             startfile = open(startpath, "w")
             startfile.write(template.format(run=SeqRun(path, run, self.job, runspec, instance)))
@@ -595,6 +603,7 @@ class PbsScriptGen(ScriptGen):
         startfile.write("""#!/bin/bash\n\ncd "$(dirname $0)"\n""" + "\n".join(['qsub "{0}"'.format(os.path.basename(x)) for x in queue]))
         startfile.close()
         tools.setExecutable(os.path.join(path, "start.sh"))
+
 
 class SeqJob(Job):
     """
@@ -1067,12 +1076,13 @@ class Project(Sortable):
         """
         return os.path.join(self.runscript.path(), self.name)
     
-    def genScripts(self):
+    def genScripts(self, skip):
         """
         Generates start scripts for this project.
         """
         for machine, runspecs in self.runspecs.items():
             scriptGen = self.job.scriptGen()
+            scriptGen.setSkip(skip)
             for runspec in runspecs:
                 runspec.genScripts(scriptGen)
             scriptGen.genStartScript(os.path.join(self.path(), machine))
@@ -1158,13 +1168,13 @@ class Runscript:
         project.job       = self.jobs[job] 
         self.projects[project.name] = project
 
-    def genScripts(self):
+    def genScripts(self, skip):
         """
         Generates the start scripts for all benchmarks described by
         this run script. 
         """
         for project in self.projects.values():
-            project.genScripts()
+            project.genScripts(skip)
     
     def path(self):
         """
