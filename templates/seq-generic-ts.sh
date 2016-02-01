@@ -9,7 +9,7 @@ cd "$(dirname $0)"
 
 core=$(($1+2))
 
-[[ -e .finished ]] || $CAT "{run.file}" | taskset -c $core "{run.root}/programs/runsolver-3.3.3" \
+[[ -e .finished ]] || $CAT "{run.file}" | taskset -c $core "{run.root}/programs/runsolver-3.3.4" \
 	-M 4000 \
 	-w runsolver.watcher \
 	-o runsolver.solver \
