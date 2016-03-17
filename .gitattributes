@@ -29,6 +29,7 @@ doc/README -text
 /mount-zip -text
 programs/clingo-4.5.4 -text
 programs/gcat.sh -text
+programs/map_core.py -text
 runscripts/runscript-all.xml -text
 runscripts/runscript-ggp.xml -text
 runscripts/runscript-pbs.xml -text
@@ -62,6 +63,7 @@ src/scd.py -text svneol=unset#text/plain
 templates/impi.pbs -text
 templates/mask.py -text
 templates/pbs-generic.sh -text
+templates/seq-generic-ng.sh -text
 templates/seq-generic-tmp.sh -text
 templates/seq-generic-ts.sh -text
 templates/seq-generic.sh -text
