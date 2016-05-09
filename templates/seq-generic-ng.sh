@@ -12,6 +12,7 @@ core=$(lscpu -p | "{run.root}/programs/map_core.py" $1 {run.job.parallel})
 	-w runsolver.watcher \
 	-o runsolver.solver \
 	-W {run.timeout} \
+    -d 120 \
 	"{run.root}/programs/{run.solver}" {run.args}
 
 touch .finished

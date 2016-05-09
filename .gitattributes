@@ -46,6 +46,7 @@ src/benchmarktool/resultparser/__init__.py -text
 src/benchmarktool/resultparser/clasp.py -text
 src/benchmarktool/resultparser/claspD.py -text
 src/benchmarktool/resultparser/claspar.py -text
+src/benchmarktool/resultparser/clingo.py -text
 src/benchmarktool/resultparser/cudf.py -text
 src/benchmarktool/runscript/__init__.py -text
 src/benchmarktool/runscript/parser.py -text

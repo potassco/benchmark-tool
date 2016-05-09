@@ -13,10 +13,11 @@ from benchmarktool.resultparser.claspar import claspar
 from benchmarktool.resultparser.cudf import cudf
 from benchmarktool.resultparser.clasp import clasp
 from benchmarktool.resultparser.claspD import claspD
+from benchmarktool.resultparser.clingo import clingo
 
-claspre_features 	= re.compile(r"^Features[ ]*:[ ]*(([0-9]+\.?[0-9]*)([,](.+\.?.*))*)\+?[ ]*$")	
+claspre_features 	= re.compile(r"^Features[ ]*:[ ]*(([0-9]+\.?[0-9]*)([,](.+\.?.*))*)\+?[ ]*$")
 claspre_conf = re.compile(r"^Chosen configuration:[ ]*(.*)\+?[ ]*$")
-	
+
 def claspre(root, runspec, instance):
 	result = clasp(root, runspec, instance)
 	for line in open(os.path.join(root, "runsolver.solver")):
@@ -33,7 +34,7 @@ smodels_time	= re.compile(r"^Real time \(s\): ([0-9]+\.[0-9]+)$")
 def smodels(root, runspec, instance):
 	"""
 	Extracts some smodels statistics.
-	(This function was tested with smodels-2.33.)   
+	(This function was tested with smodels-2.33.)
 	"""
 	result  = []
 	status  = None
@@ -50,7 +51,7 @@ def smodels(root, runspec, instance):
 	for line in open(os.path.join(root, "runsolver.watcher")):
 		m = smodels_time.match(line)
 		if m: time = float(m.group(1))
-	
+
 	if status == None or time >= timeout:
 		time = timeout
 		result.append(("timeout", "float", 1))
