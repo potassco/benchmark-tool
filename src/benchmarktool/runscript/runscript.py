@@ -600,7 +600,7 @@ class PbsScriptGen(ScriptGen):
 
         for pbsScript in pbsScripts.values(): pbsScript.write()
 
-        startfile.write("""#!/bin/bash\n\ncd "$(dirname $0)"\n""" + "\n".join(['qsub "{0}"'.format(os.path.basename(x)) for x in queue]))
+        startfile.write("""#!/bin/bash\n\ncd "$(dirname $0)"\n""" + "\n".join(['sbatch "{0}"'.format(os.path.basename(x)) for x in queue]))
         startfile.close()
         tools.setExecutable(os.path.join(path, "start.sh"))
 
