@@ -1,5 +1,7 @@
 #!/bin/bash
 
+CAT="{run.root}/programs/gcat.sh"
+
 function abort()
 {{
 	echo TIMEOUT!
@@ -41,7 +43,7 @@ case $1 in
 		;;
 	*)    
 		cd "$(dirname $0)"
-		zcat "{run.file}" > instance
+		$CAT "{run.file}" > instance
 		[[ -e .finished ]] || /usr/bin/time -f "Real time (s): %e" -o runsolver.watcher "./$(basename $0)" run2
 		touch .finished
 		rm -f instance
