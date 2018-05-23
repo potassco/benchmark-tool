@@ -646,7 +646,7 @@ class PbsJob(Job):
     """
     Describes a pbs job.
     """
-    def __init__(self, name, timeout, runs, script_mode, walltime, cpt, memory, partition, attr):
+    def __init__(self, name, timeout, runs, script_mode, walltime, cpt, partition, attr):
         """
         Initializes a parallel job description.  
         
@@ -657,7 +657,6 @@ class PbsJob(Job):
         script_mode - Specifies the script generation mode
         walltime    - The walltime for a job submitted via PBS
         cpt         - Number of cpus per task for SLURM
-        memory      - Maximum memory allowed
         partition   - Partition to be used in the clusters (kr by default)
         attr        - A dictionary of arbitrary attributes
         """
@@ -665,7 +664,6 @@ class PbsJob(Job):
         self.script_mode = script_mode
         self.walltime    = walltime
         self.cpt         = cpt
-        self.memory      = memory
         self.partition   = partition
 
     def toXml(self, out, indent):
@@ -676,7 +674,7 @@ class PbsJob(Job):
         out     - Output stream to write to
         indent  - Amount of indentation
         """        
-        extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}" cpt="{0.cpt}" memory="{0.memory}" partition="{0.partition}"'.format(self)
+        extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}" cpt="{0.cpt}" partition="{0.partition}"'.format(self)
         Job._toXml(self, out, indent, "pbsjob", extra)
 
     def scriptGen(self):
