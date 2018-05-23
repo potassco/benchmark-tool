@@ -1,17 +1,24 @@
 #!/bin/bash
-#PBS -m n
-#PBS -j oe
-#PBS -r n
-#PBS -l walltime={walltime}
-#PBS -l nodes={nodes}:ppn={ppn}
-##PBS -l nice=-20
-##PBS -W x=FLAGS:ADVRES:manju.0
-##PBS -W x=NACCESSPOLICY:SINGLEJOB
+#SBATCH --output=out.%j
+#SBATCH --error=err.%j
+#SBATCH --time={walltime}        # walltime
+#SBATCH --cpus-per-task={cpt}    # number of processor cores (i.e. tasks)
+#SBATCH --partition={partition}
 
+# Good Idea to stop operation on first error.
+set -e
+
+# Load environment modules for your application here.
 source ~/.bashrc
 
-cd $PBS_O_WORKDIR
-
+# Run jobs
+jobs="{jobs}"
 echo running jobs@$(hostname)...
-{jobs}
-
+echo ""
+echo "jobs:" $jobs
+echo ""
+for i in $jobs
+do
+    echo "running " $i
+    $i
+done
