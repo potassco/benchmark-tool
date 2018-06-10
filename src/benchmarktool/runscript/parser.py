@@ -321,7 +321,7 @@ class Parser:
                 if "pbstemplate" in attr:
                     pbstemplate = attr["pbstemplate"]
                     del attr["pbstemplate"]
-                else: pbstemplate = None
+                else: pbstemplate = "templates/single.pbs"
                 if child.get("tag") == None: tag = set()
                 else: tag = set(child.get("tag").split(None))
                 for num in procs:
