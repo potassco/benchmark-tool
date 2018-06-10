@@ -1,7 +1,5 @@
 #!/bin/bash
 
-CAT="{run.root}/programs/gcat.sh"
-
 function abort()
 {{
 	echo TIMEOUT!
@@ -13,8 +11,7 @@ function run()
 	# does not work because this will only kill mpiexec
 	trap abort SIGUSR1
 	/usr/bin/time -f "Real time (s): %e" -o runsolver.watcher \
-	"{run.root}/programs/{run.solver}" {run.args} \
-	-f "{run.file}" \
+	{run.command} {run.file} {run.options} \
 	> runsolver.solver 2>&1 &
 	export MPI_PID=$!
 	export BASH_PID=$$
@@ -26,10 +23,11 @@ function run()
 
 function run2()
 {{
-	MPIEXEC_TIMEOUT={run.timeout} \
+    echo PBS_NODEFILE $PBS_NODEFILE
+    echo PBS_NODES $PBS_NODES
+    MPIEXEC_TIMEOUT={run.timeout} \
 		mpiexec -machinefile $PBS_NODEFILE -n $PBS_NODES \
-		"{run.root}/programs/{run.solver}" {run.args} \
-		-f instance \
+         {run.command} {run.file} {run.options} \ 
 		> runsolver.solver 2>&1
 }}
 
@@ -42,8 +40,9 @@ case $1 in
 		run2
 		;;
 	*)    
-		cd "$(dirname $0)"
-		$CAT "{run.file}" > instance
+        cd "$(dirname $0)"
+		#zcat "{run.file}" > instance
+		cat "{run.file}" > instance
 		[[ -e .finished ]] || /usr/bin/time -f "Real time (s): %e" -o runsolver.watcher "./$(basename $0)" run2
 		touch .finished
 		rm -f instance
