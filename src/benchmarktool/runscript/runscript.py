@@ -545,7 +545,7 @@ class PbsScriptGen(ScriptGen):
                 self.num = 0
                 template = open(self.runspec[2], "r").read()
                 script   = os.path.join(self.path, "start{0:04}.pbs".format(len(self.queue)))
-                open(script, "w").write(template.format(walltime=tools.pbsTime(self.runspec[3]), nodes=self.runspec[1], ppn=self.runspec[0], jobs=self.startscripts))
+                open(script, "w").write(template.format(walltime=tools.pbsTime(self.runspec[3]), nodes=self.runspec[1], ppn=self.runspec[0], jobs=self.startscripts, cpt=self.runspec[4], partition=self.runspec[5]))
                 self.queue.append(script)
                     
         def next(self):
@@ -582,7 +582,7 @@ class PbsScriptGen(ScriptGen):
         for (runspec, instpath, instname) in self.startfiles:
             relpath   = os.path.relpath(instpath, path)
             jobScript = os.path.join(relpath, instname)
-            pbsKey    = (runspec.setting.ppn, runspec.setting.procs, runspec.setting.pbstemplate, runspec.project.job.walltime)
+            pbsKey    = (runspec.setting.ppn, runspec.setting.procs, runspec.setting.pbstemplate, runspec.project.job.walltime, runspec.project.job.cpt, runspec.project.job.partition)
             
             if not pbsKey in pbsScripts:
                 pbsScript = PbsScriptGen.PbsScript(pbsKey, path, queue)
@@ -600,7 +600,7 @@ class PbsScriptGen(ScriptGen):
 
         for pbsScript in pbsScripts.values(): pbsScript.write()
 
-        startfile.write("""#!/bin/bash\n\ncd "$(dirname $0)"\n""" + "\n".join(['qsub "{0}"'.format(os.path.basename(x)) for x in queue]))
+        startfile.write("""#!/bin/bash\n\ncd "$(dirname $0)"\n""" + "\n".join(['sbatch "{0}"'.format(os.path.basename(x)) for x in queue]))
         startfile.close()
         tools.setExecutable(os.path.join(path, "start.sh"))
 
@@ -646,7 +646,7 @@ class PbsJob(Job):
     """
     Describes a pbs job.
     """
-    def __init__(self, name, timeout, runs, script_mode, walltime, attr):
+    def __init__(self, name, timeout, runs, script_mode, walltime, cpt, partition, attr):
         """
         Initializes a parallel job description.  
         
@@ -655,12 +655,16 @@ class PbsJob(Job):
         timeout     - A timeout in seconds for individual benchmark runs
         runs        - The number of runs per benchmark
         script_mode - Specifies the script generation mode
-        walltime    - The walltime for a job submitted via PBS 
+        walltime    - The walltime for a job submitted via PBS
+        cpt         - Number of cpus per task for SLURM
+        partition   - Partition to be used in the clusters (kr by default)
         attr        - A dictionary of arbitrary attributes
         """
         Job.__init__(self, name, timeout, runs, attr)
         self.script_mode = script_mode
         self.walltime    = walltime
+        self.cpt         = cpt
+        self.partition   = partition
 
     def toXml(self, out, indent):
         """
@@ -670,7 +674,7 @@ class PbsJob(Job):
         out     - Output stream to write to
         indent  - Amount of indentation
         """        
-        extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}"'.format(self)
+        extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}" cpt="{0.cpt}" partition="{0.partition}"'.format(self)
         Job._toXml(self, out, indent, "pbsjob", extra)
 
     def scriptGen(self):
