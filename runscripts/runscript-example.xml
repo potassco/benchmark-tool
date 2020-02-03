@@ -6,7 +6,7 @@
   
 	<system name="clingo" version="4.5.4" measures="clasp" config="seq-generic">
 
-    		<setting name="setting-1" cmdline="'--stats --quiet=1,0'" tag="basic" />
+    		<setting name="setting-1" cmdline="--stats --quiet=1,0" tag="basic" />
 
     </system>
 
