@@ -1,6 +1,0 @@
-#!/bin/bash
-PYTHON=$(which python3)
-if [ ! -x "$PYTHON" ]; then
-	PYTHON=$(which python)
-fi
-PYTHONPATH="src" $PYTHON src/bstats.py "$@"
