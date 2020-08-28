@@ -1,0 +1,9 @@
+#!/bin/bash
+
+let mem=$1
+shift
+let to=$1
+shift
+
+runsolver-3.3.7beta -M $mem -w runsolver.watcher -o runsolver.solver -W $to $@
+

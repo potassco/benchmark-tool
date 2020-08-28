@@ -1,0 +1,2 @@
+usage: clingo.py [-h] {multi,single} file
+clingo.py: error: too few arguments

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -eu
+
+outname=output
+zipname=${outname}.zip
+
+function mount()
+{
+	if [ ! -e ${zipname} ]; then
+		if [ -d ${outname} ]; then
+			echo "status: zipping ${outname}"
+		else
+			mkdir -p ${outname}
+		fi
+		(
+			cd ${outname}
+			touch dummy
+			zip -r ../${zipname} .
+		)
+		rm -rf ${outname}
+	fi
+	mkdir -p ${outname}
+	if [[ "$(find ${outname} -maxdepth 0 -type d -empty)" == ${outname} ]]; then
+		fuse-zip ${zipname} ${outname}
+	else
+		echo "error: ${outname} is not empty"
+		exit 1
+	fi
+}
+
+function umount()
+{
+	fusermount -u ${outname}
+}
+
+cd $(dirname $0)
+if [[ $# == 1 && $1 == "-u" ]]; then
+	umount
+else
+	mount
+fi
+

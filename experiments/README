@@ -1,0 +1,52 @@
+
+FILES
+=====
+
+1. This README
+2. do_benchmarks.sh
+   script to execute the benchmarks
+3. run-benchmark.xml 
+   specification of the experiments
+4. instances
+   folder with some instance files
+5. solver.sh 
+   script used in the experiments
+   
+HOWTO
+=====
+
+Before starting, set the value of the variables at the start of do_benchmarks.sh.
+
+For running clingo, only run-benchmark.xml has to be modified.
+
+1. configure run-benchmark.xml:
+
+   - configurations: name, tag, command and options
+     * the tool runs: $command $instance $options
+
+   - for a sequential job: timeout, memory and parallel number of processors
+
+   - for a cluster(pbs)-job: timeout, memory, cpus per tasks, walltime and partition of the cluster
+     * in the cluster, the nodes of the kr partition have 8 cpus, and the others 48
+       with cpt=8, in kr we reserve one node, and in the others we reserve 1/6 of a node
+     * the walltime is used to determine the number of jobscripts to be send to the cluster
+         jobs = (runs * instances * settings) * (timeout + 5min) / walltime
+       and to give a time limit to every jobscript
+
+   - instance directory
+     * you can use dir_accept, dir_ignore, file_accept, and file_ignore
+       with X_accept only Xs starting with the prefix will be accepted
+       with X_ignore      Xs starting with the prefix will be ignored
+
+   - choose cluster or sequential project
+
+2. run 
+   do_benchmarks.sh name_of_the_experiments
+
+3. Results will be stored in directory
+     results/name_of_the_experiments
+
+For running other systems, 
+modify the $command and $options at run-benchmark.xml,
+and modify solver.sh to call the intended system.
+

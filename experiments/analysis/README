@@ -1,0 +1,12 @@
+To be run with:
+  ipython notebook
+
+Use, for example:
+
+%matplotlib notebook
+import analysis
+analysis.run([
+    "/home/davila/git/plasp/encodings/planner/experiments/asp_experiments/results/asp_belleile_900s_8GB_4cpu_basic/asp_belleile_900s_8GB_4cpu_basic.ods"
+])
+
+

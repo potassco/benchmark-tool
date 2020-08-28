@@ -1,0 +1,43 @@
+<runscript output="output">
+	<machine name="zuse" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
+	<config name="generic" template="templates/basic.sh"/>
+	<system name="script" version="0" measures="clingo" config="generic">
+
+      <!-- SET DIFFERENT CONFIGURATIONS /-->
+      <setting name="one"   tag="doit" command="/home/davila/git/benchmark-tool/experiments/solver.sh" options="1 --stats" />
+      <setting name="two"   tag="doit" command="/home/davila/git/benchmark-tool/experiments/solver.sh" options="2 --stats" />
+      <setting name="three"            command="/home/davila/git/benchmark-tool/experiments/solver.sh" options="3 --stats" />
+
+    </system>
+
+    <!--  SEQUENTIAL: SET TIMEOUT, SET MEMORY, SET PARALLEL /-->
+    <seqjob name="seq-generic" runs="1"
+            timeout="10" memory="4000" parallel="4"/>
+
+    <!--  CLUSTER: SET TIMEOUT, MEMORY, CPT (cpus per task), WALLTIME and PARTITION /-->
+    <!--    jobs = (runs * instances * settings) * (timeout + 5min) : walltime /-->
+    <pbsjob name="pbs-generic" script_mode="timeout" runs="1"
+            timeout="300" memory="4000" cpt="8" walltime="00:20:01" partition="kr"/>
+
+    <!-- SET INSTANCE FOLDERS /-->
+    <benchmark name="suite">
+        <folder path="/home/davila/git/benchmark-tool/experiments/instances">		
+            <dir_ignore  prefix="ko"/>
+            <file_accept prefix="a"/>
+            <file_accept prefix="pigeon"/>
+            <file_accept prefix="b"/>
+            <file_ignore prefix="b"/>
+        </folder>
+    </benchmark>
+
+    <!-- CHOOSE CLUSTER OR SEQUENTIAL (also set mode in do_benchmarks.sh) /-->
+    <project name="project" job="pbs-generic">
+    <!--project name="project" job="seq-generic"/-->
+
+        <!-- SET TAG IF NEEDED /-->
+        <runtag machine="zuse" benchmark="suite" tag="doit"/>
+
+    </project>
+
+</runscript>
+
