@@ -280,7 +280,7 @@ class Parser:
         run  = Runscript(root.get("output"))
 
         for node in root.xpath("./pbsjob"):
-            attr = self._filterAttr(node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime", "cpt"])
+            attr = self._filterAttr(node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime", "cpt", "partition"])
         
             partition = node.get("partition")
             if partition == None:
