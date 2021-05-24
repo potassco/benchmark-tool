@@ -440,12 +440,12 @@ class Main:
     def exit(self, *args):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
-        print "WARNING: it is not guaranteed that all processes will be terminated!"
-        print "sending sigterm ..."
+        print("WARNING: it is not guaranteed that all processes will be terminated!")
+        print("sending sigterm ...")
         os.killpg(os.getpgid(0), signal.SIGTERM)
-        print "waiting 10s..."
+        print("waiting 10s...")
         time.sleep(10)
-        print "sending sigkill ..."
+        print("sending sigkill ...")
         os.killpg(os.getpgid(0), signal.SIGKILL)
 
 class Run(threading.Thread):
