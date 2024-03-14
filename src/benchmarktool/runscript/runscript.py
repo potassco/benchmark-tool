@@ -458,7 +458,12 @@ class Run(threading.Thread):
     
     def run(self):
         path, script = os.path.split(self.cmd)
-        self.proc = subprocess.Popen(["bash", script, str(self.core)], cwd=path)
+        openArgs = dict(cwd=path)
+        if sys.version_info[:3] >= (3,2,0):
+            openArgs["start_new_session"] = True
+        else:
+            openArgs["preexec_fn"] = os.setsid
+        self.proc = subprocess.Popen(["bash", script, str(self.core)], **openArgs)
         self.proc.wait()
         self.main.finish(self)
 
