@@ -3,12 +3,12 @@
 function bat()
 {
     for x in "$@"; do
-        type=$(file -bi "$(readlink -f "${x}")")
+        type=$(file -b --mime-type -L "${x}")
         case ${type} in
-        "application/x-bzip2"|"application/x-bzip2; charset=binary")
+        application/*bzip2*)
             bzcat "${x}"
             ;;
-        "application/x-gzip"|"application/x-gzip; charset=binary")
+	application/*gzip*)
             zcat "${x}"
             ;;
         *)
