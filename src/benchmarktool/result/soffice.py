@@ -574,11 +574,12 @@ class SystemColumn(Sortable):
     def calcSummary(self, n, ref):
         for name, column in self.columns.items():
             minimum = maximum = median = None
-            if len(ref) == 3:
-                minimum = ref[0].columns[name].content
-                maximum = ref[1].columns[name].content
-                median  = ref[2].columns[name].content
-            column.summary.calc(n, column.content, minimum, maximum, median)
+            if column.type in ["classresult", "float"]:
+                if len(ref) == 3:
+                    minimum = ref[0].columns[name].content
+                    maximum = ref[1].columns[name].content
+                    median  = ref[2].columns[name].content
+                column.summary.calc(n, column.content, minimum, maximum, median)
 
     def addCell(self, line, name, valueType, value):
         if not name in self.columns:
