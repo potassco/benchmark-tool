@@ -573,8 +573,8 @@ class SystemColumn(Sortable):
 
     def calcSummary(self, n, ref):
         for name, column in self.columns.items():
-            minimum = maximum = median = None
             if column.type in ["classresult", "float"]:
+                minimum = maximum = median = None
                 if len(ref) == 3:
                     minimum = ref[0].columns[name].content
                     maximum = ref[1].columns[name].content
