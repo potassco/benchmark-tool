@@ -11,18 +11,32 @@ from benchmarktool.tools import Sortable, cmp
 import re
 
 class Formula(ods.Formula):
-    def __init__(self, s):
+    """
+    Extending odswriter.Formula class with the ability to
+    handle sheet references and some minor fixes.
+    """
+    def __init__(self, s: str):
         super().__init__(s)
     
     def __str__(self):
         s = self.formula_string
+        # remove leading '='
         if s.startswith("="):
             s = s[1:]
+        # wrap references
         s = re.sub(r"([\w\.]*[$A-Z]+[$0-9]+(:[\w\.]*[$A-Z]+[$0-9]+)?)", r"[\1]", s)
+        # add '.' before references if necessary
         s = re.sub(r"(?<!\.)([$A-Z]+[$0-9]+)(?!\()", r".\1", s)
         return "of:={}".format(s)
     
 def try_float(s):
+    """
+    Try to cast given value to float.
+    Return input if not possible.
+
+    Keyword arguments:
+    s - Value tried to be cast to float
+    """
     try:
         return float(s)
     except (ValueError, TypeError):
@@ -30,21 +44,44 @@ def try_float(s):
 
 class ODSDoc:
     """
-    ODS Doc
+    Class representing ODS document.
+
+    (previously called Spreadsheet)
     """
     def __init__(self, benchmark, measures):
+        """
+        Setup Instance and Class sheet.
+
+        Keyword arguments:
+        benchmark - BenchmarkMerge object
+        measures - Measures to be displayed
+        """
         self.instSheet  = Sheet(benchmark, measures, "Instances")
         self.classSheet = Sheet(benchmark, measures, "Classes", self.instSheet)  
 
     def addRunspec(self, runspec):
+        """
+        Keyword arguments:
+        runspec - Run specification
+        """
         self.instSheet.addRunspec(runspec)
         self.classSheet.addRunspec(runspec)
 
     def finish(self):
+        """
+        Complete sheets by adding formulas and summaries.
+        """
         self.instSheet.finish()
         self.classSheet.finish()
 
     def make_ods(self, out):
+        """
+        Write ODS file.
+
+        Keyword arguments:
+        out - Name of the generated ODS file 
+        """
+        # replace all undefined cells with None (empty cell)
         self.instSheet.content = self.instSheet.content.fillna(np.nan).replace([np.nan], [None])
         self.classSheet.content = self.classSheet.content.fillna(np.nan).replace([np.nan], [None])
 
@@ -58,20 +95,43 @@ class ODSDoc:
 
 
 class Sheet:
-    def __init__(self, benchmark, measures, name, refSheet=None):
+    """
+    Class representing an ODS sheet.
 
+    (previously called Table/ResultTable)
+    """
+    def __init__(self, benchmark, measures, name, refSheet=None):
+        """
+        Initialize sheet.
+
+        Keyword arguments:
+        benchmark   - BenchmarkMerge object
+        measures    - Measures to be displayed
+        name        - Name of the sheet
+        refSheet    - Reference sheet
+        """
+        # dataframe resembling almost final ods form
         self.content        = pd.DataFrame()
+        # name of the sheet
         self.name           = name
+        # evaluated benchmarks
         self.benchmark      = benchmark
+        # dataframes containing result data, use these for calculations
         self.systemBlocks   = {}
+        # types of measures
         self.types          = {}
+        # measures to be displayed
         self.measures       = measures
+        # machines
         self.machines       = set()
+        # sheet for references
         self.refSheet       = refSheet
+        # references for summary generation
         self.summaryRefs    = {}
 
         # first column
         self.content["0"] = None
+        # setup rows for instances/benchmark classes
         if self.refSheet is None:
             row = 2
             for benchclass in benchmark:
@@ -93,9 +153,16 @@ class Sheet:
         self.content.loc[self.resultOffset + 6] = "BETTER"
         self.content.loc[self.resultOffset + 7] = "WORSE"
         self.content.loc[self.resultOffset + 8] = "WORST"
+        # fill missing rows
         self.content = self.content.reindex(list(range(self.content.index.max()+1)))
 
     def addRunspec(self, runspec):
+        """
+        Add results to the their respective blocks.
+
+        Keyword arguments:
+        runspec - Run specification 
+        """
         key = (runspec.setting, runspec.machine)
         if not key in self.systemBlocks:
             self.systemBlocks[key] = SystemBlock(runspec.setting, runspec.machine)
@@ -128,9 +195,12 @@ class Sheet:
 
 
     def finish(self):
+        """
+        Finish ODS content.
+        """
         col = 1
         floatOccur = {}
-        # generate all result columns
+        # join results of different blocks
         for block in sorted(self.systemBlocks.values()):
             self.content = self.content.join(block.content)
             self.content= self.content.set_axis(list(range(len(self.content.columns))), axis=1)
@@ -140,7 +210,7 @@ class Sheet:
             col += len(block.columns)
             
         # get columns used for summary calculations
-        # add formulars for resutls of classSheet
+        # add formulas for results of classSheet
         floatOccur={}
         for column in self.content:
             name = self.content.at[1, column]
@@ -154,8 +224,10 @@ class Sheet:
                     floatOccur[name] = set()
                 floatOccur[name].add(column)
 
+        # create dataframe containing evaluated formulas
         #self.contentEval = self.content.copy()
-        # create formulars for min, median and max
+
+        # create formulas for min, median and max
         for colName in ["min", "median", "max"]:
             block = SystemBlock(None, None)
             block.offset = col
@@ -187,6 +259,9 @@ class Sheet:
         self.add_summary()
 
     def add_summary(self):
+        """
+        Add summary rows if applicable to column type.
+        """
         for col in self.content:
             name = self.content.at[1,col]
             if self.types.get(name,"") in ["float", "classresult"]:
@@ -202,6 +277,15 @@ class Sheet:
                     self.content.at[self.resultOffset + 8, col] = Formula("SUMPRODUCT(--({0}={1}))".format(resValues, self.summaryRefs["max"][name]))
 
     def cellIndex(self, col, row, absCol = False, absRow = False):
+        """
+        Calculate ODS cell index.
+
+        Keyword arguments:
+        col     - Column index
+        row     - Row index
+        absCol  - Set '$' for column
+        absRow  - Set '$' for row
+        """
         radix = ord("Z") - ord("A") + 1
         ret   = ""
         while col >= 0:
@@ -216,7 +300,17 @@ class Sheet:
     
 
 class SystemBlock(Sortable):
+    """
+    Dataframe containing results for system.
+    """
     def __init__(self, setting, machine):
+        """
+        Initialize system block for given setting and machine.
+
+        Keyword arguments:
+        setting - Benchmark setting
+        machine - Machine 
+        """
         self.setting  = setting
         self.machine  = machine
         self.content = pd.DataFrame()
@@ -224,6 +318,12 @@ class SystemBlock(Sortable):
         self.offset   = None
 
     def genName(self, addMachine):
+        """
+        Generate name of the block.
+
+        Keyword arguments:
+        addMachine - Whether to include the machine name in the name
+        """
         res = self.setting.system.name + "-" + self.setting.system.version + "/" + self.setting.name
         if addMachine:
             res += " ({0})".format(self.machine.name)
@@ -236,6 +336,15 @@ class SystemBlock(Sortable):
         return hash((self.setting, self.machine))
 
     def addCell(self, row, name, valueType, value):
+        """
+        Add cell to dataframe.
+
+        Keyword arguments:
+        row         - Row of the new cell
+        name        - Name of the column of the new cell (in most cases the measure)
+        valueType   - Data type of the new cell
+        value       - Value of the new cell
+        """
         if name not in self.columns:
             self.content.at[1, name] = name
         self.columns[name] = valueType
