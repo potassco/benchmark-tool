@@ -29,18 +29,18 @@ class Formula(ods.Formula):
         s = re.sub(r"(?<!\.)([$A-Z]+[$0-9]+)(?!\()", r".\1", s)
         return "of:={}".format(s)
     
-def try_float(s):
+def try_float(v):
     """
     Try to cast given value to float.
     Return input if not possible.
 
     Keyword arguments:
-    s - Value tried to be cast to float
+    v - Value tried to be cast to float
     """
     try:
-        return float(s)
+        return float(v)
     except (ValueError, TypeError):
-        return s
+        return v
 
 class ODSDoc:
     """
