@@ -11,6 +11,7 @@ import sys
 if __name__ == '__main__':
     usage  = "usage: %prog [options] [resultfile]"
     parser = optparse.OptionParser(usage=usage)
+    parser.add_option("-o", "--output", dest="output", default="out.ods", help="name of generated ods file")
     parser.add_option("-p", "--projects", dest="projects", default="", help="projects to display (by default all projects are shown)")
     parser.add_option("-m", "--measures", dest="measures", default="time:t,timeout:to", help="comma separated list of measures of form name[:{t,to,-}] to include in table (optional argument determines coloring)")
 
@@ -36,8 +37,4 @@ if __name__ == '__main__':
     p = Parser()
     res = p.parse(inFile)
 
-    try:
-        out = sys.stdout.buffer
-    except AttributeError:
-        out = sys.stdout
-    res.genOffice(out, opts.projects, opts.measures)
+    res.genOffice(opts.output, opts.projects, opts.measures)
