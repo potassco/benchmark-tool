@@ -173,7 +173,8 @@ class Sheet:
             for instresult in classresult:
                 for run in instresult:
                     for name, valueType, value in run.iter(self.measures):
-                        if valueType != "float": valueType = "string"
+                        if valueType == "int": valueType = "float"
+                        elif valueType != "float": valueType = "string"
                         if self.refSheet is None:
                             block.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
                         elif valueType == "float":
