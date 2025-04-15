@@ -14,9 +14,6 @@ dependencies = [
     "odswriter"
 ]
 
-[project.urls]
-Homepage = "https::/potassco.org/"
-
 [project.optional-dependencies]
 format = ["black", "isort", "autoflake"]
 lint_pylint = ["pylint"]
