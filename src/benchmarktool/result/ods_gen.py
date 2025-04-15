@@ -4,13 +4,18 @@ Created on Apr 14, 2025
 @author: Tom Schmidt
 '''
 
-import pandas as pd
-import odswriter as ods
+import pandas as pd # type: ignore[import-untyped]
+import odswriter as ods # type: ignore[import-untyped]
 import numpy as np
 from benchmarktool.tools import Sortable, cmp
 import re
+from typing import Any, TYPE_CHECKING, Optional
 
-class Formula(ods.Formula):
+if TYPE_CHECKING:
+    from benchmarktool.result import result  # nocoverage
+
+
+class Formula(ods.Formula): # type: ignore[misc]
     """
     Extending odswriter.Formula class with the ability to
     handle sheet references and some minor fixes.
@@ -18,7 +23,7 @@ class Formula(ods.Formula):
     def __init__(self, s: str):
         super().__init__(s)
     
-    def __str__(self):
+    def __str__(self) -> str:
         s = self.formula_string
         # remove leading '='
         if s.startswith("="):
@@ -29,7 +34,7 @@ class Formula(ods.Formula):
         s = re.sub(r"(?<!\.)([$A-Z]+[$0-9]+)(?!\()", r".\1", s)
         return "of:={}".format(s)
     
-def try_float(v):
+def try_float(v: Any) -> Any:
     """
     Try to cast given value to float.
     Return input if not possible.
@@ -48,7 +53,7 @@ class ODSDoc:
 
     (previously called Spreadsheet)
     """
-    def __init__(self, benchmark, measures):
+    def __init__(self, benchmark: result.BenchmarkMerge, measures: Any):
         """
         Setup Instance and Class sheet.
 
@@ -59,7 +64,7 @@ class ODSDoc:
         self.instSheet  = Sheet(benchmark, measures, "Instances")
         self.classSheet = Sheet(benchmark, measures, "Classes", self.instSheet)  
 
-    def addRunspec(self, runspec):
+    def addRunspec(self, runspec: result.Runspec) -> None:
         """
         Keyword arguments:
         runspec - Run specification
@@ -67,14 +72,14 @@ class ODSDoc:
         self.instSheet.addRunspec(runspec)
         self.classSheet.addRunspec(runspec)
 
-    def finish(self):
+    def finish(self) -> None:
         """
         Complete sheets by adding formulas and summaries.
         """
         self.instSheet.finish()
         self.classSheet.finish()
 
-    def make_ods(self, out):
+    def make_ods(self, out: str) -> None:
         """
         Write ODS file.
 
@@ -100,7 +105,7 @@ class Sheet:
 
     (previously called Table/ResultTable)
     """
-    def __init__(self, benchmark, measures, name, refSheet=None):
+    def __init__(self, benchmark: result.BenchmarkMerge, measures: Any, name: str, refSheet: Optional['Sheet'] = None):
         """
         Initialize sheet.
 
@@ -111,23 +116,23 @@ class Sheet:
         refSheet    - Reference sheet
         """
         # dataframe resembling almost final ods form
-        self.content        = pd.DataFrame()
+        self.content = pd.DataFrame()
         # name of the sheet
-        self.name           = name
+        self.name = name
         # evaluated benchmarks
-        self.benchmark      = benchmark
+        self.benchmark = benchmark
         # dataframes containing result data, use these for calculations
-        self.systemBlocks   = {}
+        self.systemBlocks: dict[tuple[Any, Any], SystemBlock] = {}
         # types of measures
-        self.types          = {}
+        self.types: dict[str, str] = {}
         # measures to be displayed
-        self.measures       = measures
+        self.measures = measures
         # machines
-        self.machines       = set()
+        self.machines: set[result.Machine] = set()
         # sheet for references
-        self.refSheet       = refSheet
+        self.refSheet = refSheet
         # references for summary generation
-        self.summaryRefs    = {}
+        self.summaryRefs: dict[str, Any] = {}
 
         # first column
         self.content["0"] = None
@@ -156,7 +161,7 @@ class Sheet:
         # fill missing rows
         self.content = self.content.reindex(list(range(self.content.index.max()+1)))
 
-    def addRunspec(self, runspec):
+    def addRunspec(self, runspec: result.Runspec) -> None:
         """
         Add results to the their respective blocks.
 
@@ -167,9 +172,10 @@ class Sheet:
         if not key in self.systemBlocks:
             self.systemBlocks[key] = SystemBlock(runspec.setting, runspec.machine)
         block = self.systemBlocks[key]
-        self.machines.add(block.machine)
+        if block.machine:
+            self.machines.add(block.machine)
         for classresult in runspec:
-            classSum = {}
+            classSum: dict[str, Any] = {}
             for instresult in classresult:
                 for run in instresult:
                     for name, valueType, value in run.iter(self.measures):
@@ -195,12 +201,11 @@ class Sheet:
                         block.addCell(classresult.benchclass.line, name, "empty", np.nan)
 
 
-    def finish(self):
+    def finish(self) -> None:
         """
         Finish ODS content.
         """
         col = 1
-        floatOccur = {}
         # join results of different blocks
         for block in sorted(self.systemBlocks.values()):
             self.content = self.content.join(block.content)
@@ -212,7 +217,7 @@ class Sheet:
             
         # get columns used for summary calculations
         # add formulas for results of classSheet
-        floatOccur={}
+        floatOccur: dict[str, set[Any]] = {}
         for column in self.content:
             name = self.content.at[1, column]
             if self.types.get(name, "") == "classresult":
@@ -233,10 +238,11 @@ class Sheet:
             block = SystemBlock(None, None)
             block.offset = col
             self.summaryRefs[colName] = {"col": col}
+            measures: list[str]
             if self.measures == "":
                 measures = sorted(floatOccur.keys())
             else:
-                measures = map(lambda x: x[0], self.measures)
+                measures = list(map(lambda x: x[0], self.measures))
             for name in measures:
                 if name in floatOccur:
                     for row in range(self.resultOffset-2):
@@ -259,7 +265,7 @@ class Sheet:
             self.content.at[0, block.offset] = colName
         self.add_summary()
 
-    def add_summary(self):
+    def add_summary(self) -> None:
         """
         Add summary rows if applicable to column type.
         """
@@ -277,7 +283,7 @@ class Sheet:
                     self.content.at[self.resultOffset + 7, col] = Formula("SUMPRODUCT(--({0}>{1}))".format(resValues, self.summaryRefs["median"][name]))
                     self.content.at[self.resultOffset + 8, col] = Formula("SUMPRODUCT(--({0}={1}))".format(resValues, self.summaryRefs["max"][name]))
 
-    def cellIndex(self, col, row, absCol = False, absRow = False):
+    def cellIndex(self, col: int, row: int, absCol: bool = False, absRow: bool = False) -> str:
         """
         Calculate ODS cell index.
 
@@ -304,7 +310,7 @@ class SystemBlock(Sortable):
     """
     Dataframe containing results for system.
     """
-    def __init__(self, setting, machine):
+    def __init__(self, setting: Optional[result.Setting], machine: Optional[result.Machine]):
         """
         Initialize system block for given setting and machine.
 
@@ -315,28 +321,32 @@ class SystemBlock(Sortable):
         self.setting  = setting
         self.machine  = machine
         self.content = pd.DataFrame()
-        self.columns  = {}
-        self.offset   = None
+        self.columns: dict[str, Any]  = {}
+        self.offset: Optional[int]   = None
 
-    def genName(self, addMachine):
+    def genName(self, addMachine: bool) -> str:
         """
         Generate name of the block.
 
         Keyword arguments:
         addMachine - Whether to include the machine name in the name
         """
-        res = self.setting.system.name + "-" + self.setting.system.version + "/" + self.setting.name
-        if addMachine:
-            res += " ({0})".format(self.machine.name)
+        res: str = ""
+        if self.setting:
+            res = self.setting.system.name + "-" + self.setting.system.version + "/" + self.setting.name
+            if addMachine and self.machine:
+                res += " ({0})".format(self.machine.name)
         return res
 
-    def __cmp__(self, other):
-        return cmp((self.setting.system.order, self.setting.order, self.machine.name), (other.setting.system.order, other.setting.order, other.machine.name))
+    def __cmp__(self, other: 'SystemBlock') -> int:
+        if self.setting and self.machine:
+            return cmp((self.setting.system.order, self.setting.order, self.machine.name), (other.setting.system.order, other.setting.order, other.machine.name)) # type: ignore[union-attr]
+        return 0
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.setting, self.machine))
 
-    def addCell(self, row, name, valueType, value):
+    def addCell(self, row: int, name: str, valueType: str, value: Any) -> None:
         """
         Add cell to dataframe.
 
