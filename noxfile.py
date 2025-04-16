@@ -23,24 +23,27 @@ def format(session):
 
     autoflake_args = [
         "--in-place",
-        "--imports=mod_lns",
+        "--imports=benchmarktool",
         "--ignore-init-module-imports",
         "--remove-unused-variables",
         "-r",
-        "src/benchmarktools/ods_gen.py",
+        "src/benchmarktool/result/ods_gen.py",
+        #"src",
         "tests",
     ]
     if check:
         autoflake_args.remove("--in-place")
     session.run("autoflake", *autoflake_args)
 
-    isort_args = ["--profile", "black", "src", "tests"]
+    #isort_args = ["--profile", "black", "src", "tests"]
+    isort_args = ["--profile", "black", "src/benchmarktool/result/ods_gen.py", "tests"]
     if check:
         isort_args.insert(0, "--check")
         isort_args.insert(1, "--diff")
     session.run("isort", *isort_args)
 
-    black_args = ["src", "tests"]
+    #black_args = ["src", "tests"]
+    black_args = ["src/benchmarktool/result/ods_gen.py", "tests"]
     if check:
         black_args.insert(0, "--check")
         black_args.insert(1, "--diff")
