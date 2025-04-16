@@ -1,28 +1,31 @@
-'''
+"""
 Created on Apr 14, 2025
 
 @author: Tom Schmidt
-'''
+"""
 
-import pandas as pd # type: ignore[import-untyped]
-import odswriter as ods # type: ignore[import-untyped]
-import numpy as np
-from benchmarktool.tools import Sortable, cmp
 import re
-from typing import Any, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+import numpy as np
+import odswriter as ods  # type: ignore[import-untyped]
+import pandas as pd  # type: ignore[import-untyped]
+
+from benchmarktool.tools import Sortable, cmp
 
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
 
 
-class Formula(ods.Formula): # type: ignore[misc]
+class Formula(ods.Formula):  # type: ignore[misc]
     """
     Extending odswriter.Formula class with the ability to
     handle sheet references and some minor fixes.
     """
+
     def __init__(self, s: str):
         super().__init__(s)
-    
+
     def __str__(self) -> str:
         s = self.formula_string
         # remove leading '='
@@ -33,7 +36,8 @@ class Formula(ods.Formula): # type: ignore[misc]
         # add '.' before references if necessary
         s = re.sub(r"(?<!\.)([$A-Z]+[$0-9]+)(?!\()", r".\1", s)
         return "of:={}".format(s)
-    
+
+
 def try_float(v: Any) -> Any:
     """
     Try to cast given value to float.
@@ -47,12 +51,14 @@ def try_float(v: Any) -> Any:
     except (ValueError, TypeError):
         return v
 
+
 class ODSDoc:
     """
     Class representing ODS document.
 
     (previously called Spreadsheet)
     """
+
     def __init__(self, benchmark: result.BenchmarkMerge, measures: Any):
         """
         Setup Instance and Class sheet.
@@ -61,8 +67,8 @@ class ODSDoc:
         benchmark - BenchmarkMerge object
         measures - Measures to be displayed
         """
-        self.instSheet  = Sheet(benchmark, measures, "Instances")
-        self.classSheet = Sheet(benchmark, measures, "Classes", self.instSheet)  
+        self.instSheet = Sheet(benchmark, measures, "Instances")
+        self.classSheet = Sheet(benchmark, measures, "Classes", self.instSheet)
 
     def addRunspec(self, runspec: result.Runspec) -> None:
         """
@@ -84,13 +90,13 @@ class ODSDoc:
         Write ODS file.
 
         Keyword arguments:
-        out - Name of the generated ODS file 
+        out - Name of the generated ODS file
         """
         # replace all undefined cells with None (empty cell)
         self.instSheet.content = self.instSheet.content.fillna(np.nan).replace([np.nan], [None])
         self.classSheet.content = self.classSheet.content.fillna(np.nan).replace([np.nan], [None])
 
-        with ods.writer(open(out,"wb")) as odsfile:
+        with ods.writer(open(out, "wb")) as odsfile:
             instSheet = odsfile.new_sheet("Instances")
             for line in range(len(self.instSheet.content.index)):
                 instSheet.writerow([try_float(v) for v in self.instSheet.content.iloc[line]])
@@ -105,7 +111,8 @@ class Sheet:
 
     (previously called Table/ResultTable)
     """
-    def __init__(self, benchmark: result.BenchmarkMerge, measures: Any, name: str, refSheet: Optional['Sheet'] = None):
+
+    def __init__(self, benchmark: result.BenchmarkMerge, measures: Any, name: str, refSheet: Optional["Sheet"] = None):
         """
         Initialize sheet.
 
@@ -159,14 +166,14 @@ class Sheet:
         self.content.loc[self.resultOffset + 7] = "WORSE"
         self.content.loc[self.resultOffset + 8] = "WORST"
         # fill missing rows
-        self.content = self.content.reindex(list(range(self.content.index.max()+1)))
+        self.content = self.content.reindex(list(range(self.content.index.max() + 1)))
 
     def addRunspec(self, runspec: result.Runspec) -> None:
         """
         Add results to the their respective blocks.
 
         Keyword arguments:
-        runspec - Run specification 
+        runspec - Run specification
         """
         key = (runspec.setting, runspec.machine)
         if not key in self.systemBlocks:
@@ -179,8 +186,10 @@ class Sheet:
             for instresult in classresult:
                 for run in instresult:
                     for name, valueType, value in run.iter(self.measures):
-                        if valueType == "int": valueType = "float"
-                        elif valueType != "float": valueType = "string"
+                        if valueType == "int":
+                            valueType = "float"
+                        elif valueType != "float":
+                            valueType = "string"
                         if self.refSheet is None:
                             block.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
                         elif valueType == "float":
@@ -195,11 +204,13 @@ class Sheet:
                 for name, value in classSum.items():
                     if not value is None:
                         resTemp = value[0] / value[1]
-                        if (name == "timeout"): resTemp = value[0]
-                        block.addCell(classresult.benchclass.line, name, "classresult", (classresult.benchclass, resTemp))
+                        if name == "timeout":
+                            resTemp = value[0]
+                        block.addCell(
+                            classresult.benchclass.line, name, "classresult", (classresult.benchclass, resTemp)
+                        )
                     else:
                         block.addCell(classresult.benchclass.line, name, "empty", np.nan)
-
 
     def finish(self) -> None:
         """
@@ -209,12 +220,12 @@ class Sheet:
         # join results of different blocks
         for block in sorted(self.systemBlocks.values()):
             self.content = self.content.join(block.content)
-            self.content= self.content.set_axis(list(range(len(self.content.columns))), axis=1)
-            self.content.at[0, col] = block.genName(len(self.machines) >1)
+            self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
+            self.content.at[0, col] = block.genName(len(self.machines) > 1)
             for m in block.columns:
                 self.types[m] = block.columns[m]
             col += len(block.columns)
-            
+
         # get columns used for summary calculations
         # add formulas for results of classSheet
         floatOccur: dict[str, set[Any]] = {}
@@ -223,15 +234,23 @@ class Sheet:
             if self.types.get(name, "") == "classresult":
                 for row in range(2, self.resultOffset):
                     op = "AVERAGE"
-                    if (name == "timeout"): op = "SUM"
-                    self.content.at[row, column] = Formula(""+op+"(Instances.{0}:Instances.{1})".format(self.cellIndex(column, self.content.at[2,column][0].instStart + 2), self.cellIndex(column, self.content.at[2,column][0].instEnd + 2)))
+                    if name == "timeout":
+                        op = "SUM"
+                    self.content.at[row, column] = Formula(
+                        ""
+                        + op
+                        + "(Instances.{0}:Instances.{1})".format(
+                            self.cellIndex(column, self.content.at[2, column][0].instStart + 2),
+                            self.cellIndex(column, self.content.at[2, column][0].instEnd + 2),
+                        )
+                    )
             if self.types.get(name, "") in ["float", "classresult"]:
                 if not name in floatOccur:
                     floatOccur[name] = set()
                 floatOccur[name].add(column)
 
         # create dataframe containing evaluated formulas
-        #self.contentEval = self.content.copy()
+        # self.contentEval = self.content.copy()
 
         # create formulas for min, median and max
         for colName in ["min", "median", "max"]:
@@ -245,23 +264,25 @@ class Sheet:
                 measures = list(map(lambda x: x[0], self.measures))
             for name in measures:
                 if name in floatOccur:
-                    for row in range(self.resultOffset-2):
+                    for row in range(self.resultOffset - 2):
                         minRange = ""
                         for colRef in sorted(floatOccur[name]):
                             if minRange != "":
                                 minRange += ";"
                             minRange += self.cellIndex(colRef, row + 2, True)
                         block.addCell(row, name, "formular", Formula("{1}({0})".format(minRange, colName.upper())))
-                        #if colName == "min":
+                        # if colName == "min":
                         #    self.contentEval.at[row, name+"_"+colName] = float(self.content.loc[row+ 2,sorted(floatOccur[name])].astype(float).min())
-                        #elif colName == "median":
+                        # elif colName == "median":
                         #    self.contentEval.at[row, name+"_"+colName] = float(self.content.loc[row+ 2,sorted(floatOccur[name])].astype(float).median())
-                        #elif colName == "max":
+                        # elif colName == "max":
                         #    self.contentEval.at[row, name+"_"+colName] = float(self.content.loc[row+ 2,sorted(floatOccur[name])].astype(float).max())
-                    self.summaryRefs[colName][name] = "{0}:{1}".format(self.cellIndex(col, 2, True), self.cellIndex(col, self.resultOffset-1, True))
-                    col +=1     
+                    self.summaryRefs[colName][name] = "{0}:{1}".format(
+                        self.cellIndex(col, 2, True), self.cellIndex(col, self.resultOffset - 1, True)
+                    )
+                    col += 1
             self.content = self.content.join(block.content)
-            self.content= self.content.set_axis(list(range(len(self.content.columns))), axis=1)
+            self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, block.offset] = colName
         self.add_summary()
 
@@ -270,18 +291,30 @@ class Sheet:
         Add summary rows if applicable to column type.
         """
         for col in self.content:
-            name = self.content.at[1,col]
-            if self.types.get(name,"") in ["float", "classresult"]:
-                resValues = "{0}:{1}".format(self.cellIndex(col, 2, True), self.cellIndex(col, self.resultOffset-1, True))
+            name = self.content.at[1, col]
+            if self.types.get(name, "") in ["float", "classresult"]:
+                resValues = "{0}:{1}".format(
+                    self.cellIndex(col, 2, True), self.cellIndex(col, self.resultOffset - 1, True)
+                )
                 self.content.at[self.resultOffset + 1, col] = Formula("SUM({0})".format(resValues))
                 self.content.at[self.resultOffset + 2, col] = Formula("AVERAGE({0})".format(resValues))
                 self.content.at[self.resultOffset + 3, col] = Formula("STDEV({0})".format(resValues))
                 if col < self.summaryRefs["min"]["col"]:
-                    self.content.at[self.resultOffset + 4, col] = Formula("SUMPRODUCT(--({0}-{1})^2)^0.5".format(resValues, self.summaryRefs["min"][name]))
-                    self.content.at[self.resultOffset + 5, col] = Formula("SUMPRODUCT(--({0}={1}))".format(resValues, self.summaryRefs["min"][name]))
-                    self.content.at[self.resultOffset + 6, col] = Formula("SUMPRODUCT(--({0}<{1}))".format(resValues, self.summaryRefs["median"][name]))
-                    self.content.at[self.resultOffset + 7, col] = Formula("SUMPRODUCT(--({0}>{1}))".format(resValues, self.summaryRefs["median"][name]))
-                    self.content.at[self.resultOffset + 8, col] = Formula("SUMPRODUCT(--({0}={1}))".format(resValues, self.summaryRefs["max"][name]))
+                    self.content.at[self.resultOffset + 4, col] = Formula(
+                        "SUMPRODUCT(--({0}-{1})^2)^0.5".format(resValues, self.summaryRefs["min"][name])
+                    )
+                    self.content.at[self.resultOffset + 5, col] = Formula(
+                        "SUMPRODUCT(--({0}={1}))".format(resValues, self.summaryRefs["min"][name])
+                    )
+                    self.content.at[self.resultOffset + 6, col] = Formula(
+                        "SUMPRODUCT(--({0}<{1}))".format(resValues, self.summaryRefs["median"][name])
+                    )
+                    self.content.at[self.resultOffset + 7, col] = Formula(
+                        "SUMPRODUCT(--({0}>{1}))".format(resValues, self.summaryRefs["median"][name])
+                    )
+                    self.content.at[self.resultOffset + 8, col] = Formula(
+                        "SUMPRODUCT(--({0}={1}))".format(resValues, self.summaryRefs["max"][name])
+                    )
 
     def cellIndex(self, col: int, row: int, absCol: bool = False, absRow: bool = False) -> str:
         """
@@ -294,35 +327,40 @@ class Sheet:
         absRow  - Set '$' for row
         """
         radix = ord("Z") - ord("A") + 1
-        ret   = ""
+        ret = ""
         while col >= 0:
             rem = col % radix
             ret = chr(rem + ord("A")) + ret
             col = col // radix - 1
-        if absCol: preCol = "$"
-        else: preCol = ""
-        if absRow: preRow = "$"
-        else: preRow = ""
+        if absCol:
+            preCol = "$"
+        else:
+            preCol = ""
+        if absRow:
+            preRow = "$"
+        else:
+            preRow = ""
         return preCol + ret + preRow + str(row + 1)
-    
+
 
 class SystemBlock(Sortable):
     """
     Dataframe containing results for system.
     """
+
     def __init__(self, setting: Optional[result.Setting], machine: Optional[result.Machine]):
         """
         Initialize system block for given setting and machine.
 
         Keyword arguments:
         setting - Benchmark setting
-        machine - Machine 
+        machine - Machine
         """
-        self.setting  = setting
-        self.machine  = machine
+        self.setting = setting
+        self.machine = machine
         self.content = pd.DataFrame()
-        self.columns: dict[str, Any]  = {}
-        self.offset: Optional[int]   = None
+        self.columns: dict[str, Any] = {}
+        self.offset: Optional[int] = None
 
     def genName(self, addMachine: bool) -> str:
         """
@@ -338,9 +376,9 @@ class SystemBlock(Sortable):
                 res += " ({0})".format(self.machine.name)
         return res
 
-    def __cmp__(self, other: 'SystemBlock') -> int:
+    def __cmp__(self, other: "SystemBlock") -> int:
         if self.setting and self.machine:
-            return cmp((self.setting.system.order, self.setting.order, self.machine.name), (other.setting.system.order, other.setting.order, other.machine.name)) # type: ignore[union-attr]
+            return cmp((self.setting.system.order, self.setting.order, self.machine.name), (other.setting.system.order, other.setting.order, other.machine.name))  # type: ignore[union-attr]
         return 0
 
     def __hash__(self) -> int:
