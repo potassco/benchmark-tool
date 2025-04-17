@@ -59,7 +59,7 @@ class ODSDoc:
     (previously called Spreadsheet)
     """
 
-    def __init__(self, benchmark: result.BenchmarkMerge, measures: Any):
+    def __init__(self, benchmark: 'result.BenchmarkMerge', measures: Any):
         """
         Setup Instance and Class sheet.
 
@@ -70,7 +70,7 @@ class ODSDoc:
         self.instSheet = Sheet(benchmark, measures, "Instances")
         self.classSheet = Sheet(benchmark, measures, "Classes", self.instSheet)
 
-    def addRunspec(self, runspec: result.Runspec) -> None:
+    def addRunspec(self, runspec: 'result.Runspec') -> None:
         """
         Keyword arguments:
         runspec - Run specification
@@ -112,7 +112,7 @@ class Sheet:
     (previously called Table/ResultTable)
     """
 
-    def __init__(self, benchmark: result.BenchmarkMerge, measures: Any, name: str, refSheet: Optional["Sheet"] = None):
+    def __init__(self, benchmark: 'result.BenchmarkMerge', measures: Any, name: str, refSheet: Optional["Sheet"] = None):
         """
         Initialize sheet.
 
@@ -135,7 +135,7 @@ class Sheet:
         # measures to be displayed
         self.measures = measures
         # machines
-        self.machines: set[result.Machine] = set()
+        self.machines: set['result.Machine'] = set()
         # sheet for references
         self.refSheet = refSheet
         # references for summary generation
@@ -168,7 +168,7 @@ class Sheet:
         # fill missing rows
         self.content = self.content.reindex(list(range(self.content.index.max() + 1)))
 
-    def addRunspec(self, runspec: result.Runspec) -> None:
+    def addRunspec(self, runspec: 'result.Runspec') -> None:
         """
         Add results to the their respective blocks.
 
@@ -348,7 +348,7 @@ class SystemBlock(Sortable):
     Dataframe containing results for system.
     """
 
-    def __init__(self, setting: Optional[result.Setting], machine: Optional[result.Machine]):
+    def __init__(self, setting: Optional['result.Setting'], machine: Optional['result.Machine']):
         """
         Initialize system block for given setting and machine.
 
