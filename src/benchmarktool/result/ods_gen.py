@@ -142,7 +142,7 @@ class Sheet:
         self.summaryRefs: dict[str, Any] = {}
 
         # first column
-        self.content["0"] = None
+        self.content[0] = None
         # setup rows for instances/benchmark classes
         if self.refSheet is None:
             row = 2
