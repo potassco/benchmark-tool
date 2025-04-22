@@ -253,7 +253,18 @@ class Sheet:
         # create dataframe containing evaluated formulas
         # self.contentEval = self.content.copy()
 
-        # create formulas for min, median and max
+        # add summaries
+        self.add_row_summary(floatOccur, col)
+        self.add_col_summary()
+
+    def add_row_summary(self, floatOccur: dict[str, set[Any]], offset: int) -> None:
+        """
+        Add row summary (min, max, median).
+        Keyword arguments:
+        floatOccur  - Dict containing column references of float columns
+        offset      - Column offset
+        """
+        col = offset
         for colName in ["min", "median", "max"]:
             block = SystemBlock(None, None)
             block.offset = col
@@ -285,11 +296,10 @@ class Sheet:
             self.content = self.content.join(block.content)
             self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, block.offset] = colName
-        self.add_summary()
 
-    def add_summary(self) -> None:
+    def add_col_summary(self) -> None:
         """
-        Add summary rows if applicable to column type.
+        Add column summary if applicable to column type.
         """
         for col in self.content:
             name = self.content.at[1, col]
