@@ -99,10 +99,10 @@ class ODSDoc:
         with ods.writer(open(out, "wb")) as odsfile:
             instSheet = odsfile.new_sheet("Instances")
             for line in range(len(self.instSheet.content.index)):
-                instSheet.writerow([try_float(v) for v in self.instSheet.content.iloc[line]])
+                instSheet.writerow([v for v in self.instSheet.content.iloc[line]])
             classSheet = odsfile.new_sheet("Classes")
             for line in range(len(self.classSheet.content.index)):
-                classSheet.writerow([try_float(v) for v in self.classSheet.content.iloc[line]])
+                classSheet.writerow([v for v in self.classSheet.content.iloc[line]])
 
 
 class Sheet:
@@ -191,6 +191,7 @@ class Sheet:
                         elif valueType != "float":
                             valueType = "string"
                         if self.refSheet is None:
+                            if valueType == "float": value = float(value) 
                             block.addCell(instresult.instance.line + run.number - 1, name, valueType, value)
                         elif valueType == "float":
                             if not name in classSum:
