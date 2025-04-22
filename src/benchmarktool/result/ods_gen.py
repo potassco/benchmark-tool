@@ -50,6 +50,32 @@ def try_float(v: Any) -> Any:
         return float(v)
     except (ValueError, TypeError):
         return v
+    
+def cellIndex(col: int, row: int, absCol: bool = False, absRow: bool = False) -> str:
+    """
+    Calculate ODS cell index.
+
+    Keyword arguments:
+    col     - Column index
+    row     - Row index
+    absCol  - Set '$' for column
+    absRow  - Set '$' for row
+    """
+    radix = ord("Z") - ord("A") + 1
+    ret = ""
+    while col >= 0:
+        rem = col % radix
+        ret = chr(rem + ord("A")) + ret
+        col = col // radix - 1
+    if absCol:
+        preCol = "$"
+    else:
+        preCol = ""
+    if absRow:
+        preRow = "$"
+    else:
+        preRow = ""
+    return preCol + ret + preRow + str(row + 1)
 
 
 class ODSDoc:
@@ -241,8 +267,8 @@ class Sheet:
                         ""
                         + op
                         + "(Instances.{0}:Instances.{1})".format(
-                            self.cellIndex(column, self.content.at[2, column][0].instStart + 2),
-                            self.cellIndex(column, self.content.at[2, column][0].instEnd + 2),
+                            cellIndex(column, self.content.at[2, column][0].instStart + 2),
+                            cellIndex(column, self.content.at[2, column][0].instEnd + 2),
                         )
                     )
             if self.types.get(name, "") in ["float", "classresult"]:
@@ -281,7 +307,7 @@ class Sheet:
                         for colRef in sorted(floatOccur[name]):
                             if minRange != "":
                                 minRange += ";"
-                            minRange += self.cellIndex(colRef, row + 2, True)
+                            minRange += cellIndex(colRef, row + 2, True)
                         block.addCell(row, name, "formular", Formula("{1}({0})".format(minRange, colName.upper())))
                         # if colName == "min":
                         #    self.contentEval.at[row, name+"_"+colName] = float(self.content.loc[row+ 2,sorted(floatOccur[name])].astype(float).min())
@@ -290,7 +316,7 @@ class Sheet:
                         # elif colName == "max":
                         #    self.contentEval.at[row, name+"_"+colName] = float(self.content.loc[row+ 2,sorted(floatOccur[name])].astype(float).max())
                     self.summaryRefs[colName][name] = "{0}:{1}".format(
-                        self.cellIndex(col, 2, True), self.cellIndex(col, self.resultOffset - 1, True)
+                        cellIndex(col, 2, True), cellIndex(col, self.resultOffset - 1, True)
                     )
                     col += 1
             self.content = self.content.join(block.content)
@@ -305,7 +331,7 @@ class Sheet:
             name = self.content.at[1, col]
             if self.types.get(name, "") in ["float", "classresult"]:
                 resValues = "{0}:{1}".format(
-                    self.cellIndex(col, 2, True), self.cellIndex(col, self.resultOffset - 1, True)
+                    cellIndex(col, 2, True), cellIndex(col, self.resultOffset - 1, True)
                 )
                 self.content.at[self.resultOffset + 1, col] = Formula("SUM({0})".format(resValues))
                 self.content.at[self.resultOffset + 2, col] = Formula("AVERAGE({0})".format(resValues))
@@ -326,32 +352,6 @@ class Sheet:
                     self.content.at[self.resultOffset + 8, col] = Formula(
                         "SUMPRODUCT(--({0}={1}))".format(resValues, self.summaryRefs["max"][name])
                     )
-
-    def cellIndex(self, col: int, row: int, absCol: bool = False, absRow: bool = False) -> str:
-        """
-        Calculate ODS cell index.
-
-        Keyword arguments:
-        col     - Column index
-        row     - Row index
-        absCol  - Set '$' for column
-        absRow  - Set '$' for row
-        """
-        radix = ord("Z") - ord("A") + 1
-        ret = ""
-        while col >= 0:
-            rem = col % radix
-            ret = chr(rem + ord("A")) + ret
-            col = col // radix - 1
-        if absCol:
-            preCol = "$"
-        else:
-            preCol = ""
-        if absRow:
-            preRow = "$"
-        else:
-            preRow = ""
-        return preCol + ret + preRow + str(row + 1)
 
 
 class SystemBlock(Sortable):
