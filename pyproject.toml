@@ -62,6 +62,9 @@ argument-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
 variable-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
 good-names = ["_"]
 
+[tool.pylint."messages control"]
+disable = ["consider-using-f-string"]
+
 [tool.coverage.run]
 # source = ["benchmarktool", "tests"]
 omit = [""]

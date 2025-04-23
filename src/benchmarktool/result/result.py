@@ -56,7 +56,7 @@ class Result:
         sheet = ODSDoc(benchmarkMerge, measures)
         for project in projects:
             for runspec in project:
-                sheet.addRunspec(runspec)
+                sheet.add_runspec(runspec)
         sheet.finish()
         sheet.make_ods(out)
 

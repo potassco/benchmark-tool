@@ -7,7 +7,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
-import pandas as pd
+import pandas as pd  # type: ignore[import-untyped]
 
 from benchmarktool.result import ods_gen, parser, result
 
@@ -30,9 +30,9 @@ class TestFormula(TestCase):
         Test __str__ method.
         """
         f = ods_gen.Formula("=SUM(A2:A4)")
-        self.assertEqual(f.__str__(), "of:=SUM([.A2:.A4])")
+        self.assertEqual(str(f), "of:=SUM([.A2:.A4])")
         f = ods_gen.Formula("SUM(test.A2:test.A4)")
-        self.assertEqual(f.__str__(), "of:=SUM([test.A2:test.A4])")
+        self.assertEqual(str(f), "of:=SUM([test.A2:test.A4])")
 
 
 class TestUtils(TestCase):
@@ -50,14 +50,14 @@ class TestUtils(TestCase):
         x = ods_gen.Formula("f")
         self.assertEqual(ods_gen.try_float(x), x)
 
-    def test_cellIndex(self) -> None:
+    def test_get_cell_index(self) -> None:
         """
-        Test cellIndex function.
+        Test get_cell_index function.
         """
-        self.assertEqual(ods_gen.cellIndex(1, 1), "B2")
-        self.assertEqual(ods_gen.cellIndex(1, 2, True), "$B3")
-        self.assertEqual(ods_gen.cellIndex(2, 1, absRow=True), "C$2")
-        self.assertEqual(ods_gen.cellIndex(2, 2, True, True), "$C$3")
+        self.assertEqual(ods_gen.get_cell_index(1, 1), "B2")
+        self.assertEqual(ods_gen.get_cell_index(1, 2, True), "$B3")
+        self.assertEqual(ods_gen.get_cell_index(2, 1, abs_row=True), "C$2")
+        self.assertEqual(ods_gen.get_cell_index(2, 2, True, True), "$C$3")
 
 
 class TestODSDoc(TestCase):
@@ -69,58 +69,63 @@ class TestODSDoc(TestCase):
         """
         Test class initialization.
         """
+        # pylint: disable=unused-variable
         with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge()
+            bm = result.BenchmarkMerge(MagicMock())
             doc = ods_gen.ODSDoc(bm, [("test", None)])
-            self.assertIsInstance(doc.instSheet, ods_gen.Sheet)
-            self.assertIsInstance(doc.classSheet, ods_gen.Sheet)
+            self.assertIsInstance(doc.inst_sheet, ods_gen.Sheet)
+            self.assertIsInstance(doc.class_sheet, ods_gen.Sheet)
 
-    def test_addRunspec(self) -> None:
+    def test_add_runspec(self) -> None:
         """
-        Test addRunspec method.
+        Test add_runspec method.
         """
+        # pylint: disable=unused-variable
         with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge()
+            bm = result.BenchmarkMerge(MagicMock())
             doc = ods_gen.ODSDoc(bm, [("test", None)])
             runspec = result.Runspec(
                 Mock(result.System), Mock(result.Machine), Mock(result.Benchmark), Mock(result.Setting)
             )
-            doc.instSheet.addRunspec = MagicMock()
-            doc.classSheet.addRunspec = MagicMock()
-            doc.addRunspec(runspec)
-            doc.instSheet.addRunspec.assert_called_once_with(runspec)
-            doc.classSheet.addRunspec.assert_called_once_with(runspec)
+            doc.inst_sheet.add_runspec = MagicMock()
+            doc.class_sheet.add_runspec = MagicMock()
+            doc.add_runspec(runspec)
+            doc.inst_sheet.add_runspec.assert_called_once_with(runspec)
+            doc.class_sheet.add_runspec.assert_called_once_with(runspec)
 
     def test_finish(self) -> None:
         """
         Test finish method.
         """
+        # pylint: disable=unused-variable
         with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge()
+            bm = result.BenchmarkMerge(MagicMock())
             doc = ods_gen.ODSDoc(bm, [("test", None)])
-            doc.instSheet.finish = MagicMock()
-            doc.classSheet.finish = MagicMock()
+            doc.inst_sheet.finish = MagicMock()
+            doc.class_sheet.finish = MagicMock()
             doc.finish()
-            doc.instSheet.finish.assert_called_once()
-            doc.classSheet.finish.assert_called_once()
+            doc.inst_sheet.finish.assert_called_once()
+            doc.class_sheet.finish.assert_called_once()
 
     def test_make_ods(self) -> None:
         """
         Test make_ods method.
         """
+        # pylint: disable=unused-variable
         with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge()
+            bm = result.BenchmarkMerge(MagicMock())
             doc = ods_gen.ODSDoc(bm, [("test", None)])
             ref = pd.DataFrame([None, None, "test"])
-            doc.instSheet.content = pd.DataFrame([np.nan, np.nan, "test"])
-            doc.classSheet.content = pd.DataFrame([np.nan, np.nan, "test"])
+            doc.inst_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
+            doc.class_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
             doc.make_ods("./tests/ref/new_ods.ods")
-            pd.testing.assert_frame_equal(doc.instSheet.content, ref)
-            pd.testing.assert_frame_equal(doc.classSheet.content, ref)
+            pd.testing.assert_frame_equal(doc.inst_sheet.content, ref)
+            pd.testing.assert_frame_equal(doc.class_sheet.content, ref)
             self.assertTrue(os.path.isfile("./tests/ref/new_ods.ods"))
             os.remove("./tests/ref/new_ods.ods")
 
 
+# pylint: disable=too-many-instance-attributes
 class TestInstSheet(TestCase):
     """
     Test cases for Sheet class without reference sheet (instSheet).
@@ -128,11 +133,11 @@ class TestInstSheet(TestCase):
 
     def setUp(self) -> None:
         self.res = parser.Parser().parse("./tests/ref/test_eval.xml")
-        self.benchMerge = self.res.merge(self.res.projects.values())
-        self.runSpec = self.res.projects["test_proj"].runspecs
+        self.bench_merge = self.res.merge(self.res.projects.values())
+        self.run_spec = self.res.projects["test_proj"].runspecs
         self.measures = [("time", None), ("timeout", None), ("status", None), ("steps", None)]
         self.name = "Instances"
-        self.refSheet = None
+        self.ref_sheet = None
         self.ref_row_n = ["test_class/test_inst", np.nan]
         # system block
         self.ref_block = pd.DataFrame()
@@ -198,29 +203,29 @@ class TestInstSheet(TestCase):
         ref_content = pd.DataFrame(
             [np.nan, np.nan] + self.ref_row_n + [np.nan, "SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"]
         )
-        sheet = ods_gen.Sheet(self.benchMerge, self.measures, self.name, self.refSheet)
+        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         pd.testing.assert_frame_equal(sheet.content, ref_content)
         self.assertEqual(sheet.name, self.name)
-        self.assertEqual(sheet.benchmark, self.benchMerge)
-        self.assertDictEqual(sheet.systemBlocks, {})
+        self.assertEqual(sheet.benchmark, self.bench_merge)
+        self.assertDictEqual(sheet.system_blocks, {})
         self.assertDictEqual(sheet.types, {})
         self.assertEqual(sheet.measures, self.measures)
         self.assertEqual(sheet.machines, set())
-        self.assertEqual(sheet.refSheet, self.refSheet)
-        self.assertDictEqual(sheet.summaryRefs, {})
+        self.assertEqual(sheet.ref_sheet, self.ref_sheet)
+        self.assertDictEqual(sheet.summary_refs, {})
 
-    def test_addRunspec(self) -> None:
+    def test_add_runspec(self) -> None:
         """
-        Test addRunspec method.
+        Test add_runspec method.
         """
-        sheet = ods_gen.Sheet(self.benchMerge, self.measures, self.name, self.refSheet)
-        sheet.addRunspec(self.runSpec[0])
+        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_spec[0])
         self.assertIsInstance(
-            sheet.systemBlocks[(self.runSpec[0].setting, self.runSpec[0].machine)], ods_gen.SystemBlock
+            sheet.system_blocks[(self.run_spec[0].setting, self.run_spec[0].machine)], ods_gen.SystemBlock
         )
-        self.assertSetEqual(sheet.machines, set([self.runSpec[0].machine]))
+        self.assertSetEqual(sheet.machines, set([self.run_spec[0].machine]))
         pd.testing.assert_frame_equal(
-            sheet.systemBlocks[(self.runSpec[0].setting, self.runSpec[0].machine)].content, self.ref_block
+            sheet.system_blocks[(self.run_spec[0].setting, self.run_spec[0].machine)].content, self.ref_block
         )
 
     def test_finish(self) -> None:
@@ -231,8 +236,8 @@ class TestInstSheet(TestCase):
             patch.object(ods_gen.Sheet, "add_row_summary") as add_row_sum,
             patch.object(ods_gen.Sheet, "add_col_summary") as add_col_sum,
         ):
-            sheet = ods_gen.Sheet(self.benchMerge, self.measures, self.name, self.refSheet)
-            sheet.addRunspec(self.runSpec[0])
+            sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+            sheet.add_runspec(self.run_spec[0])
             sheet.finish()
             for row in range(3):
                 for col in range(5):
@@ -249,9 +254,9 @@ class TestInstSheet(TestCase):
         """
         Test add_row_summary method.
         """
-        sheet = ods_gen.Sheet(self.benchMerge, self.measures, self.name, self.refSheet)
-        sheet.addRunspec(self.runSpec[0])
-        sheet.addRunspec(self.runSpec[1])
+        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_spec[0])
+        sheet.add_runspec(self.run_spec[1])
         sheet.finish()
         for row in range(3):
             for col in range(9, 18):
@@ -262,8 +267,8 @@ class TestInstSheet(TestCase):
                 elif not pd.isna(test) and not pd.isna(ref):
                     self.assertEqual(test, ref)
 
-        sheet = ods_gen.Sheet(self.benchMerge, "", self.name, self.refSheet)
-        sheet.addRunspec(self.runSpec[0])
+        sheet = ods_gen.Sheet(self.bench_merge, "", self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_spec[0])
         sheet.finish()
         self.assertEqual(len(sheet.content.columns), 26)
 
@@ -271,8 +276,8 @@ class TestInstSheet(TestCase):
         """
         Test add_col_summary method.
         """
-        sheet = ods_gen.Sheet(self.benchMerge, self.measures, self.name, self.refSheet)
-        sheet.addRunspec(self.runSpec[0])
+        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_spec[0])
 
         sheet.finish()
         for row in range(len(sheet.content.index)):
@@ -285,6 +290,7 @@ class TestInstSheet(TestCase):
                     self.assertEqual(test, ref)
 
 
+# pylint: disable=too-many-instance-attributes
 class TestClassSheet(TestInstSheet):
     """
     Test cases for Sheet class with reference sheet (classSheet).
@@ -292,15 +298,15 @@ class TestClassSheet(TestInstSheet):
 
     def setUp(self) -> None:
         self.res = parser.Parser().parse("./tests/ref/test_eval.xml")
-        self.benchMerge = self.res.merge(self.res.projects.values())
-        self.runSpec = self.res.projects["test_proj"].runspecs
+        self.bench_merge = self.res.merge(self.res.projects.values())
+        self.run_spec = self.res.projects["test_proj"].runspecs
         self.measures = [("time", None), ("timeout", None), ("status", None), ("steps", None)]
         self.name = "Classes"
-        self.refSheet = ods_gen.Sheet(self.benchMerge, self.measures, "Instances")
+        self.ref_sheet = ods_gen.Sheet(self.bench_merge, self.measures, "Instances")
         self.ref_row_n = ["test_class"]
         self.ref_block = pd.DataFrame()
         # system block
-        bench_cl = self.runSpec[0].classresults[0].benchclass
+        bench_cl = self.run_spec[0].classresults[0].benchclass
         self.ref_block["time"] = ["time", (bench_cl, 10.0)]
         self.ref_block["timeout"] = ["timeout", (bench_cl, 2.0)]
         self.ref_block["status"] = ["status", np.nan]
@@ -383,12 +389,12 @@ class TestSystemBlock(TestCase):
         self.assertEqual(block.setting, setting)
         self.assertEqual(block.machine, machine)
 
-    def test_genName(self) -> None:
+    def test_gen_name(self) -> None:
         """
-        Test genName method.
+        Test gen_name method.
         """
         block = ods_gen.SystemBlock(None, None)
-        self.assertEqual(block.genName(False), "")
+        self.assertEqual(block.gen_name(False), "")
         setting = MagicMock()
         system = MagicMock()
         system.name = "test_sys"
@@ -397,8 +403,8 @@ class TestSystemBlock(TestCase):
         setting.name = "test_setting"
         machine = result.Machine("test_machine", "test_cpu", "test_mem")
         block = ods_gen.SystemBlock(setting, machine)
-        self.assertEqual(block.genName(False), "test_sys-test_ver/test_setting")
-        self.assertEqual(block.genName(True), "test_sys-test_ver/test_setting (test_machine)")
+        self.assertEqual(block.gen_name(False), "test_sys-test_ver/test_setting")
+        self.assertEqual(block.gen_name(True), "test_sys-test_ver/test_setting (test_machine)")
 
     def test_cmp(self) -> None:
         """
@@ -419,15 +425,15 @@ class TestSystemBlock(TestCase):
         setting = MagicMock()
         machine = MagicMock()
         block = ods_gen.SystemBlock(setting, machine)
-        self.assertEqual(block.__hash__(), hash((setting, machine)))
+        self.assertEqual(hash(block), hash((setting, machine)))
 
-    def test_addCell(self) -> None:
+    def test_add_cell(self) -> None:
         """
-        Test addCell method.
+        Test add_cell method.
         """
         block = ods_gen.SystemBlock(None, None)
         pd.testing.assert_frame_equal(block.content, pd.DataFrame())
-        block.addCell(1, "test", "string", "val")
+        block.add_cell(1, "test", "string", "val")
         ref = pd.DataFrame()
         ref.at[1, "test"] = "test"
         ref.at[3, "test"] = "val"
