@@ -257,7 +257,7 @@ class SeqRun(Run):
     solver   - The solver for this run
     timeout  - The timeout of this run
     """
-    def __init__(self, path, run, job, runspec, instance):
+    def __init__(self, path, run, job, runspec, instance, encodings):
         """
         Initializes a sequential run.
         
@@ -268,6 +268,7 @@ class SeqRun(Run):
         job      - A reference to the job description
         runspec  - A reference to the run description
         instance - A reference to the instance to benchmark
+        encoding - A reference to the encodings associated with the benchmark instance
         """
         Run.__init__(self, path)
         self.run      = run
@@ -278,6 +279,7 @@ class SeqRun(Run):
         self.args     = self.runspec.setting.cmdline
         self.solver   = self.runspec.system.name + "-" + self.runspec.system.version
         self.timeout  = self.job.timeout
+        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in encodings])
 
 class ScriptGen:
     """
@@ -309,13 +311,14 @@ class ScriptGen:
         """
         return os.path.join(runspec.path(), instance.classname.name, instance.instance, "run%d" % run)    
     
-    def addToScript(self, runspec, instance):
+    def addToScript(self, runspec, instance, encodings):
         """
         Creates a new start script for the given instance.
         
         Keyword arguments:
         runspec  - The run specification for the start script
         instance - The benchmark instance for the start script
+        encodings - The encodings associated with the benchmark instance
         """
         skip = self.skip
         for run in range(1, self.job.runs + 1):
@@ -327,7 +330,7 @@ class ScriptGen:
                 continue
             template  = open(runspec.system.config.template).read()
             startfile = open(startpath, "w")
-            startfile.write(template.format(run=SeqRun(path, run, self.job, runspec, instance)))
+            startfile.write(template.format(run=SeqRun(path, run, self.job, runspec, instance, encodings)))
             startfile.close()
             self.startfiles.append((runspec, path, "start.sh"))
             tools.setExecutable(startpath)
@@ -760,7 +763,7 @@ class Benchmark(Sortable):
         """
         Describes a benchmark instance.
         """
-        def __init__(self, location, classname, instance):
+        def __init__(self, location, classname, instance, encodings):
             """
             Initializes a benchmark instance. The instance name uniquely identifies
             an instance (per benchmark class). 
@@ -769,11 +772,13 @@ class Benchmark(Sortable):
             location  - The location of the benchmark instance.
             classname - The class name of the instance 
             instance  - The name of the instance
+            encodings - Encoding associated with the instance
             """
             self.location  = location
             self.classname = classname
             self.instance  = instance
             self.id        = None
+            self.encodings = encodings
 
         def toXml(self, out, indent):
             """
@@ -817,6 +822,7 @@ class Benchmark(Sortable):
             """
             self.path     = path
             self.prefixes = set()
+            self.encodings = set()
             
         def addIgnore(self, prefix):
             """
@@ -828,6 +834,16 @@ class Benchmark(Sortable):
             """
             self.prefixes.add(os.path.normpath(prefix))
         
+        def addEncoding(self, file):
+            """
+            Can be used to add encodings, which will be called together
+            with all instances in this folder.
+            
+            Keyword arguments:
+            file - The encoding file
+            """
+            self.encodings.add(os.path.normpath(file))
+
         def _skip(self, root, path):
             """
             Returns whether a given path should be ignored.
@@ -857,7 +873,7 @@ class Benchmark(Sortable):
                 dirs[:] = sub
                 for filename in files:
                     if self._skip(relroot, filename): continue
-                    benchmark.addInstance(self.path, relroot, filename) 
+                    benchmark.addInstance(self.path, relroot, filename, self.encodings)
 
     class Files:
         """
@@ -872,6 +888,7 @@ class Benchmark(Sortable):
             """
             self.path  = path
             self.files = set()
+            self.encodings = set()
             
         def addFile(self, path):
             """
@@ -881,6 +898,16 @@ class Benchmark(Sortable):
             path - Location of the file
             """
             self.files.add(os.path.normpath(path))
+
+        def addEncoding(self, file):
+            """
+            Can be used to add encodings, which will be called together
+            with all instances in these files.
+            
+            Keyword arguments:
+            file - The encoding file
+            """
+            self.encodings.add(os.path.normpath(file))
         
         def init(self, benchmark):
             """
@@ -892,7 +919,7 @@ class Benchmark(Sortable):
             for path in self.files:
                 if os.path.exists(os.path.join(self.path, path)):
                     relroot, filename = os.path.split(path)
-                    benchmark.addInstance(self.path, relroot, filename)
+                    benchmark.addInstance(self.path, relroot, filename, self.encodings)
                 
     def __init__(self, name):
         """
@@ -915,7 +942,7 @@ class Benchmark(Sortable):
         """
         self.elements.append(element)
     
-    def addInstance(self, root, relroot, filename):
+    def addInstance(self, root, relroot, filename, encodings):
         """
         Adds an instance to the benchmark set. (This function
         is called during initialization by the benchmark elements)
@@ -924,12 +951,13 @@ class Benchmark(Sortable):
         root     - The root folder of the instance
         relroot  - The folder relative to the root folder
         filename - The filename of the instance
+        encodings - The encodings associated to the instance
         """
         classname = Benchmark.Class(relroot)
         if not classname in self.instances: 
             self.instances[classname] = set()
-        self.instances[classname].add(Benchmark.Instance(root, classname, filename))
-    
+        self.instances[classname].add(Benchmark.Instance(root, classname, filename, encodings))
+
     def init(self):
         """
         Populates the benchmark set with instances specified by the 
@@ -1010,7 +1038,7 @@ class Runspec(Sortable):
         """
         Generates start scripts needed to start the benchmark described
         by this run specification. This will simply add all instances 
-        to the given script generator. 
+        and their associated encodings to the given script generator. 
         
         Keyword arguments:
         scriptGen - A generator that is responsible for the start script generation
@@ -1018,7 +1046,7 @@ class Runspec(Sortable):
         self.benchmark.init()
         for instances in self.benchmark.instances.values():
             for instance in instances:
-                scriptGen.addToScript(self, instance)
+                scriptGen.addToScript(self, instance, instance.encodings)
     
     def __cmp__(self, runspec):
         """

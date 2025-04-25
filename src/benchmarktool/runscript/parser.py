@@ -142,20 +142,30 @@ class Parser:
             <xs:choice>
                 <xs:element name="files">
                     <xs:complexType>
-                        <xs:choice minOccurs="0" maxOccurs="unbounded">
-                            <xs:element name="add">
+                        <xs:sequence>
+                            <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
                                 <xs:complexType>
                                     <xs:attribute name="file" type="xs:string" use="required"/>
                                 </xs:complexType>
                             </xs:element>
-                        </xs:choice>
+                            <xs:element name="add" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:attribute name="file" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
                         <xs:attribute name="path" type="xs:string" use="required"/>
                     </xs:complexType>
                 </xs:element>
                 <xs:element name="folder">
                     <xs:complexType>
-                        <xs:sequence minOccurs="0" maxOccurs="unbounded">
-                            <xs:element name="ignore">
+                        <xs:sequence>
+                            <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:attribute name="file" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="ignore" minOccurs="0" maxOccurs="unbounded">
                                 <xs:complexType>
                                     <xs:attribute name="prefix" type="xs:string" use="required"/>
                                 </xs:complexType>
@@ -340,11 +350,15 @@ class Parser:
             benchmark = Benchmark(node.get("name"))
             for child in node.xpath("./folder"):
                 element = Benchmark.Folder(child.get("path"))
+                for grandchild in child.xpath("./encoding"):
+                    element.addEncoding(grandchild.get("file"))
                 for grandchild in child.xpath("./ignore"):
                     element.addIgnore(grandchild.get("prefix"))
                 benchmark.addElement(element)
             for child in node.xpath("./files"):
                 element = Benchmark.Files(child.get("path"))
+                for grandchild in child.xpath("./encoding"):
+                    element.addEncoding(grandchild.get("file"))
                 for grandchild in child.xpath("./add"):
                     element.addFile(grandchild.get("file"))
                 benchmark.addElement(element)
