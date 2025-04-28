@@ -1,37 +1,55 @@
 """
-This module contains an XML-parser for run script specifications. 
-It reads and converts a given specification and returns its 
+This module contains an XML-parser for run script specifications.
+It reads and converts a given specification and returns its
 representation in form of python classes.
 """
 
 __author__ = "Roland Kaminski"
+from typing import Any, Optional
 
-from benchmarktool.runscript.runscript import Runscript, Project, Benchmark, Config, System, Setting, PbsJob, SeqJob, Machine
+from lxml import etree  # type: ignore[import-untyped]
+
 import benchmarktool.tools as tools
-try: from StringIO import StringIO
-except: from io import StringIO
+from benchmarktool.runscript.runscript import (
+    Benchmark,
+    Config,
+    Machine,
+    PbsJob,
+    Project,
+    Runscript,
+    SeqJob,
+    Setting,
+    System,
+)
+
+try:
+    from StringIO import StringIO  # type: ignore[import-not-found]
+except:
+    from io import StringIO
+
 
 class Parser:
     """
     A parser to parse xml runscript specifications.
-    """   
-    def __init__(self):
+    """
+
+    def __init__(self) -> None:
         """
         Initializes the parser.
         """
-        pass
-    
-    def parse(self, fileName):
+
+    def parse(self, fileName: str) -> Runscript:
         """
-        Parse a given runscript and return its representation 
+        Parse a given runscript and return its representation
         in form of an instance of class Runscript.
-        
+
         Keyword arguments:
-        fileName -- a string holding a path to a xml file  
+        fileName -- a string holding a path to a xml file
         """
-        from lxml import etree
-        
-        schemadoc = etree.parse(StringIO("""\
+
+        schemadoc = etree.parse(
+            StringIO(
+                """\
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <!-- the runscript -->
     <xs:complexType name="runscriptType">
@@ -280,30 +298,51 @@ class Parser:
         </xs:unique>
     </xs:element>
 </xs:schema>
-"""))
+"""
+            )
+        )
         schema = etree.XMLSchema(schemadoc)
 
         doc = etree.parse(open(fileName))
         schema.assertValid(doc)
-        
+
         root = doc.getroot()
-        run  = Runscript(root.get("output"))
+        run = Runscript(root.get("output"))
+
+        job: PbsJob | SeqJob
 
         for node in root.xpath("./pbsjob"):
-            attr = self._filterAttr(node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime", "cpt", "partition"])
-        
+            attr = self._filterAttr(
+                node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime", "cpt", "partition"]
+            )
+
             partition = node.get("partition")
             if partition == None:
                 partition = "kr"
 
-            job = PbsJob(node.get("name"), tools.xmlTime(node.get("timeout")), int(node.get("runs")), node.get("script_mode"), tools.xmlTime(node.get("walltime")), int(node.get("cpt")), partition, attr)
+            job = PbsJob(
+                node.get("name"),
+                tools.xmlTime(node.get("timeout")),
+                int(node.get("runs")),
+                node.get("script_mode"),
+                tools.xmlTime(node.get("walltime")),
+                int(node.get("cpt")),
+                partition,
+                attr,
+            )
             run.addJob(job)
 
         for node in root.xpath("./seqjob"):
             attr = self._filterAttr(node, ["name", "timeout", "runs", "parallel"])
-            job = SeqJob(node.get("name"), tools.xmlTime(node.get("timeout")), int(node.get("runs")), int(node.get("parallel")), attr)
+            job = SeqJob(
+                node.get("name"),
+                tools.xmlTime(node.get("timeout")),
+                int(node.get("runs")),
+                int(node.get("parallel")),
+                attr,
+            )
             run.addJob(job)
-        
+
         for node in root.xpath("./machine"):
             machine = Machine(node.get("name"), node.get("cpu"), node.get("memory"))
             run.addMachine(machine)
@@ -311,9 +350,10 @@ class Parser:
         for node in root.xpath("./config"):
             config = Config(node.get("name"), node.get("template"))
             run.addConfig(config)
-        
-        compoundSettings = {}
-        sytemOrder = 0 
+
+        compoundSettings: dict[str, list[str]] = {}
+        sytemOrder = 0
+        procs: list[Optional[int]]
         for node in root.xpath("./system"):
             system = System(node.get("name"), node.get("version"), node.get("measures"), sytemOrder)
             settingOrder = 0
@@ -323,20 +363,25 @@ class Parser:
                 if "procs" in attr:
                     procs = [int(proc) for proc in attr["procs"].split(None)]
                     del attr["procs"]
-                else: procs = [None]
-                if "ppn" in attr: 
+                else:
+                    procs = [None]
+                if "ppn" in attr:
                     ppn = int(attr["ppn"])
                     del attr["ppn"]
-                else: ppn = None
+                else:
+                    ppn = None
                 if "pbstemplate" in attr:
                     pbstemplate = attr["pbstemplate"]
                     del attr["pbstemplate"]
-                else: pbstemplate = "templates/single.pbs"
-                if child.get("tag") == None: tag = set()
-                else: tag = set(child.get("tag").split(None))
+                else:
+                    pbstemplate = "templates/single.pbs"
+                if child.get("tag") == None:
+                    tag = set()
+                else:
+                    tag = set(child.get("tag").split(None))
                 for num in procs:
                     name = child.get("name")
-                    if num != None: 
+                    if num != None:
                         name += "-n{0}".format(num)
                     compoundSettings[child.get("name")].append(name)
                     setting = Setting(name, child.get("cmdline"), tag, settingOrder, num, ppn, pbstemplate, attr)
@@ -345,7 +390,8 @@ class Parser:
 
             run.addSystem(system, node.get("config"))
             sytemOrder += 1
-            
+
+        element: Any
         for node in root.xpath("./benchmark"):
             benchmark = Benchmark(node.get("name"))
             for child in node.xpath("./folder"):
@@ -363,32 +409,32 @@ class Parser:
                     element.addFile(grandchild.get("file"))
                 benchmark.addElement(element)
             run.addBenchmark(benchmark)
-        
+
         for node in root.xpath("./project"):
             project = Project(node.get("name"))
             run.addProject(project, node.get("job"))
             for child in node.xpath("./runspec"):
-                for setting in compoundSettings[child.get("setting")]: 
-                    project.addRunspec(child.get("machine"),
-                                       child.get("system"),
-                                       child.get("version"),
-                                       setting,
-                                       child.get("benchmark"))
-                
+                for setting_name in compoundSettings[child.get("setting")]:
+                    project.addRunspec(
+                        child.get("machine"),
+                        child.get("system"),
+                        child.get("version"),
+                        setting_name,
+                        child.get("benchmark"),
+                    )
+
             for child in node.xpath("./runtag"):
-                project.addRuntag(child.get("machine"), 
-                                  child.get("benchmark"),
-                                  child.get("tag"))
-        
+                project.addRuntag(child.get("machine"), child.get("benchmark"), child.get("tag"))
+
         return run
-    
-    def _filterAttr(self, node, skip):
+
+    def _filterAttr(self, node: etree._Element, skip: list[str]) -> dict[str, Any]:
         """
         Returns a dictionary containing all attributes of a given node.
-        Attributes whose name occurs in the set skip are ignored.
+        Attributes whose name occurs in the skip list are ignored.
         """
         attr = {}
         for key, val in node.items():
             if not key in skip:
-                attr[key] = val  
+                attr[key] = val
         return attr

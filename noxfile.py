@@ -27,20 +27,40 @@ def format(session):
         "--ignore-init-module-imports",
         "--remove-unused-variables",
         "-r",
+        "src/benchmarktool/tools.py",
         "src/benchmarktool/result/ods_gen.py",
+        "src/benchmarktool/runscript/parser.py", 
+        "src/benchmarktool/runscript/runscript.py",
+        #"src",
         "tests",
     ]
     if check:
         autoflake_args.remove("--in-place")
     session.run("autoflake", *autoflake_args)
 
-    isort_args = ["--profile", "black", "src/benchmarktool/result/ods_gen.py", "tests"]
+    #isort_args = ["--profile", "black", "src", "tests"]
+    isort_args = [
+        "--profile", 
+        "black",
+        "src/benchmarktool/tools.py",
+        "src/benchmarktool/runscript/parser.py", 
+        "src/benchmarktool/runscript/runscript.py", 
+        "src/benchmarktool/result/ods_gen.py",
+        "tests"
+    ]
     if check:
         isort_args.insert(0, "--check")
         isort_args.insert(1, "--diff")
     session.run("isort", *isort_args)
 
-    black_args = ["src/benchmarktool/result/ods_gen.py", "tests"]
+    #black_args = ["src", "tests"]
+    black_args = [
+        "src/benchmarktool/tools.py",
+        "src/benchmarktool/runscript/parser.py", 
+        "src/benchmarktool/runscript/runscript.py",
+        "src/benchmarktool/result/ods_gen.py", 
+        "tests"
+    ]
     if check:
         black_args.insert(0, "--check")
         black_args.insert(1, "--diff")
@@ -63,7 +83,9 @@ def lint_pylint(session):
     Run pylint.
     """
     session.install("-e", ".[lint_pylint]")
-    session.run("pylint", "src/benchmarktool/result/ods_gen", "tests")
+    session.run("pylint", "src/benchmarktool/tools.py", "src/benchmarktool/result/ods_gen", "tests")
+    session.run("pylint", "src/benchmarktool/runscript/parser", "src/benchmarktool/runscript/runscript")
+    #session.run("pylint", "benchmarktool", "tests")
 
 
 @nox.session
@@ -72,7 +94,8 @@ def typecheck(session):
     Typecheck the code using mypy.
     """
     session.install("-e", ".[typecheck]")
-    session.run("mypy", "--strict", "src/benchmarktool/result/ods_gen.py")
+    session.run("mypy", "--strict", "src/benchmarktool/result/ods_gen.py", "src/benchmarktool/tools.py")
+    session.run("mypy", "--strict", "src/benchmarktool/runscript/parser.py", "src/benchmarktool/runscript/runscript.py")
     session.run("mypy", "--strict", "-p", "tests")
 
 
