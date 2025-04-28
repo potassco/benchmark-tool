@@ -289,9 +289,7 @@ class SeqRun(Run):
     timeout  - The timeout of this run
     """
 
-    def __init__(
-        self, path: str, run: int, job: "Job", runspec: "Runspec", instance: "Benchmark.Instance", encodings: set[str]
-    ):
+    def __init__(self, path: str, run: int, job: "Job", runspec: "Runspec", instance: "Benchmark.Instance"):
         """
         Initializes a sequential run.
 
@@ -302,7 +300,6 @@ class SeqRun(Run):
         job      - A reference to the job description
         runspec  - A reference to the run description
         instance - A reference to the instance to benchmark
-        encoding - A reference to the encodings associated with the benchmark instance
         """
         Run.__init__(self, path)
         self.run = run
@@ -310,11 +307,10 @@ class SeqRun(Run):
         self.runspec = runspec
         self.instance = instance
         self.file = os.path.relpath(self.instance.path(), self.path)
+        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in instance.encodings])
         self.args = self.runspec.setting.cmdline
         self.solver = self.runspec.system.name + "-" + self.runspec.system.version
         self.timeout = self.job.timeout
-        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in encodings])
-        # self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in instance.encodings])
 
 
 class ScriptGen:
@@ -354,14 +350,13 @@ class ScriptGen:
         """
         return os.path.join(runspec.path(), instance.benchclass.name, instance.instance, "run%d" % run)
 
-    def addToScript(self, runspec: "Runspec", instance: "Benchmark.Instance", encodings: set[str]) -> None:
+    def addToScript(self, runspec: "Runspec", instance: "Benchmark.Instance") -> None:
         """
         Creates a new start script for the given instance.
 
         Keyword arguments:
         runspec  - The run specification for the start script
         instance - The benchmark instance for the start script
-        encodings - The encodings associated with the benchmark instance
         """
         skip = self.skip
         if runspec.system.config:
@@ -374,7 +369,7 @@ class ScriptGen:
                     continue
                 template = open(runspec.system.config.template).read()
                 startfile = open(startpath, "w")
-                startfile.write(template.format(run=SeqRun(path, run, self.job, runspec, instance, encodings)))
+                startfile.write(template.format(run=SeqRun(path, run, self.job, runspec, instance)))
                 startfile.close()
                 self.startfiles.append((runspec, path, "start.sh"))
                 tools.setExecutable(startpath)
@@ -1158,7 +1153,7 @@ class Runspec(Sortable):
         self.benchmark.init()
         for instances in self.benchmark.instances.values():
             for instance in instances:
-                scriptGen.addToScript(self, instance, instance.encodings)
+                scriptGen.addToScript(self, instance)
 
     def __cmp__(self, runspec: "Runspec") -> int:
         """
