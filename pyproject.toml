@@ -64,6 +64,7 @@ good-names = ["_"]
 
 [tool.pylint."messages control"]
 disable = ["consider-using-f-string"]
+extension-pkg-allow-list = ["lxml"]
 
 [tool.coverage.run]
 omit = [""]

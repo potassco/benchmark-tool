@@ -21,4 +21,4 @@ if __name__ == '__main__':
         parser.error("Exactly on file has to be given")
     p = Parser()
     run = p.parse(fileName)
-    run.genScripts(opts.exclude)
+    run.gen_scripts(opts.exclude)

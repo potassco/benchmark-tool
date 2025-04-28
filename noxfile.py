@@ -83,8 +83,14 @@ def lint_pylint(session):
     Run pylint.
     """
     session.install("-e", ".[lint_pylint]")
-    session.run("pylint", "src/benchmarktool/tools.py", "src/benchmarktool/result/ods_gen", "tests")
-    session.run("pylint", "src/benchmarktool/runscript/parser", "src/benchmarktool/runscript/runscript")
+    session.run(
+        "pylint",
+        "src/benchmarktool/tools.py",
+        "src/benchmarktool/result/ods_gen",
+        "tests",
+        "src/benchmarktool/runscript/parser",
+        "src/benchmarktool/runscript/runscript",
+    )
     #session.run("pylint", "benchmarktool", "tests")
 
 
