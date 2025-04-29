@@ -400,16 +400,16 @@ class Parser:
                 for child in node.xpath("./folder"):
                     element = Benchmark.Folder(child.get("path"))
                     for grandchild in child.xpath("./encoding"):
-                        element.addEncoding(grandchild.get("file"))
+                        element.add_encoding(grandchild.get("file"))
                     for grandchild in child.xpath("./ignore"):
-                        element.addIgnore(grandchild.get("prefix"))
+                        element.add_ignore(grandchild.get("prefix"))
                     benchmark.add_element(element)
                 for child in node.xpath("./files"):
                     element = Benchmark.Files(child.get("path"))
                     for grandchild in child.xpath("./encoding"):
-                        element.addEncoding(grandchild.get("file"))
+                        element.add_encoding(grandchild.get("file"))
                     for grandchild in child.xpath("./add"):
-                        element.addFile(grandchild.get("file"))
+                        element.add_file(grandchild.get("file"))
                     benchmark.add_element(element)
                 run.add_benchmark(benchmark)
 
