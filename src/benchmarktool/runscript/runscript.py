@@ -104,13 +104,13 @@ class System(Sortable):
         settings - If None all the settings of the system are printed,
                    otherwise the given settings are printed
         """
-        if self.config:
-            out.write(
-                (
-                    f'{indent}<system name="{self.name}" version="{self.version}" '
-                    f'measures="{self.measures}" config="{self.config.name}">\n'
-                )
+        assert isinstance(self.config, Config)
+        out.write(
+            (
+                f'{indent}<system name="{self.name}" version="{self.version}" '
+                f'measures="{self.measures}" config="{self.config.name}">\n'
             )
+        )
         if settings is None:
             settings = list(self.settings.values())
         for setting in sorted(settings, key=lambda s: s.order):
