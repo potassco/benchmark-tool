@@ -253,7 +253,7 @@ class Job(Sortable):
         """
         Compares two jobs using their names.
         """
-        return cmp(job.name, job.name)
+        return cmp(self.name, job.name)
 
 
 # pylint: disable=too-few-public-methods
