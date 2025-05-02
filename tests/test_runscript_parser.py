@@ -3,16 +3,18 @@ Test cases for runscript parser
 """
 
 from unittest import TestCase
+
 from lxml import etree  # type: ignore[import-untyped]
 
 from benchmarktool.runscript import parser, runscript
+
 
 class TestParser(TestCase):
     """
     Test class for runscript parser.
     """
 
-    def testParse(self):
+    def test_parse(self):
         """
         Test parse method.
         """
@@ -36,9 +38,9 @@ class TestParser(TestCase):
         self.assertEqual(pbs_job.timeout, 120)
         self.assertEqual(pbs_job.runs, 1)
         self.assertEqual(pbs_job.script_mode, "timeout")
-        self.assertEqual(pbs_job.walltime, 86399) # = 23:59:59
+        self.assertEqual(pbs_job.walltime, 86399)  # = 23:59:59
         self.assertEqual(pbs_job.cpt, 1)
-        self.assertEqual(pbs_job.partition, "kr") # default
+        self.assertEqual(pbs_job.partition, "kr")  # default
         self.assertEqual(run.jobs["pbs-part"].partition, "test")
 
         # projects
@@ -95,7 +97,7 @@ class TestParser(TestCase):
         self.assertEqual(system.version, "2.1.0")
         self.assertEqual(system.measures, "claspar")
         self.assertEqual(system.order, 1)
-        self.assertEqual(len(system.settings), 2*4) # 2 settings * 4 procs
+        self.assertEqual(len(system.settings), 2 * 4)  # 2 settings * 4 procs
         self.assertIsInstance(system.config, runscript.Config)
         self.assertEqual(system.config.name, "pbs-generic")
 
@@ -142,11 +144,26 @@ class TestParser(TestCase):
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
         self.assertEqual(folder.path, "benchmarks/clasp")
         self.assertSetEqual(folder.prefixes, {"pigeons"})
-        self.assertSetEqual(folder.encodings, {"benchmarks/no_pigeons.lp"})
+        self.assertEqual(len(folder.encodings), 1)
+        self.assertTrue(all([e in ["benchmarks/no_pigeons.lp", "benchmarks\\no_pigeons.lp"] for e in folder.encodings]))
         files = bench.elements[1]
         self.assertIsInstance(files, runscript.Benchmark.Files)
         self.assertEqual(files.path, "benchmarks/clasp")
-        self.assertSetEqual(files.files, {"pigeons/pigeonhole10-unsat.lp", "pigeons/pigeonhole11-unsat.lp"})
+        self.assertEqual(len(files.files), 2)
+        self.assertTrue(
+            all(
+                [
+                    e
+                    in [
+                        "pigeons/pigeonhole10-unsat.lp",
+                        "pigeons/pigeonhole11-unsat.lp",
+                        "pigeons\\pigeonhole10-unsat.lp",
+                        "pigeons\\pigeonhole11-unsat.lp",
+                    ]
+                    for e in files.files
+                ]
+            )
+        )
         self.assertSetEqual(files.encodings, set())
 
     def test_filter_attr(self):
@@ -156,12 +173,3 @@ class TestParser(TestCase):
         p = parser.Parser()
         node = etree.Element("node", attr1="test1", attr2="test2")
         self.assertDictEqual(p._filter_attr(node, ["attr1"]), {"attr2": "test2"})
-
-
-
-
-
-
-
-
-        

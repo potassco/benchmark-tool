@@ -69,9 +69,8 @@ class TestODSDoc(TestCase):
         """
         Test class initialization.
         """
-        # pylint: disable=unused-variable
-        with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge(MagicMock())
+        with patch("benchmarktool.result.result.BenchmarkMerge", spec=True):
+            bm = result.BenchmarkMerge()
             doc = ods_gen.ODSDoc(bm, [("test", None)])
             self.assertIsInstance(doc.inst_sheet, ods_gen.Sheet)
             self.assertIsInstance(doc.class_sheet, ods_gen.Sheet)
@@ -80,9 +79,8 @@ class TestODSDoc(TestCase):
         """
         Test add_runspec method.
         """
-        # pylint: disable=unused-variable
-        with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge(MagicMock())
+        with patch("benchmarktool.result.result.BenchmarkMerge", spec=True):
+            bm = result.BenchmarkMerge()
             doc = ods_gen.ODSDoc(bm, [("test", None)])
             runspec = result.Runspec(
                 Mock(result.System), Mock(result.Machine), Mock(result.Benchmark), Mock(result.Setting)
@@ -97,9 +95,8 @@ class TestODSDoc(TestCase):
         """
         Test finish method.
         """
-        # pylint: disable=unused-variable
-        with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge(MagicMock())
+        with patch("benchmarktool.result.result.BenchmarkMerge", spec=True):
+            bm = result.BenchmarkMerge()
             doc = ods_gen.ODSDoc(bm, [("test", None)])
             doc.inst_sheet.finish = MagicMock()
             doc.class_sheet.finish = MagicMock()
@@ -111,9 +108,8 @@ class TestODSDoc(TestCase):
         """
         Test make_ods method.
         """
-        # pylint: disable=unused-variable
-        with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge(MagicMock())
+        with patch("benchmarktool.result.result.BenchmarkMerge", spec=True):
+            bm = result.BenchmarkMerge()
             doc = ods_gen.ODSDoc(bm, [("test", None)])
             ref = pd.DataFrame([None, None, "test"])
             doc.inst_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
