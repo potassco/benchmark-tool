@@ -391,6 +391,7 @@ class ScriptGen:
         """
         for run in range(1, self.job.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
+            # result parser call
             result = getattr(benchmarktool.config, runspec.system.measures)(
                 self._path(runspec, instance, run), runspec, instance
             )
