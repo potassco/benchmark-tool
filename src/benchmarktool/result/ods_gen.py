@@ -191,7 +191,6 @@ class Sheet:
         # fill missing rows
         self.content = self.content.reindex(list(range(self.content.index.max() + 1)))
 
-    # pylint: disable=too-many-nested-blocks, too-many-branches
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
         Add results to the their respective blocks.
@@ -205,38 +204,68 @@ class Sheet:
         block = self.system_blocks[key]
         if block.machine:
             self.machines.add(block.machine)
-        for classresult in runspec:
-            class_sum: dict[str, Any] = {}
-            for instresult in classresult:
-                for run in instresult:
-                    for name, value_type, value in run.iter(self.measures):
-                        if value_type == "int":
-                            value_type = "float"
-                        elif value_type != "float":
-                            value_type = "string"
-                        if self.ref_sheet is None:
-                            if value_type == "float":
-                                value = float(value)
-                            block.add_cell(instresult.instance.line + run.number - 1, name, value_type, value)
-                        elif value_type == "float":
-                            if not name in class_sum:
-                                class_sum[name] = (0.0, 0)
-                            class_sum[name] = (float(value) + class_sum[name][0], 1 + class_sum[name][1])
-                        else:
-                            if not name in class_sum:
-                                class_sum[name] = None
+
+        for benchclass_result in runspec:
+            benchclass_summary: dict[str, Any] = {}
+            for instance_result in benchclass_result:
+                self.add_instance_results(block, instance_result, benchclass_summary)
             # classSheet
             if self.ref_sheet:
-                for name, value in class_sum.items():
-                    if not value is None:
-                        temp_res = value[0] / value[1]
-                        if name == "timeout":
-                            temp_res = value[0]
-                        block.add_cell(
-                            classresult.benchclass.line, name, "classresult", (classresult.benchclass, temp_res)
-                        )
-                    else:
-                        block.add_cell(classresult.benchclass.line, name, "empty", np.nan)
+                self.add_benchclass_summary(block, benchclass_result, benchclass_summary)
+
+    def add_instance_results(
+        self, block: "SystemBlock", instance_result: "result.InstanceResult", benchclass_summary: dict[str, Any]
+    ) -> None:
+        """
+        Add instance results to SystemBlock and add values to summary if necessary.
+
+        Keyword arguments:
+        block              - SystemBlock to which results are added
+        instance_result    - InstanceResult
+        benchclass_summary - Summary of benchmark class
+        """
+        for run in instance_result:
+            for name, value_type, value in run.iter(self.measures):
+                if value_type == "int":
+                    value_type = "float"
+                elif value_type != "float":
+                    value_type = "string"
+                if self.ref_sheet is None:
+                    if value_type == "float":
+                        value = float(value)
+                    block.add_cell(instance_result.instance.line + run.number - 1, name, value_type, value)
+                elif value_type == "float":
+                    if not name in benchclass_summary:
+                        benchclass_summary[name] = (0.0, 0)
+                    benchclass_summary[name] = (
+                        float(value) + benchclass_summary[name][0],
+                        1 + benchclass_summary[name][1],
+                    )
+                else:
+                    if not name in benchclass_summary:
+                        benchclass_summary[name] = None
+
+    def add_benchclass_summary(
+        self, block: "SystemBlock", benchclass_result: "result.ClassResult", benchclass_summary: dict[str, Any]
+    ) -> None:
+        """
+        Add benchmark class summary to SystemBlock.
+
+        Keyword arguments:
+        block              - SystemBlock to which summary is added
+        benchclass_result  - ClassResult
+        benchclass_summary - Summary of benchmark class
+        """
+        for name, value in benchclass_summary.items():
+            if not value is None:
+                temp_res = value[0] / value[1]
+                if name == "timeout":
+                    temp_res = value[0]
+                block.add_cell(
+                    benchclass_result.benchclass.line, name, "classresult", (benchclass_result.benchclass, temp_res)
+                )
+            else:
+                block.add_cell(benchclass_result.benchclass.line, name, "empty", np.nan)
 
     def finish(self) -> None:
         """
@@ -282,6 +311,7 @@ class Sheet:
     def add_row_summary(self, float_occur: dict[str, set[Any]], offset: int) -> None:
         """
         Add row summary (min, max, median).
+
         Keyword arguments:
         floatOccur  - Dict containing column references of float columns
         offset      - Column offset
@@ -296,22 +326,36 @@ class Sheet:
                 measures = sorted(float_occur.keys())
             else:
                 measures = list(map(lambda x: x[0], self.measures))
-            for name in measures:
-                if name in float_occur:
-                    for row in range(self.result_offset - 2):
-                        ref_range = ""
-                        for col_ref in sorted(float_occur[name]):
-                            if ref_range != "":
-                                ref_range += ";"
-                            ref_range += get_cell_index(col_ref, row + 2, True)
-                        block.add_cell(row, name, "formular", Formula("{1}({0})".format(ref_range, col_name.upper())))
-                    self.summary_refs[col_name][name] = "{0}:{1}".format(
+            for measure in measures:
+                if measure in float_occur:
+                    self._add_summary_formula(block, col_name, measure, float_occur)
+                    self.summary_refs[col_name][measure] = "{0}:{1}".format(
                         get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
                     )
                     col += 1
             self.content = self.content.join(block.content)
             self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, block.offset] = col_name
+
+    def _add_summary_formula(
+        self, block: "SystemBlock", operator: str, measure: str, float_occur: dict[str, Any]
+    ) -> None:
+        """
+        Add row summary formula.
+
+        Keyword arguments:
+        block       - SystemBlock to which summary is added
+        operator    - Summary operator
+        measure     - Name of the measure to be summarized
+        floatOccur  - Dict containing column references of float columns
+        """
+        for row in range(self.result_offset - 2):
+            ref_range = ""
+            for col_ref in sorted(float_occur[measure]):
+                if ref_range != "":
+                    ref_range += ";"
+                ref_range += get_cell_index(col_ref, row + 2, True)
+            block.add_cell(row, measure, "formular", Formula("{1}({0})".format(ref_range, operator.upper())))
 
     def add_col_summary(self) -> None:
         """
