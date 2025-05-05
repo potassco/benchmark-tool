@@ -7,6 +7,7 @@ Created on Jan 15, 2010
 import os
 import stat
 import random
+from typing import Any
 
 def mkdir_p(path):
     """
@@ -100,7 +101,7 @@ def setExecutable(filename):
     os.chmod(filename, filestat[0] | stat.S_IXUSR)
 
 # make the benchmark tool forward compatible with python 3
-def cmp(a, b):
+def cmp(a: Any, b: Any) -> int:
     if a < b: return -1
     elif a > b: return 1
     else: return 0

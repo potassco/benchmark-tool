@@ -15,7 +15,9 @@ templates/  - contains example call-scripts
 Prerequisites
 -------------
 - lxml (http://codespeak.net/lxml/)
-- >= python-2.6
+- pandas (https://pandas.pydata.org/)
+- odswriter (https://pypi.org/project/odswriter/)
+- >= python-2.7 (python-3 recommended)
 
 Example 1
 ---------
@@ -31,7 +33,7 @@ This creates a set of start scripts in the ./output folder.
 To start the benchmark, run:
 	./output/clasp-big/houat/start.py
 Once the benchmark is finished, run:
-	./beval ./runscripts/runscript-seq.xml | ./bconv > result.ods
+	./beval ./runscripts/runscript-seq.xml | ./bconv -o result.ods
 Finally, open the file:
 	soffice result.ods
 
@@ -57,7 +59,7 @@ This creates a set of start scripts in the ./output folder.
 To start the benchmark, run (on the cluster):
 	./output/claspar-one-as/zuse/start.sh
 Once the benchmark is finished, run:
-	./beval ./runscripts/runscript-pbs.xml | ./bconv > result.ods
+	./beval ./runscripts/runscript-pbs.xml | ./bconv -o result.ods
 Finally, open the file:
 	soffice result.ods
 

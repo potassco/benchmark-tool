@@ -4,7 +4,7 @@ Created on Jan 19, 2010
 @author: Roland Kaminski
 '''
 
-from benchmarktool.result.soffice import Spreadsheet
+from benchmarktool.result.ods_gen import ODSDoc
 from benchmarktool.tools import Sortable, cmp
 
 class Result:
@@ -52,13 +52,13 @@ class Result:
             if selProjects == "" or project.name in selProjects:
                 projects.append(project)
         benchmarkMerge = self.merge(projects)
-        
-        sheet = Spreadsheet(benchmarkMerge, measures)
+
+        sheet = ODSDoc(benchmarkMerge, measures)
         for project in projects:
             for runspec in project:
-                sheet.addRunspec(runspec)
+                sheet.add_runspec(runspec)
         sheet.finish()
-        sheet.printSheet(out)
+        sheet.make_ods(out)
 
 class BenchmarkMerge:
     """
