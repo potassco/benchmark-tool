@@ -28,50 +28,23 @@ def format(session):
         "--remove-unused-variables",
         "-r",
         "src/benchmarktool/result/ods_gen.py",
-        #"src",
         "tests",
     ]
     if check:
         autoflake_args.remove("--in-place")
     session.run("autoflake", *autoflake_args)
 
-    #isort_args = ["--profile", "black", "src", "tests"]
     isort_args = ["--profile", "black", "src/benchmarktool/result/ods_gen.py", "tests"]
     if check:
         isort_args.insert(0, "--check")
         isort_args.insert(1, "--diff")
     session.run("isort", *isort_args)
 
-    #black_args = ["src", "tests"]
     black_args = ["src/benchmarktool/result/ods_gen.py", "tests"]
     if check:
         black_args.insert(0, "--check")
         black_args.insert(1, "--diff")
     session.run("black", *black_args)
-
-
-#@nox.session
-#def doc(session):
-#    """
-#    Build the documentation.
-#    Accepts the following arguments:
-#    - serve: open documentation after build
-#    - further arguments are passed to mkbuild
-#    """
-
-#    options = session.posargs[:]
-#    open_doc = "serve" in options
-#    if open_doc:
-#        options.remove("serve")
-
-#    session.install("-e", ".[doc]")
-
-#    if open_doc:
-#        open_cmd = "xdg-open" if sys.platform == "linux" else "open"
-#        session.run(open_cmd, "http://localhost:8000/systems/fillname/")
-#        session.run("mkdocs", "serve", *options)
-#    else:
-#        session.run("mkdocs", "build", *options)
 
 
 @nox.session
@@ -91,7 +64,6 @@ def lint_pylint(session):
     """
     session.install("-e", ".[lint_pylint]")
     session.run("pylint", "src/benchmarktool/result/ods_gen", "tests")
-    #session.run("pylint", "benchmarktool", "tests")
 
 
 @nox.session
@@ -102,7 +74,6 @@ def typecheck(session):
     session.install("-e", ".[typecheck]")
     session.run("mypy", "--strict", "src/benchmarktool/result/ods_gen.py")
     session.run("mypy", "--strict", "-p", "tests")
-    #session.run("mypy", "--strict", "-p", "benchmarktool", "-p", "tests")
 
 
 @nox.session(python=PYTHON_VERSIONS)

@@ -79,8 +79,6 @@ def get_cell_index(col: int, row: int, abs_col: bool = False, abs_row: bool = Fa
 class ODSDoc:
     """
     Class representing ODS document.
-
-    (previously called Spreadsheet)
     """
 
     def __init__(self, benchmark: "result.BenchmarkMerge", measures: Any):
@@ -133,8 +131,6 @@ class ODSDoc:
 class Sheet:
     """
     Class representing an ODS sheet.
-
-    (previously called Table/ResultTable)
     """
 
     def __init__(
@@ -279,9 +275,6 @@ class Sheet:
                     float_occur[name] = set()
                 float_occur[name].add(column)
 
-        # create dataframe containing evaluated formulas
-        # self.contentEval = self.content.copy()
-
         # add summaries
         self.add_row_summary(float_occur, col)
         self.add_col_summary()
@@ -312,15 +305,6 @@ class Sheet:
                                 ref_range += ";"
                             ref_range += get_cell_index(col_ref, row + 2, True)
                         block.add_cell(row, name, "formular", Formula("{1}({0})".format(ref_range, col_name.upper())))
-                        # if colName == "min":
-                        #    self.contentEval.at[row, name+"_"+colName]
-                        #       = float(self.content.loc[row+ 2,sorted(floatOccur[name])].astype(float).min())
-                        # elif colName == "median":
-                        #    self.contentEval.at[row, name+"_"+colName]
-                        #       = float(self.content.loc[row+ 2,sorted(floatOccur[name])].astype(float).median())
-                        # elif colName == "max":
-                        #    self.contentEval.at[row, name+"_"+colName]
-                        #       = float(self.content.loc[row+ 2,sorted(floatOccur[name])].astype(float).max())
                     self.summary_refs[col_name][name] = "{0}:{1}".format(
                         get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
                     )
