@@ -842,7 +842,7 @@ class Config(Sortable):
         """
         Compares two configurations using their names.
         """
-        return cmp(config.name, config.name)
+        return cmp(self.name, config.name)
 
 
 class Benchmark(Sortable):
