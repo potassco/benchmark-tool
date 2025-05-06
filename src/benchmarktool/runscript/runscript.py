@@ -353,7 +353,7 @@ class ScriptGen:
         instance - The benchmark instance for the start script
         run      - The number of the run for the start script
         """
-        return os.path.join(runspec.path(), instance.benchclass.name, instance.instance, "run%d" % run)
+        return os.path.join(runspec.path(), instance.benchclass.name, instance.name, "run%d" % run)
 
     def add_to_script(self, runspec: "Runspec", instance: "Benchmark.Instance") -> None:
         """
@@ -883,7 +883,7 @@ class Benchmark(Sortable):
         Describes a benchmark instance.
         """
 
-        def __init__(self, location: str, benchclass: "Benchmark.Class", instance: str, encodings: set[str]):
+        def __init__(self, location: str, benchclass: "Benchmark.Class", name: str, encodings: set[str]):
             """
             Initializes a benchmark instance. The instance name uniquely identifies
             an instance (per benchmark class).
@@ -891,12 +891,12 @@ class Benchmark(Sortable):
             Keyword arguments:
             location  - The location of the benchmark instance.
             classname - The class name of the instance
-            instance  - The name of the instance
+            name  - The name of the instance
             encodings - Encoding associated with the instance
             """
             self.location = location
             self.benchclass = benchclass
-            self.instance = instance
+            self.name = name
             self.id: Optional[int] = None
             self.encodings = encodings
 
@@ -908,26 +908,26 @@ class Benchmark(Sortable):
             out     - Output stream to write to
             indent  - Amount of indentation
             """
-            out.write('{1}<instance name="{0.instance}" id="{0.id}"/>\n'.format(self, indent))
+            out.write('{1}<instance name="{0.name}" id="{0.id}"/>\n'.format(self, indent))
 
         def __cmp__(self, instance: "Benchmark.Instance") -> int:
             """
             Compares tow instances using the instance name.
             """
-            return cmp(self.instance, instance.instance)
+            return cmp(self.name, instance.name)
 
         def __hash__(self) -> int:
             """
             Calculates a hash using the instance name.
             """
-            return hash(self.instance)
+            return hash(self.name)
 
         def path(self) -> str:
             """
             Returns the location of the instance by concatenating
             location, class name and instance name.
             """
-            return os.path.join(self.location, self.benchclass.name, self.instance)
+            return os.path.join(self.location, self.benchclass.name, self.name)
 
     class Folder:
         """
