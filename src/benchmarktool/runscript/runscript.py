@@ -1128,7 +1128,7 @@ class Benchmark(Sortable):
         """
         Compare two benchmark sets.
         """
-        return cmp(benchmark.name, benchmark.name)
+        return cmp(self.name, benchmark.name)
 
 
 class Runspec(Sortable):
@@ -1275,7 +1275,7 @@ class Project(Sortable):
         """
         Compares two projects.
         """
-        return cmp(project.name, project.name)
+        return cmp(self.name, project.name)
 
 
 class Runscript:
