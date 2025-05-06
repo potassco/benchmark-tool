@@ -19,6 +19,7 @@
 	<system name="claspar" version="2.1.0" measures="claspar" config="pbs-generic">
 		<setting name="one-as" tag="par one-as" cmdline="--stats 1" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
 		<setting name="all-as" tag="par all-as" cmdline="--stats -q 0" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
+		<setting name="min" cmdline=""/>
 	</system>
 	
 	<seqjob name="seq-generic" timeout="120" runs="1" parallel="8"/>
@@ -31,6 +32,8 @@
 			<ignore prefix="pigeons"/>
 		</folder>
 		<files path="benchmarks/clasp">
+			<encoding file="benchmarks/no_pigeons.lp"/>
+			<encoding file="benchmarks/no_pigeons2.lp"/>
 			<add file="pigeons/pigeonhole10-unsat.lp"/>
 			<add file="pigeons/pigeonhole11-unsat.lp"/>
 		</files>

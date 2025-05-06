@@ -97,7 +97,7 @@ class TestParser(TestCase):
         self.assertEqual(system.version, "2.1.0")
         self.assertEqual(system.measures, "claspar")
         self.assertEqual(system.order, 1)
-        self.assertEqual(len(system.settings), 2 * 4)  # 2 settings * 4 procs
+        self.assertEqual(len(system.settings), 2 * 4 + 1)  # 2 settings * 4 procs + 1 extra
         self.assertIsInstance(system.config, runscript.Config)
         self.assertEqual(system.config.name, "pbs-generic")
 
@@ -121,6 +121,16 @@ class TestParser(TestCase):
         self.assertEqual(setting.procs, 8)
         self.assertEqual(setting.ppn, 2)
         self.assertEqual(setting.pbstemplate, "templates/impi.pbs")
+        self.assertDictEqual(setting.attr, {})
+        setting = system.settings["min"]
+        self.assertIsInstance(setting, runscript.Setting)
+        self.assertEqual(setting.name, "min")
+        self.assertEqual(setting.cmdline, "")
+        self.assertSetEqual(setting.tag, set())
+        self.assertEqual(setting.order, 8)
+        self.assertIsNone(setting.procs)
+        self.assertIsNone(setting.ppn)
+        self.assertEqual(setting.pbstemplate, "templates/single.pbs")
         self.assertDictEqual(setting.attr, {})
 
         # configs
@@ -164,7 +174,7 @@ class TestParser(TestCase):
                 ]
             )
         )
-        self.assertSetEqual(files.encodings, set())
+        self.assertEqual(len(files.encodings), 2)
 
     def test_filter_attr(self):
         """
