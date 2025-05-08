@@ -31,14 +31,12 @@ def format(session):
         "src/benchmarktool/result/ods_gen.py",
         "src/benchmarktool/runscript/parser.py", 
         "src/benchmarktool/runscript/runscript.py",
-        #"src",
         "tests",
     ]
     if check:
         autoflake_args.remove("--in-place")
     session.run("autoflake", *autoflake_args)
 
-    #isort_args = ["--profile", "black", "src", "tests"]
     isort_args = [
         "--profile", 
         "black",
@@ -53,7 +51,6 @@ def format(session):
         isort_args.insert(1, "--diff")
     session.run("isort", *isort_args)
 
-    #black_args = ["src", "tests"]
     black_args = [
         "src/benchmarktool/tools.py",
         "src/benchmarktool/runscript/parser.py", 
@@ -87,11 +84,10 @@ def lint_pylint(session):
         "pylint",
         "src/benchmarktool/tools.py",
         "src/benchmarktool/result/ods_gen",
-        "tests",
         "src/benchmarktool/runscript/parser",
         "src/benchmarktool/runscript/runscript",
+        "tests",
     )
-    #session.run("pylint", "benchmarktool", "tests")
 
 
 @nox.session
@@ -100,9 +96,13 @@ def typecheck(session):
     Typecheck the code using mypy.
     """
     session.install("-e", ".[typecheck]")
-    session.run("mypy", "--strict", "src/benchmarktool/result/ods_gen.py", "src/benchmarktool/tools.py")
-    session.run("mypy", "--strict", "src/benchmarktool/runscript/parser.py", "src/benchmarktool/runscript/runscript.py")
-    session.run("mypy", "--strict", "-p", "tests")
+    session.run("mypy",
+                "--strict",
+                "src/benchmarktool/result/ods_gen.py",
+                "src/benchmarktool/tools.py",
+                "src/benchmarktool/runscript/parser.py",
+                "src/benchmarktool/runscript/runscript.py",
+    )
 
 
 @nox.session(python=PYTHON_VERSIONS)

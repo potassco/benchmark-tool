@@ -68,7 +68,7 @@ extension-pkg-allow-list = ["lxml"]
 
 [tool.coverage.run]
 omit = [""]
-include = ["src/benchmarktool/result/ods_gen.py", "tests/*"]
+include = ["src/benchmarktool/result/ods_gen.py", "src/benchmarktool/runscript/parser.py", "src/benchmarktool/runscript/runscript.py", "tests/*"]
 
 [tool.coverage.report]
 exclude_lines = ["assert", "nocoverage"]
