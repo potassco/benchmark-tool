@@ -8,12 +8,15 @@ from lxml import etree  # type: ignore[import-untyped]
 
 from benchmarktool.runscript import parser, runscript
 
+# pylint: disable=protected-access
+
 
 class TestParser(TestCase):
     """
     Test class for runscript parser.
     """
 
+    # pylint: disable=too-many-statements
     def test_parse(self):
         """
         Test parse method.
@@ -155,23 +158,21 @@ class TestParser(TestCase):
         self.assertEqual(folder.path, "benchmarks/clasp")
         self.assertSetEqual(folder.prefixes, {"pigeons"})
         self.assertEqual(len(folder.encodings), 1)
-        self.assertTrue(all([e in ["benchmarks/no_pigeons.lp", "benchmarks\\no_pigeons.lp"] for e in folder.encodings]))
+        self.assertTrue(all(e in ["benchmarks/no_pigeons.lp", "benchmarks\\no_pigeons.lp"] for e in folder.encodings))
         files = bench.elements[1]
         self.assertIsInstance(files, runscript.Benchmark.Files)
         self.assertEqual(files.path, "benchmarks/clasp")
         self.assertEqual(len(files.files), 2)
         self.assertTrue(
             all(
-                [
-                    e
-                    in [
-                        "pigeons/pigeonhole10-unsat.lp",
-                        "pigeons/pigeonhole11-unsat.lp",
-                        "pigeons\\pigeonhole10-unsat.lp",
-                        "pigeons\\pigeonhole11-unsat.lp",
-                    ]
-                    for e in files.files
+                e
+                in [
+                    "pigeons/pigeonhole10-unsat.lp",
+                    "pigeons/pigeonhole11-unsat.lp",
+                    "pigeons\\pigeonhole10-unsat.lp",
+                    "pigeons\\pigeonhole11-unsat.lp",
                 ]
+                for e in files.files
             )
         )
         self.assertEqual(len(files.encodings), 2)

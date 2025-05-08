@@ -8,6 +8,8 @@ from unittest import TestCase, mock
 
 from benchmarktool.runscript import runscript
 
+# pylint: disable=too-many-lines, anomalous-backslash-in-string, protected-access
+
 
 class TestMachine(TestCase):
     """
@@ -89,11 +91,11 @@ class TestSystem(TestCase):
         """
         Test to_xml method.
         """
-        with mock.patch("benchmarktool.runscript.runscript.Setting", spec=True) as Setting:
+        with mock.patch("benchmarktool.runscript.runscript.Setting", spec=True) as setting_cls:
             settings = [mock.Mock(name="s1", order=0), mock.Mock(name="s2", order=1)]
-            Setting.side_effect = settings
-            s1 = Setting()
-            s2 = Setting()
+            setting_cls.side_effect = settings
+            s1 = setting_cls()
+            s2 = setting_cls()
 
         self.s.config = self.config
         o = io.StringIO()
@@ -102,7 +104,6 @@ class TestSystem(TestCase):
         self.s.to_xml(o, "\t", None)
         s1.to_xml.assert_called_once_with(o, "\t\t")
         s2.to_xml.assert_called_once_with(o, "\t\t")
-        s2.to_xml.assert_called
         self.assertEqual(
             o.getvalue(),
             '\t<system name="name" version="version" measures="clasp" config="config_name">\n\t</system>\n',
@@ -131,6 +132,7 @@ class TestSystem(TestCase):
         self.assertNotEqual(self.s.__cmp__(s2), 0)
 
 
+# pylint: disable=too-many-instance-attributes
 class TestSetting(TestCase):
     """
     Test cases for Setting class.
@@ -170,7 +172,8 @@ class TestSetting(TestCase):
         self.s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" procs="1" ppn="2" pbstemplate="template" key="val"/>\n',
+            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
+            'procs="1" ppn="2" pbstemplate="template" key="val"/>\n',
         )
 
         o = io.StringIO()
@@ -249,7 +252,7 @@ class TestJob(TestCase):
         self.assertNotEqual(self.j.__cmp__(j2), 0)
 
 
-class testSeqJob(TestJob):
+class TestSeqJob(TestJob):
     """
     Test cases for SeqJob class.
     """
@@ -296,7 +299,8 @@ class testSeqJob(TestJob):
             self.assertIsInstance(self.j.script_gen(), ref)
 
 
-class testPbsJob(TestJob):
+# pylint: disable=too-many-instance-attributes
+class TestPbsJob(TestJob):
     """
     Test cases for PbsJob class.
     """
@@ -417,6 +421,9 @@ class TestScriptGen(TestCase):
     def setUp(self):
         self.job = mock.Mock(spec=runscript.Job)
         self.sg = runscript.ScriptGen(self.job)
+
+        self.runspec: runscript.Runspec
+        self.instance: runscript.Benchmark.Instance
 
     def setup_obj(self):
         """
@@ -568,9 +575,9 @@ class TestPbsScript(TestCase):
         """
         Test class initialization.
         """
-        with mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.PbsScript.next") as next:
+        with mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.PbsScript.next") as next_m:
             ps = runscript.PbsScriptGen.PbsScript(self.runspec, self.path, self.queue)
-            next.assert_called_once
+            next_m.assert_called_once()
         self.assertEqual(ps.runspec, self.runspec)
         self.assertEqual(ps.path, self.path)
         self.assertListEqual(ps.queue, self.queue)
@@ -640,6 +647,7 @@ class TestPbsScriptGen(TestScriptGen):
     """
     Test cases for PbsScriptGen class.
     """
+
     def setUp(self):
         self.job = mock.Mock(spec=runscript.PbsJob)
         self.sg = runscript.PbsScriptGen(self.job)
@@ -670,9 +678,7 @@ class TestPbsScriptGen(TestScriptGen):
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
             x = f.read()
-        self.assertEqual(
-            x, '#!/bin/bash\n\ncd "$(dirname $0)"\nsbatch "start0000.pbs"\nsbatch "start0001.pbs"'
-        )
+        self.assertEqual(x, '#!/bin/bash\n\ncd "$(dirname $0)"\nsbatch "start0000.pbs"\nsbatch "start0001.pbs"')
         os.remove("./tests/ref/start.sh")
         self.assertTrue(os.path.isfile("./tests/ref/start0000.pbs"))
         os.remove("./tests/ref/start0000.pbs")
@@ -692,31 +698,31 @@ class TestPbsScriptGen(TestScriptGen):
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
             x = f.read()
-        self.assertEqual(
-            x, '#!/bin/bash\n\ncd "$(dirname $0)"\nsbatch "start0000.pbs"\nsbatch "start0001.pbs"'
-        )
+        self.assertEqual(x, '#!/bin/bash\n\ncd "$(dirname $0)"\nsbatch "start0000.pbs"\nsbatch "start0001.pbs"')
         os.remove("./tests/ref/start.sh")
         self.assertTrue(os.path.isfile("./tests/ref/start0000.pbs"))
         os.remove("./tests/ref/start0000.pbs")
         self.assertTrue(os.path.isfile("./tests/ref/start0001.pbs"))
         os.remove("./tests/ref/start0001.pbs")
 
+
 class TestConfig(TestCase):
     """
     Test cases for Config class.
     """
+
     def setUp(self):
         self.name = "config"
         self.template = "template"
         self.c = runscript.Config(self.name, self.template)
-    
+
     def test_init(self):
         """
         Test class initialization.
         """
         self.assertEqual(self.c.name, self.name)
         self.assertEqual(self.c.template, self.template)
-    
+
     def test_to_xml(self):
         """
         Test to_xml method.
@@ -747,10 +753,11 @@ class TestClass(TestCase):
     """
     Test cases for Benchmark.Class class.
     """
+
     def setUp(self):
         self.name = "name"
         self.c = runscript.Benchmark.Class(self.name)
-    
+
     def test_init(self):
         """
         Test class initialization.
@@ -772,10 +779,12 @@ class TestClass(TestCase):
         self.assertEqual(self.c.__cmp__(self.c), 0)
         self.assertNotEqual(self.c.__cmp__(c2), 0)
 
+
 class TestInstance(TestCase):
     """
     Test cases for Benchmark.Instance class.
     """
+
     def setUp(self):
         self.location = "loc/ation"
         self.benchclass = mock.Mock(spec=runscript.Benchmark.Class)
@@ -783,7 +792,7 @@ class TestInstance(TestCase):
         self.name = "inst_name"
         self.encodings = {"encoding"}
         self.ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings)
-    
+
     def test_init(self):
         """
         Test class initialization.
@@ -793,7 +802,7 @@ class TestInstance(TestCase):
         self.assertEqual(self.ins.name, self.name)
         self.assertIsNone(self.ins.id)
         self.assertSetEqual(self.ins.encodings, self.encodings)
-    
+
     def test_to_xml(self):
         """
         Test to_xml method.
@@ -826,14 +835,16 @@ class TestInstance(TestCase):
         """
         self.assertTrue(self.ins.path() in ["loc/ation/bench_name/inst_name", "loc/ation\\bench_name\\inst_name"])
 
+
 class TestFolder(TestCase):
     """
     Test cases for Benchmark.Folder class.
     """
+
     def setUp(self):
         self.path = "tests/ref"
         self.f = runscript.Benchmark.Folder(self.path)
-    
+
     def test_init(self):
         """
         Test class initialization.
@@ -841,7 +852,7 @@ class TestFolder(TestCase):
         self.assertEqual(self.f.path, self.path)
         self.assertSetEqual(self.f.prefixes, set())
         self.assertSetEqual(self.f.encodings, set())
-    
+
     def test_add_ignore(self):
         """
         Test add_ignore method.
@@ -857,7 +868,7 @@ class TestFolder(TestCase):
         encoding = "encoding"
         self.f.add_encoding(encoding)
         self.assertSetEqual(self.f.encodings, {encoding})
-    
+
     def test_skip(self):
         """
         Test _skip method.
@@ -880,20 +891,22 @@ class TestFolder(TestCase):
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 5)
-        
+
         self.f.add_ignore("README.md")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 4)
-    
+
+
 class TestFiles(TestCase):
     """
     Test cases for Benchmark.Files class.
     """
+
     def setUp(self):
         self.path = "tests/ref"
         self.f = runscript.Benchmark.Files(self.path)
-    
+
     def test_init(self):
         """
         Test class initialization.
@@ -901,7 +914,7 @@ class TestFiles(TestCase):
         self.assertEqual(self.f.path, self.path)
         self.assertSetEqual(self.f.files, set())
         self.assertSetEqual(self.f.encodings, set())
-    
+
     def test_add_file(self):
         """
         Test add_file method.
@@ -917,7 +930,7 @@ class TestFiles(TestCase):
         encoding = "encoding"
         self.f.add_encoding(encoding)
         self.assertSetEqual(self.f.encodings, {encoding})
-    
+
     def test_init_m(self):
         """
         Test init method.
@@ -927,20 +940,22 @@ class TestFiles(TestCase):
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 0)
-        
+
         self.f.add_file("test_bench/test_f1.lp")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 1)
 
+
 class TestBenchmark(TestCase):
     """
     Test cases for Benchmark class.
     """
+
     def setUp(self):
         self.name = "name"
         self.b = runscript.Benchmark(self.name)
-    
+
     def test_init(self):
         """
         Test class initialization.
@@ -949,7 +964,7 @@ class TestBenchmark(TestCase):
         self.assertListEqual(self.b.elements, [])
         self.assertDictEqual(self.b.instances, {})
         self.assertFalse(self.b.initialized)
-    
+
     def test_add_element(self):
         """
         Test add_element method.
@@ -958,7 +973,7 @@ class TestBenchmark(TestCase):
         f = runscript.Benchmark.Folder("path")
         self.b.add_element(f)
         self.assertListEqual(self.b.elements, [f])
-    
+
     def test_add_instance(self):
         """
         Test add_instance method.
@@ -974,9 +989,9 @@ class TestBenchmark(TestCase):
             self.assertIsInstance(val, set)
             for i in val:
                 self.assertEqual(key, i.benchclass)
-        
+
     def test_init_m(self):
-        """"
+        """ "
         Test init method.
         """
         self.assertFalse(self.b.initialized)
@@ -1032,6 +1047,7 @@ class TestRunspec(TestCase):
     """
     Test cases for Runspec class.
     """
+
     def setUp(self):
         self.machine = mock.Mock(spec=runscript.Machine)
         self.machine.name = "machine"
@@ -1043,7 +1059,7 @@ class TestRunspec(TestCase):
         self.benchmark = mock.Mock(spec=runscript.Benchmark)
         self.benchmark.name = "bench"
         self.rs = runscript.Runspec(self.machine, self.setting, self.benchmark)
-    
+
     def test_init(self):
         """
         Test class initialization.
@@ -1052,15 +1068,21 @@ class TestRunspec(TestCase):
         self.assertEqual(self.rs.setting, self.setting)
         self.assertEqual(self.rs.benchmark, self.benchmark)
         self.assertIsNone(self.rs.project)
-    
+
     def test_path(self):
         """
         Test path method.
         """
         self.rs.project = mock.Mock(spec=runscript.Project)
         self.rs.project.path = mock.Mock(return_value="project_path")
-        self.assertTrue(self.rs.path() in ["project_path/machine/results/bench/sys-version-setting", "project_path\\machine\\results\\bench\\sys-version-setting"])
-    
+        self.assertTrue(
+            self.rs.path()
+            in [
+                "project_path/machine/results/bench/sys-version-setting",
+                "project_path\\machine\\results\\bench\\sys-version-setting",
+            ]
+        )
+
     def test_gen_script(self):
         """
         Test gen_script method.
@@ -1074,7 +1096,7 @@ class TestRunspec(TestCase):
         self.rs.gen_scripts(script_gen)
         self.rs.benchmark.init.assert_called_once()
         script_gen.add_to_script.assert_called_once_with(self.rs, inst)
-    
+
     def test_cmp(self):
         """
         Test __cmp__ method.
@@ -1083,18 +1105,20 @@ class TestRunspec(TestCase):
         self.rs.setting = runscript.Setting("setting", "", set(), 0, None, None, "", {})
         self.rs.setting.system = runscript.System("sys", "version", "", 0)
         self.rs.benchmark = runscript.Benchmark("bench")
-        rs2 = runscript.Runspec(self.rs.machine,  self.rs.setting, runscript.Benchmark("bench2"))
+        rs2 = runscript.Runspec(self.rs.machine, self.rs.setting, runscript.Benchmark("bench2"))
         self.assertEqual(self.rs.__cmp__(self.rs), 0)
         self.assertNotEqual(self.rs.__cmp__(rs2), 0)
-    
+
+
 class TestProject(TestCase):
     """
     Test cases for Project class.
     """
+
     def setUp(self):
         self.name = "name"
         self.prj = runscript.Project(self.name)
-    
+
     def test_init(self):
         """
         Test class initialization.
@@ -1103,7 +1127,7 @@ class TestProject(TestCase):
         self.assertDictEqual(self.prj.runspecs, {})
         self.assertIsNone(self.prj.runscript)
         self.assertIsNone(self.prj.job)
-    
+
     def test_add_runtag(self):
         """
         Test add_runtag method.
@@ -1126,7 +1150,7 @@ class TestProject(TestCase):
             add_runspec.assert_not_called()
             self.prj.add_runtag(m_name, b_name, "tag")
             add_runspec.assert_called_once_with(m_name, sys.name, sys.version, setting.name, b_name)
-    
+
     def test_add_runspec(self):
         """
         Test add_runspec method.
@@ -1153,7 +1177,7 @@ class TestProject(TestCase):
         self.assertEqual(self.prj.runspecs[m_name][0].setting, setting)
         self.assertEqual(self.prj.runspecs[m_name][0].benchmark, bench)
         self.assertEqual(self.prj.runspecs[m_name][0].project, self.prj)
-    
+
     def test_path(self):
         """
         Test path method.
@@ -1162,28 +1186,29 @@ class TestProject(TestCase):
         rs.path = mock.Mock(return_value="rs_path")
         self.prj.runscript = rs
         self.assertTrue(self.prj.path() in ["rs_path/name", "rs_path\\name"])
-    
+
     def test_gen_script(self):
         """
         Test gen_script method.
         """
         # SeqJob
-        j = runscript.SeqJob("job", 1 , 1, 1, {})
+        j = runscript.SeqJob("job", 1, 1, 1, {})
         self.prj.job = j
         rs = mock.Mock(spec=runscript.Runspec)
         rs.gen_scripts = mock.Mock()
         self.prj.runspecs = {"machine": [rs]}
         self.prj.path = mock.Mock(return_value="prj_path")
-        with (mock.patch("benchmarktool.runscript.runscript.SeqJob.script_gen", wraps=j.script_gen) as s_gen,
-              mock.patch("benchmarktool.runscript.runscript.SeqScriptGen.set_skip") as skip,
-              mock.patch("benchmarktool.runscript.runscript.SeqScriptGen.gen_start_script") as gen_start,
+        with (
+            mock.patch("benchmarktool.runscript.runscript.SeqJob.script_gen", wraps=j.script_gen) as s_gen,
+            mock.patch("benchmarktool.runscript.runscript.SeqScriptGen.set_skip") as skip,
+            mock.patch("benchmarktool.runscript.runscript.SeqScriptGen.gen_start_script") as gen_start,
         ):
             self.prj.gen_scripts(False)
             s_gen.assert_called_once()
             skip.assert_called_once_with(False)
             rs.gen_scripts.assert_called_once()
             gen_start.assert_called_once_with(os.path.join(self.prj.path(), "machine"))
-        
+
         # PbsJob
         j = runscript.PbsJob("job", 1, 1, "", 1, 1, "", {})
         self.prj.job = j
@@ -1191,16 +1216,17 @@ class TestProject(TestCase):
         rs.gen_scripts = mock.Mock()
         self.prj.runspecs = {"machine": [rs]}
         self.prj.path = mock.Mock(return_value="prj_path")
-        with (mock.patch("benchmarktool.runscript.runscript.PbsJob.script_gen", wraps=j.script_gen) as s_gen,
-              mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.set_skip") as skip,
-              mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.gen_start_script") as gen_start,
+        with (
+            mock.patch("benchmarktool.runscript.runscript.PbsJob.script_gen", wraps=j.script_gen) as s_gen,
+            mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.set_skip") as skip,
+            mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.gen_start_script") as gen_start,
         ):
             self.prj.gen_scripts(False)
             s_gen.assert_called_once()
             skip.assert_called_once_with(False)
             rs.gen_scripts.assert_called_once()
             gen_start.assert_called_once_with(os.path.join(self.prj.path(), "machine"))
-    
+
     def test_hash(self):
         """
         Test __hash__ method.
@@ -1216,3 +1242,214 @@ class TestProject(TestCase):
         self.assertNotEqual(self.prj.__cmp__(prj2), 0)
 
 
+class TestRunscript(TestCase):
+    """
+    Test cases for Runscript class.
+    """
+
+    def setUp(self):
+        self.o = io.StringIO()
+        self.rs = runscript.Runscript(self.o)
+
+    def test_init(self):
+        """
+        Test class initialization.
+        """
+        self.assertEqual(self.rs.output, self.o)
+        self.assertDictEqual(self.rs.jobs, {})
+        self.assertDictEqual(self.rs.projects, {})
+        self.assertDictEqual(self.rs.machines, {})
+        self.assertDictEqual(self.rs.systems, {})
+        self.assertDictEqual(self.rs.configs, {})
+        self.assertDictEqual(self.rs.benchmarks, {})
+
+    def test_add_machine(self):
+        """
+        Test add_machine method.
+        """
+        self.assertDictEqual(self.rs.machines, {})
+        m = mock.Mock(spec=runscript.Machine)
+        m.name = "machine"
+        self.rs.add_machine(m)
+        self.assertDictEqual(self.rs.machines, {"machine": m})
+
+    def test_add_system(self):
+        """
+        Test add_system method.
+        """
+        self.assertDictEqual(self.rs.systems, {})
+        s = mock.Mock(spec=runscript.System)
+        s.name = "sys"
+        s.version = "ver"
+        c = mock.Mock(spec=runscript.Config)
+        self.rs.configs["config"] = c
+        self.rs.add_system(s, "config")
+        self.assertDictEqual(self.rs.systems, {("sys", "ver"): s})
+        self.assertEqual(s.config, c)
+
+    def test_add_config(self):
+        """
+        Test add_config method.
+        """
+        self.assertDictEqual(self.rs.configs, {})
+        c = mock.Mock(spec=runscript.Config)
+        c.name = "config"
+        self.rs.add_config(c)
+        self.assertDictEqual(self.rs.configs, {"config": c})
+
+    def test_add_benchmark(self):
+        """
+        Test add_benchmark method.
+        """
+        self.assertDictEqual(self.rs.benchmarks, {})
+        b = mock.Mock(spec=runscript.Benchmark)
+        b.name = "bench"
+        self.rs.add_benchmark(b)
+        self.assertDictEqual(self.rs.benchmarks, {"bench": b})
+
+    def test_add_job(self):
+        """
+        test add_job method.
+        """
+        self.assertDictEqual(self.rs.jobs, {})
+        j = mock.Mock(spec=runscript.Job)
+        j.name = "job"
+        self.rs.add_job(j)
+        self.assertDictEqual(self.rs.jobs, {"job": j})
+
+    def test_add_project(self):
+        """
+        Test add_project method.
+        """
+        self.assertDictEqual(self.rs.projects, {})
+        p = mock.Mock(spec=runscript.Project)
+        p.name = "project"
+        j = mock.Mock(spec=runscript.Job)
+        self.rs.jobs["job"] = j
+        self.rs.add_project(p, "job")
+        self.assertDictEqual(self.rs.projects, {"project": p})
+        self.assertEqual(p.runscript, self.rs)
+        self.assertEqual(p.job, j)
+
+    def test_gen_script(self):
+        """
+        Test gen_script method.
+        """
+        p = mock.Mock(spec=runscript.Project)
+        p.gen_scripts = mock.Mock()
+        self.rs.projects["prj"] = p
+        skip = True
+        self.rs.gen_scripts(skip)
+        p.gen_scripts.assert_called_once_with(skip)
+
+    def test_path(self):
+        """
+        Test path method.
+        """
+        self.assertEqual(self.rs.path(), self.o)
+
+    def test_eval_results(self):
+        """
+        Test eval_results method.
+        """
+
+        def temp_to_xml(s: str):
+            return lambda o, i, sys=None: o.write(f"{i}{s}\n")
+
+        job = mock.Mock(spec=runscript.SeqJob)
+        job.name = "job"
+        job.order = 0
+        job.to_xml = mock.Mock(side_effect=temp_to_xml("job_xml"))
+        job.script_gen = mock.Mock(return_value=runscript.SeqScriptGen(job))
+
+        config = mock.Mock(spec=runscript.Config)
+        config.order = 0
+        config.to_xml = mock.Mock(side_effect=temp_to_xml("config_xml"))
+
+        sys = mock.Mock(spec=runscript.System)
+        sys.config = config
+        sys.name = "sys"
+        sys.version = "ver"
+        sys.order = 0
+        sys.to_xml = mock.Mock(side_effect=temp_to_xml("sys_xml"))
+
+        machine = mock.Mock(spec=runscript.Machine)
+        machine.name = "machine"
+        machine.order = 0
+        machine.to_xml = mock.Mock(side_effect=temp_to_xml("machine_xml"))
+
+        setting = mock.Mock(spec=runscript.Setting)
+        setting.name = "setting"
+
+        bclass = mock.Mock(spec=runscript.Benchmark.Class)
+        bclass.id = 0
+        inst = mock.Mock(spec=runscript.Benchmark.Instance)
+        inst.id = 0
+
+        bench = mock.Mock(runscript.Benchmark)
+        bench.name = "bench"
+        bench.instances = {bclass: {inst}}
+        bench.to_xml = mock.Mock(side_effect=temp_to_xml("bench_xml"))
+
+        runspec = mock.Mock(spec=runscript.Runspec)
+        runspec.system = sys
+        runspec.machine = machine
+        runspec.setting = setting
+        runspec.benchmark = bench
+
+        prj = mock.Mock(spec=runscript.Project)
+        prj.job = job
+        prj.runspecs = {"machine": [runspec]}
+        prj.name = "prj"
+
+        self.rs.projects["prj"] = prj
+
+        with mock.patch("benchmarktool.runscript.runscript.SeqScriptGen.eval_results") as sg_eval:
+            self.rs.eval_results(self.o)
+            sg_eval.assert_called_once_with(self.o, "\t\t\t\t\t", runspec, inst)
+        self.assertEqual(
+            self.o.getvalue(),
+            "<result>\n"
+            "\tmachine_xml\n"
+            "\tconfig_xml\n"
+            "\tsys_xml\n"
+            "\tjob_xml\n"
+            "\tbench_xml\n"
+            '\t<project name="prj" job="job">\n'
+            '\t\t<runspec machine="machine" system="sys" version="ver" '
+            'benchmark="bench" setting="setting">\n'
+            '\t\t\t<class id="0">\n'
+            '\t\t\t\t<instance id="0">\n'
+            "\t\t\t\t</instance>\n"
+            "\t\t\t</class>\n"
+            "\t\t</runspec>\n"
+            "\t</project>\n"
+            "</result>\n",
+        )
+
+
+class TestTagDisj(TestCase):
+    """
+    Test cases for TagDisj class.
+    """
+
+    def setUp(self):
+        self.tag = "tag1 tag2 | tag3"
+        self.td = runscript.TagDisj(self.tag)
+
+    def test_init(self):
+        """
+        Test class initialization.
+        """
+        self.assertListEqual(self.td.tag, [frozenset(["tag1", "tag2"]), frozenset(["tag3"])])
+        all_td = runscript.TagDisj("*all*")
+        self.assertEqual(all_td.tag, 1)
+
+    def test_match(self):
+        """
+        Test match method.
+        """
+        self.assertTrue(self.td.match({"tag3", "tag4"}))
+        self.assertFalse(self.td.match({"tag1"}))
+        all_td = runscript.TagDisj("*all*")
+        self.assertTrue(all_td.match({"test123"}))
