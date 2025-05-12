@@ -11,6 +11,13 @@ if "GITHUB_ACTIONS" in os.environ:
     PYTHON_VERSIONS = ["3.9", "3.11"]
     EDITABLE_TESTS = False
 
+FILES_TO_BE_CHECKED = [
+    "src/benchmarktool/tools.py",
+    "src/benchmarktool/result/ods_gen.py",
+    "src/benchmarktool/runscript/parser.py", 
+    "src/benchmarktool/runscript/runscript.py",
+]
+
 @nox.session
 def format(session):
     """
@@ -27,20 +34,25 @@ def format(session):
         "--ignore-init-module-imports",
         "--remove-unused-variables",
         "-r",
-        "src/benchmarktool/result/ods_gen.py",
         "tests",
-    ]
+    ] + FILES_TO_BE_CHECKED
     if check:
         autoflake_args.remove("--in-place")
     session.run("autoflake", *autoflake_args)
 
-    isort_args = ["--profile", "black", "src/benchmarktool/result/ods_gen.py", "tests"]
+    isort_args = [
+        "--profile", 
+        "black",
+        "tests"
+    ] + FILES_TO_BE_CHECKED
     if check:
         isort_args.insert(0, "--check")
         isort_args.insert(1, "--diff")
     session.run("isort", *isort_args)
 
-    black_args = ["src/benchmarktool/result/ods_gen.py", "tests"]
+    black_args = [
+        "tests"
+    ] + FILES_TO_BE_CHECKED
     if check:
         black_args.insert(0, "--check")
         black_args.insert(1, "--diff")
@@ -63,7 +75,10 @@ def lint_pylint(session):
     Run pylint.
     """
     session.install("-e", ".[lint_pylint]")
-    session.run("pylint", "src/benchmarktool/result/ods_gen", "tests")
+    args = [
+        "tests",
+    ] + FILES_TO_BE_CHECKED
+    session.run("pylint", *args)
 
 
 @nox.session
@@ -72,8 +87,10 @@ def typecheck(session):
     Typecheck the code using mypy.
     """
     session.install("-e", ".[typecheck]")
-    session.run("mypy", "--strict", "src/benchmarktool/result/ods_gen.py")
-    session.run("mypy", "--strict", "-p", "tests")
+    args = [
+        "--strict"
+    ] + FILES_TO_BE_CHECKED
+    session.run("mypy", *args)
 
 
 @nox.session(python=PYTHON_VERSIONS)

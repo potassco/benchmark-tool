@@ -65,64 +65,49 @@ class TestODSDoc(TestCase):
     Test cases for ODSDoc class.
     """
 
+    def setUp(self):
+        self.doc = ods_gen.ODSDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)])
+
     def test_init(self) -> None:
         """
         Test class initialization.
         """
-        # pylint: disable=unused-variable
-        with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge(MagicMock())
-            doc = ods_gen.ODSDoc(bm, [("test", None)])
-            self.assertIsInstance(doc.inst_sheet, ods_gen.Sheet)
-            self.assertIsInstance(doc.class_sheet, ods_gen.Sheet)
+        self.assertIsInstance(self.doc.inst_sheet, ods_gen.Sheet)
+        self.assertIsInstance(self.doc.class_sheet, ods_gen.Sheet)
 
     def test_add_runspec(self) -> None:
         """
         Test add_runspec method.
         """
-        # pylint: disable=unused-variable
-        with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge(MagicMock())
-            doc = ods_gen.ODSDoc(bm, [("test", None)])
-            runspec = result.Runspec(
-                Mock(result.System), Mock(result.Machine), Mock(result.Benchmark), Mock(result.Setting)
-            )
-            doc.inst_sheet.add_runspec = MagicMock()
-            doc.class_sheet.add_runspec = MagicMock()
-            doc.add_runspec(runspec)
-            doc.inst_sheet.add_runspec.assert_called_once_with(runspec)
-            doc.class_sheet.add_runspec.assert_called_once_with(runspec)
+        runspec = Mock(spec=result.Runspec)
+        self.doc.inst_sheet.add_runspec = Mock()
+        self.doc.class_sheet.add_runspec = Mock()
+        self.doc.add_runspec(runspec)
+        self.doc.inst_sheet.add_runspec.assert_called_once_with(runspec)
+        self.doc.class_sheet.add_runspec.assert_called_once_with(runspec)
 
     def test_finish(self) -> None:
         """
         Test finish method.
         """
-        # pylint: disable=unused-variable
-        with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge(MagicMock())
-            doc = ods_gen.ODSDoc(bm, [("test", None)])
-            doc.inst_sheet.finish = MagicMock()
-            doc.class_sheet.finish = MagicMock()
-            doc.finish()
-            doc.inst_sheet.finish.assert_called_once()
-            doc.class_sheet.finish.assert_called_once()
+        self.doc.inst_sheet.finish = Mock()
+        self.doc.class_sheet.finish = Mock()
+        self.doc.finish()
+        self.doc.inst_sheet.finish.assert_called_once()
+        self.doc.class_sheet.finish.assert_called_once()
 
     def test_make_ods(self) -> None:
         """
         Test make_ods method.
         """
-        # pylint: disable=unused-variable
-        with patch("benchmarktool.result.result.BenchmarkMerge") as mock:
-            bm = result.BenchmarkMerge(MagicMock())
-            doc = ods_gen.ODSDoc(bm, [("test", None)])
-            ref = pd.DataFrame([None, None, "test"])
-            doc.inst_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
-            doc.class_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
-            doc.make_ods("./tests/ref/new_ods.ods")
-            pd.testing.assert_frame_equal(doc.inst_sheet.content, ref)
-            pd.testing.assert_frame_equal(doc.class_sheet.content, ref)
-            self.assertTrue(os.path.isfile("./tests/ref/new_ods.ods"))
-            os.remove("./tests/ref/new_ods.ods")
+        ref = pd.DataFrame([None, None, "test"])
+        self.doc.inst_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
+        self.doc.class_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
+        self.doc.make_ods("./tests/ref/new_ods.ods")
+        pd.testing.assert_frame_equal(self.doc.inst_sheet.content, ref)
+        pd.testing.assert_frame_equal(self.doc.class_sheet.content, ref)
+        self.assertTrue(os.path.isfile("./tests/ref/new_ods.ods"))
+        os.remove("./tests/ref/new_ods.ods")
 
 
 # pylint: disable=too-many-instance-attributes
@@ -217,6 +202,9 @@ class TestInstSheet(TestCase):
     def test_add_runspec(self) -> None:
         """
         Test add_runspec method.
+
+        More in-depth testing required.
+        (add_instance_results, add_benchclass_summary)
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         sheet.add_runspec(self.run_spec[0])
@@ -372,6 +360,12 @@ class TestSystemBlock(TestCase):
     Test cases for SystemBlock class.
     """
 
+    def setUp(self):
+        self.sys = Mock(spec=result.System)
+        self.setting = Mock(spec=result.Setting)
+        self.setting.system = self.sys
+        self.machine = Mock(spec=result.Machine)
+
     def test_init(self) -> None:
         """
         Test class initialization.
@@ -383,11 +377,9 @@ class TestSystemBlock(TestCase):
         self.assertDictEqual(block.columns, {})
         self.assertIsNone(block.offset)
 
-        setting = MagicMock()
-        machine = MagicMock()
-        block = ods_gen.SystemBlock(setting, machine)
-        self.assertEqual(block.setting, setting)
-        self.assertEqual(block.machine, machine)
+        block = ods_gen.SystemBlock(self.setting, self.machine)
+        self.assertEqual(block.setting, self.setting)
+        self.assertEqual(block.machine, self.machine)
 
     def test_gen_name(self) -> None:
         """
@@ -395,14 +387,11 @@ class TestSystemBlock(TestCase):
         """
         block = ods_gen.SystemBlock(None, None)
         self.assertEqual(block.gen_name(False), "")
-        setting = MagicMock()
-        system = MagicMock()
-        system.name = "test_sys"
-        system.version = "test_ver"
-        setting.system = system
-        setting.name = "test_setting"
-        machine = result.Machine("test_machine", "test_cpu", "test_mem")
-        block = ods_gen.SystemBlock(setting, machine)
+        self.sys.name = "test_sys"
+        self.sys.version = "test_ver"
+        self.setting.name = "test_setting"
+        self.machine.name = "test_machine"
+        block = ods_gen.SystemBlock(self.setting, self.machine)
         self.assertEqual(block.gen_name(False), "test_sys-test_ver/test_setting")
         self.assertEqual(block.gen_name(True), "test_sys-test_ver/test_setting (test_machine)")
 
@@ -410,22 +399,25 @@ class TestSystemBlock(TestCase):
         """
         Test __cmp__ method.
         """
-        with patch("benchmarktool.result.ods_gen.cmp", return_value=1) as mock:
-            block = ods_gen.SystemBlock(None, None)
-            block2 = ods_gen.SystemBlock(MagicMock(), MagicMock())
-            self.assertEqual(block.__cmp__(block2), 0)
-            block = ods_gen.SystemBlock(MagicMock(), MagicMock())
-            self.assertEqual(block.__cmp__(block2), 1)
-            mock.assert_called_once()
+        n_block = ods_gen.SystemBlock(None, None)
+        self.setting.order = 0
+        self.setting.system.order = 0
+        self.machine.name = "machine"
+        block = ods_gen.SystemBlock(self.setting, self.machine)
+        self.assertEqual(n_block.__cmp__(block), 0)
+
+        m = Mock(spec=result.Machine)
+        m.name = "machine2"
+        block2 = ods_gen.SystemBlock(self.setting, m)
+        self.assertEqual(block.__cmp__(block), 0)
+        self.assertNotEqual(block.__cmp__(block2), 0)
 
     def test_hash(self) -> None:
         """
         Test __hash__ method.
         """
-        setting = MagicMock()
-        machine = MagicMock()
-        block = ods_gen.SystemBlock(setting, machine)
-        self.assertEqual(hash(block), hash((setting, machine)))
+        block = ods_gen.SystemBlock(self.setting, self.machine)
+        self.assertEqual(hash(block), hash((self.setting, self.machine)))
 
     def test_add_cell(self) -> None:
         """

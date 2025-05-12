@@ -21,4 +21,4 @@ if __name__ == '__main__':
     
     p = Parser()
     run = p.parse(fileName)
-    run.evalResults(sys.stdout)
+    run.eval_results(sys.stdout)

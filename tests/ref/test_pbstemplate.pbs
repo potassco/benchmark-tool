@@ -1,0 +1,5 @@
+#SBATCH --time={walltime}
+#SBATCH --cpus-per-task={cpt}
+#SBATCH --partition={partition}
+
+jobs="{jobs}"

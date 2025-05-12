@@ -73,14 +73,14 @@ class Parser:
             self.settingOrder += 1
         elif tag == "seqjob":
             name     = attrib.pop("name")
-            timeout  = tools.xmlTime(attrib.pop("timeout"))
+            timeout  = tools.xml_time(attrib.pop("timeout"))
             runs     = int(attrib.pop("runs"))
             parallel = int(attrib.pop("parallel"))
             job = SeqJob(name, timeout, runs, parallel, attrib)
             self.result.jobs[job.name] = job
         elif tag == "pbsjob":
             name        = attrib.pop("name")
-            timeout     = tools.xmlTime(attrib.pop("timeout"))
+            timeout     = tools.xml_time(attrib.pop("timeout"))
             runs        = int(attrib.pop("runs"))
             script_mode = attrib.pop("script_mode")
             walltime    = attrib.pop("walltime")
