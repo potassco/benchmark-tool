@@ -22,6 +22,11 @@ test = ["coverage[toml]"]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
 dev = ["fillname[test,typecheck,lint_pylint]"]
 
+[project.scripts]
+bconv = "benchmarktool.entry_points:start_bconv"
+beval = "benchmarktool.entry_points:start_beval"
+bgen = "benchmarktool.entry_points:start_bgen"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
