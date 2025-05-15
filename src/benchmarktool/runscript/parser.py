@@ -45,8 +45,8 @@ class Parser:
         Parse a given runscript and return its representation
         in form of an instance of class Runscript.
 
-        Keyword arguments:
-        fileName -- a string holding a path to a xml file
+        Attributes:
+            fileName (str): a string holding a path to a xml file.
         """
 
         schemadoc = etree.parse(
@@ -327,11 +327,11 @@ class Parser:
                     node.get("name"),
                     tools.xml_time(node.get("timeout")),
                     int(node.get("runs")),
+                    attr,
                     node.get("script_mode"),
                     tools.xml_time(node.get("walltime")),
                     int(node.get("cpt")),
                     partition,
-                    attr,
                 )
                 run.add_job(job)
 
@@ -341,8 +341,8 @@ class Parser:
                     node.get("name"),
                     tools.xml_time(node.get("timeout")),
                     int(node.get("runs")),
-                    int(node.get("parallel")),
                     attr,
+                    int(node.get("parallel")),
                 )
                 run.add_job(job)
 
@@ -355,10 +355,11 @@ class Parser:
                 run.add_config(config)
 
             compound_settings: dict[str, list[str]] = {}
-            sytem_order = 0
+            system_order = 0
             procs: list[Optional[int]]
             for node in root.xpath("./system"):
-                system = System(node.get("name"), node.get("version"), node.get("measures"), sytem_order)
+                config = run.configs[node.get("config")]
+                system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
                 setting_order = 0
                 for child in node.xpath("setting"):
                     attr = self._filter_attr(child, ["name", "cmdline", "tag"])
@@ -391,8 +392,8 @@ class Parser:
                         system.add_setting(setting)
                         setting_order += 1
 
-                run.add_system(system, node.get("config"))
-                sytem_order += 1
+                run.systems[(system.name, system.version)] = system
+                system_order += 1
 
             element: Any
             for node in root.xpath("./benchmark"):
@@ -414,8 +415,8 @@ class Parser:
                 run.add_benchmark(benchmark)
 
             for node in root.xpath("./project"):
-                project = Project(node.get("name"))
-                run.add_project(project, node.get("job"))
+                project = Project(node.get("name"), run, run.jobs[node.get("job")])
+                run.add_project(project)
                 for child in node.xpath("./runspec"):
                     for setting_name in compound_settings[child.get("setting")]:
                         project.add_runspec(
