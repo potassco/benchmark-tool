@@ -8,15 +8,15 @@ import os
 import random
 import stat
 from collections.abc import MutableSequence
-from typing import Any, no_type_check
+from typing import Any
 
 
 def mkdir_p(path: str) -> None:
     """
     Simulates "mkdir -p" functionality.
 
-    Keyword arguments:
-    path -- a string holding the path to create
+    Attributes:
+        path (str): A string holding the path to create.
     """
     if not os.path.exists(path):
         os.makedirs(path)
@@ -25,6 +25,9 @@ def mkdir_p(path: str) -> None:
 def xml_time(str_rep: str) -> int:
     """
     Converts [[h:]m:]s time format to integer value in seconds.
+
+    Attributes:
+        str_rep (str): String representation.
     """
     timeout = str_rep.split(":")
     seconds = int(timeout[-1])
@@ -39,6 +42,9 @@ def xml_time(str_rep: str) -> int:
 def pbs_time(int_rep: int) -> str:
     """
     Converts integer value in seconds to [[h:]m:]s time format.
+
+    Attributes:
+        int_rep (int): Int representation.
     """
     s = int_rep % 60
     int_rep //= 60
@@ -52,6 +58,9 @@ def median_sorted(sequence: MutableSequence[Any]) -> Any:
     """
     Returns the median of a sorted sequence.
     (Returns 0 if the sequence is empty.)
+
+    Attributes:
+        sequence (MutableSequence[Any]): Sequence
     """
     if len(sequence) == 0:
         return 0
@@ -69,12 +78,20 @@ def median(sequence: MutableSequence[Any]) -> Any:
     """
     Returns the median of an unordered sequence.
     (Returns 0 if the sequence is empty.)
+
+    Attributes:
+        sequence (MutableSequence[Any]): Sequence
     """
 
     def partition(sequence: MutableSequence[Any], left: int, right: int) -> int:
         """
         Selects a pivot element and moves all smaller(bigger)
         elements to the left(right).
+
+        Attributes:
+            sequence (MutableSequence[Any]): Sequence
+            left (int):                      left index
+            right (int):                     right index
         """
         pivot_idx = random.randint(left, right)
         pivot_value = sequence[pivot_idx]
@@ -90,6 +107,11 @@ def median(sequence: MutableSequence[Any]) -> Any:
     def select(sequence: MutableSequence[Any], left: int, right: int, k: int) -> Any:
         """
         Selects the k-th element as in the ordered sequence.
+
+        Attributes:
+            sequence (MutableSequence[Any]): Sequence
+            left (int):                      left index
+            right (int):                     right index
         """
         pivot_idx = partition(sequence, left, right)
         if k == pivot_idx:
@@ -115,46 +137,9 @@ def median(sequence: MutableSequence[Any]) -> Any:
 def set_executable(filename: str) -> None:
     """
     Set execution permissions for given file.
+
+    Attributes:
+        filename (str): A file
     """
     filestat = os.stat(filename)
     os.chmod(filename, filestat[0] | stat.S_IXUSR)
-
-
-# make the benchmark tool forward compatible with python 3
-def cmp(a: Any, b: Any) -> int:
-    """
-    Compare two objects.
-    """
-    if a < b:
-        return -1
-    if a > b:
-        return 1
-    return 0
-
-
-# mypy, pylint dont like python2 __cmp__
-# pylint: disable=no-member
-class Sortable:
-    """
-    Class to allow comparison between subclasses.
-    """
-
-    @no_type_check
-    def __le__(self, other: "Sortable") -> bool:
-        return self.__cmp__(other) <= 0
-
-    @no_type_check
-    def __ge__(self, other: "Sortable") -> bool:
-        return self.__cmp__(other) >= 0
-
-    @no_type_check
-    def __lt__(self, other: "Sortable") -> bool:
-        return self.__cmp__(other) < 0
-
-    @no_type_check
-    def __gt__(self, other: "Sortable") -> bool:
-        return self.__cmp__(other) > 0
-
-    @no_type_check
-    def __eq__(self, other: "Sortable") -> bool:
-        return self.__cmp__(other) == 0

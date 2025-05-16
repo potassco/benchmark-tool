@@ -1,69 +1,102 @@
-'''
+"""
 Created on Jan 17, 2010
 
 @author: Roland Kaminski
-'''
+"""
 
 import os
 import re
-import sys
-import codecs
+from typing import Any
 
-from benchmarktool.resultparser.claspar import claspar
-from benchmarktool.resultparser.cudf import cudf
+# pylint: disable=unused-import
 from benchmarktool.resultparser.clasp import clasp
-from benchmarktool.resultparser.claspD import claspD
+from benchmarktool.resultparser.clasp_d import clasp_d
+from benchmarktool.resultparser.claspar import claspar
 from benchmarktool.resultparser.clingo import clingo
+from benchmarktool.resultparser.cudf import cudf
+from benchmarktool.runscript import runscript
 
-claspre_features 	= re.compile(r"^Features[ ]*:[ ]*(([0-9]+\.?[0-9]*)([,](.+\.?.*))*)\+?[ ]*$")
+claspre_features = re.compile(r"^Features[ ]*:[ ]*(([0-9]+\.?[0-9]*)([,](.+\.?.*))*)\+?[ ]*$")
 claspre_conf = re.compile(r"^Chosen configuration:[ ]*(.*)\+?[ ]*$")
 
-def claspre(root, runspec, instance):
-	result = clasp(root, runspec, instance)
-	for line in open(os.path.join(root, "runsolver.solver")):
-		m = claspre_features.match(line)
-		if m: result.append(("features", "list float", m.group(1)))
-		m = claspre_conf.match(line)
-		if m: result.append(("configuration", "string", m.group(1)))
-	return result
 
-smodels_status  = re.compile(r"^(True|False)")
+def claspre(
+    root: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance"
+) -> list[tuple[str, str, Any]]:
+    """
+    Extracts clasp features.
+
+    Attributes:
+        root (str):                    The folder with results.
+        runspec (Runspec):             The run specification of the benchmark.
+        instance (Benchmark.Instance): The benchmark instance.
+    """
+    result = clasp(root, runspec, instance)
+    with open(os.path.join(root, "runsolver.solver"), encoding="utf8") as f:
+        for line in f:
+            m = claspre_features.match(line)
+            if m:
+                result.append(("features", "list float", m.group(1)))
+            m = claspre_conf.match(line)
+            if m:
+                result.append(("configuration", "string", m.group(1)))
+    return result
+
+
+smodels_status = re.compile(r"^(True|False)")
 smodels_choices = re.compile(r"^Number of choice points: ([0-9]+)")
-smodels_time	= re.compile(r"^Real time \(s\): ([0-9]+\.[0-9]+)$")
+smodels_time = re.compile(r"^Real time \(s\): ([0-9]+\.[0-9]+)$")
 
-def smodels(root, runspec, instance):
-	"""
-	Extracts some smodels statistics.
-	(This function was tested with smodels-2.33.)
-	"""
-	result  = []
-	status  = None
-	timeout = time = runspec.project.job.timeout
 
-	# parse smodels output
-	for line in open(os.path.join(root, "runsolver.solver")):
-		m = smodels_status.match(line)
-		if m: status = m.group(1)
-		m = smodels_choices.match(line)
-		if m: result.append(("choices", "float", float(m.group(1))))
+# pylint: disable=unused-argument
+def smodels(
+    root: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance"
+) -> list[tuple[str, str, Any]]:
+    """
+    Extracts some smodels statistics.
+    (This function was tested with smodels-2.33.)
 
-	# parse runsolver output
-	for line in open(os.path.join(root, "runsolver.watcher")):
-		m = smodels_time.match(line)
-		if m: time = float(m.group(1))
+    Attributes:
+        root (str):                    The folder with results.
+        runspec (Runspec):             The run specification of the benchmark.
+        instance (Benchmark.Instance): The benchmark instance.
+    """
+    result: list[tuple[str, str, Any]] = []
+    status = None
+    timeout = runspec.project.job.timeout
+    time: int | float = timeout
 
-	if status == None or time >= timeout:
-		time = timeout
-		result.append(("timeout", "float", 1))
-	else:
-		result.append(("timeout", "float", 0))
+    # parse smodels output
+    with open(os.path.join(root, "runsolver.solver"), encoding="utf8") as f:
+        for line in f:
+            m = smodels_status.match(line)
+            if m:
+                status = m.group(1)
+            m = smodels_choices.match(line)
+            if m:
+                result.append(("choices", "float", float(m.group(1))))
 
-	if status == "True": status = "SATISFIABLE"
-	elif status == "False": status = "UNSATISFIABLE"
-	else: status = "UNKNOWN"
+    # parse runsolver output
+    with open(os.path.join(root, "runsolver.watcher"), encoding="utf8") as f:
+        for line in f:
+            m = smodels_time.match(line)
+            if m:
+                time = float(m.group(1))
 
-	result.append(("status", "string", status))
-	result.append(("time", "float", time))
+    if status is None or time >= timeout:
+        time = timeout
+        result.append(("timeout", "float", 1))
+    else:
+        result.append(("timeout", "float", 0))
 
-	return result
+    if status == "True":
+        status = "SATISFIABLE"
+    elif status == "False":
+        status = "UNSATISFIABLE"
+    else:
+        status = "UNKNOWN"
 
+    result.append(("status", "string", status))
+    result.append(("time", "float", time))
+
+    return result

@@ -24,33 +24,34 @@ def start_bconv() -> None:
         "--measures",
         dest="measures",
         default="time:t,timeout:to",
-        help="comma separated list of measures of form name[:{t,to,-}] to include in table (optional argument determines coloring)",
+        help=(
+            "comma separated list of measures of form name[:{t,to,-}] "
+            "to include in table (optional argument determines coloring)"
+        ),
     )
 
     opts, files = parser.parse_args(sys.argv[1:])
 
-    if len(files) == 0:
-        inFile = sys.stdin
-    elif len(files) == 1:
-        inFile = open(files[0])
-    else:
-        parser.error("Exactly on file has to be given")
-
     if opts.projects != "":
         opts.projects = set(opts.projects.split(","))
+    measures = []
     if opts.measures != "":
-        measures = []
         for t in opts.measures.split(","):
             x = t.split(":", 1)
             if len(x) == 1:
                 measures.append((x[0], None))
             else:
                 measures.append(tuple(x))
-        opts.measures = measures
     p = ResParser()
-    res = p.parse(inFile)
-
-    res.genOffice(opts.output, opts.projects, opts.measures)
+    if len(files) == 0:
+        res = p.parse(sys.stdin)
+        res.gen_office(opts.output, opts.projects, measures)
+    elif len(files) == 1:
+        with open(files[0], encoding="utf8") as in_file:
+            res = p.parse(in_file)
+        res.gen_office(opts.output, opts.projects, measures)
+    else:
+        parser.error("Exactly on file has to be given")
 
 
 def start_beval() -> None:
@@ -60,16 +61,15 @@ def start_beval() -> None:
     usage = "usage: %prog [options] <runscript>"
     parser = optparse.OptionParser(usage=usage)
 
-    opts, files = parser.parse_args(sys.argv[1:])
+    _, files = parser.parse_args(sys.argv[1:])
 
     if len(files) == 1:
-        fileName = files[0]
+        file_name = files[0]
+        p = RunParser()
+        run = p.parse(file_name)
+        run.eval_results(sys.stdout)
     else:
         parser.error("Exactly on file has to be given")
-
-    p = RunParser()
-    run = p.parse(fileName)
-    run.eval_results(sys.stdout)
 
 
 def start_bgen() -> None:
@@ -85,9 +85,9 @@ def start_bgen() -> None:
     opts, files = parser.parse_args(sys.argv[1:])
 
     if len(files) == 1:
-        fileName = files[0]
+        file_name = files[0]
+        p = RunParser()
+        run = p.parse(file_name)
+        run.gen_scripts(opts.exclude)
     else:
         parser.error("Exactly on file has to be given")
-    p = RunParser()
-    run = p.parse(fileName)
-    run.gen_scripts(opts.exclude)
