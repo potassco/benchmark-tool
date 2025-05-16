@@ -1060,8 +1060,8 @@ class Project:
     Attributes:
         name (str):                            The name of the project.
         runscript (Runscript):                 Associated runscript.
-        job (Job):                 Associated job.
-        runspecs (dict[str, list['Runspec']]): Runspecifications of the project.
+        job (Job):                             Associated job.
+        runspecs (dict[str, list['Runspec']]): Run specifications of the project.
     """
 
     name: str
