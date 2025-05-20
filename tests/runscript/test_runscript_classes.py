@@ -310,7 +310,7 @@ class TestScriptGen(TestCase):
         self.runspec.system.version = "sys_version"
         self.runspec.system.config = mock.Mock(spec=runscript.Config)
         self.runspec.system.config.template = "tests/ref/test_template.sh"
-        self.runspec.system.measures = "result_parser"
+        self.runspec.system.measures = "clasp"
 
         self.sg.job.runs = 1
         self.sg.job.timeout = 10
@@ -397,7 +397,7 @@ class TestScriptGen(TestCase):
         """
         self.setup_obj()
         o = io.StringIO()
-        with mock.patch("benchmarktool.config.result_parser", return_value=[("time", "int", 5)], create=True):
+        with mock.patch("benchmarktool.resultparser.clasp.parse", return_value=[("time", "int", 5)], create=True):
             self.sg.eval_results(o, "\t", self.runspec, self.instance)
         self.assertEqual(o.getvalue(), '\t<run number="1">\n\t\t<measure name="time" type="int" val="5"/>\n\t</run>\n')
 
