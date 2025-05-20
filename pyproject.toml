@@ -68,12 +68,12 @@ variable-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
 good-names = ["_"]
 
 [tool.pylint."messages control"]
-disable = ["consider-using-f-string"]
+disable = ["consider-using-f-string", "duplicate-code"]
 extension-pkg-allow-list = ["lxml"]
 
 [tool.coverage.run]
 omit = [""]
-include = ["src/benchmarktool/result/ods_gen.py", "src/benchmarktool/runscript/parser.py", "src/benchmarktool/runscript/runscript.py", "tests/*"]
+include = ["src/*", "tests/*"]
 
 [tool.coverage.report]
 exclude_lines = ["assert", "nocoverage"]
