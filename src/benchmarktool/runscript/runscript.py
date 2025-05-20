@@ -970,7 +970,6 @@ class Benchmark:
         Populates the benchmark set with instances specified by the
         benchmark elements added.
         """
-        print(self.instances)
         if not self.initialized:
             for element in self.elements:
                 element.init(self)
@@ -987,7 +986,6 @@ class Benchmark:
                     )
                     instanceid += 1
             self.instances = id_instances
-            print(self.instances)
             self.initialized = True
 
     def to_xml(self, out: Any, indent: str) -> None:

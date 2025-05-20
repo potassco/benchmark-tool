@@ -9,8 +9,6 @@ from typing import Any, Iterator
 
 from benchmarktool.result.ods_gen import ODSDoc
 
-# pylint: disable=duplicate-code
-
 
 class Result:
     """
@@ -190,7 +188,7 @@ class Job:
     name: str
     timeout: int = field(compare=False)
     runs: int = field(compare=False)
-    attrib: dict[str, Any] = field(compare=False)
+    attr: dict[str, Any] = field(compare=False)
 
 
 @dataclass(order=True, frozen=True)
@@ -257,7 +255,7 @@ class Class:
         name (str):                      The name of the benchmark.
         id (int):                        A unique id (in the scope of the benchmark).
         instances (dict[int, Instance]): Instances belonging to this benchmark class.
-        row (int):                       Row in the benchmark class comparison.
+        values (dict[str, Any]):         Mutable dict with helper values.
     """
 
     benchmark: Benchmark
@@ -287,11 +285,11 @@ class Instance:
     Represents a benchmark instance.
 
     Attributes:
-        benchclass (Class): The class of the instance.
-        name (str):         The name of the benchmark.
-        id (int):           A unique id (in the scope of the benchmark).
-        max_runs (int):     Max number of runs.
-        row (int):          Row in the benchmark class comparison.
+        benchclass (Class):      The class of the instance.
+        name (str):              The name of the benchmark.
+        id (int):                A unique id (in the scope of the benchmark).
+        max_runs (int):          Max number of runs.
+        values (dict[str, Any]): Mutable dict with helper values.
     """
 
     benchclass: Class
@@ -314,12 +312,12 @@ class Project:
 
     Attributes:
         name (str):                 The name of the project.
-        job (Job):                  Associated job.
+        job (str):                  The name of the associated job.
         runspecs (list['Runspec']): Run specifications of the project.
     """
 
     name: str
-    job: SeqJob | PbsJob = field(compare=False)
+    job: str = field(compare=False)
     runspecs: list["Runspec"] = field(default_factory=list, compare=False)
 
     def __iter__(self) -> Iterator["Runspec"]:
