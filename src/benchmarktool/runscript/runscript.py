@@ -6,16 +6,16 @@ specified by the run script.
 
 __author__ = "Roland Kaminski"
 
+import importlib
 import os
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-# needed to embed measurements functions via exec
-# pylint: disable-msg=W0611
-import benchmarktool.config  # @UnusedImport
 from benchmarktool import tools
 
-# pylint: enable-msg=W0611
+# needed to embed measurements functions via exec
+
+
 # pylint: disable=too-many-lines
 
 
@@ -322,12 +322,11 @@ class ScriptGen:
             runspec (Runspec):             The run specification of the benchmark.
             instance (Benchmark.Instance): The benchmark instance.
         """
+        result_parser = importlib.import_module("benchmarktool.resultparser.{0}".format(runspec.system.measures))
         for run in range(1, self.job.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
             # result parser call
-            result = getattr(benchmarktool.config, runspec.system.measures)(
-                self._path(runspec, instance, run), runspec, instance
-            )
+            result = result_parser.parse(self._path(runspec, instance, run), runspec, instance)
             for key, valtype, val in sorted(result):
                 out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val))
             out.write("{0}</run>\n".format(indent))
