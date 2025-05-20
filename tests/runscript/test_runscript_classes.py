@@ -653,7 +653,7 @@ class TestFolder(TestCase):
     """
 
     def setUp(self):
-        self.path = "tests/ref"
+        self.path = "tests/ref/test_bench"
         self.f = runscript.Benchmark.Folder(self.path)
 
     def test_init(self):
@@ -696,17 +696,17 @@ class TestFolder(TestCase):
         benchmark = runscript.Benchmark("bench")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 7)
+            self.assertEqual(add_inst.call_count, 3)
 
-        self.f.add_ignore("test_bench")
+        self.f.add_ignore("test_folder")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 5)
+            self.assertEqual(add_inst.call_count, 2)
 
-        self.f.add_ignore("README.md")
+        self.f.add_ignore("test_f2.lp")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 4)
+            self.assertEqual(add_inst.call_count, 1)
 
 
 class TestFiles(TestCase):
