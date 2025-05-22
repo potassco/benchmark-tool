@@ -6,103 +6,85 @@ specified by the run script.
 
 __author__ = "Roland Kaminski"
 
+import importlib
 import os
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
-# needed to embed measurements functions via exec
-# pylint: disable-msg=W0611
-import benchmarktool.config  # @UnusedImport
 from benchmarktool import tools
-from benchmarktool.tools import Sortable, cmp
 
-# pylint: enable-msg=W0611
+# needed to embed measurements functions via exec
+
+
 # pylint: disable=too-many-lines
 
 
-class Machine(Sortable):
+@dataclass(order=True, frozen=True)
+class Machine:
     """
     Describes a machine.
+
+    Attributes:
+        name (str):   Name of the machine.
+        cpu (str):    Some cpu description.
+        memory (str): Some memory description.
     """
 
-    def __init__(self, name: str, cpu: str, memory: str):
-        """
-        Initializes a machine.
-
-        Keyword arguments:
-        name   - A name uniquely identifying the machine
-        cpu    - Some cpu description
-        memory - Some memory description
-        """
-        self.name = name
-        self.cpu = cpu
-        self.memory = memory
+    name: str
+    cpu: str = field(compare=False)
+    memory: str = field(compare=False)
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
         Dump the (pretty-printed) XML-representation of the machine.
 
-        Keyword arguments:
-        out    - Output stream to write to
-        indent - Amount of indentation
+        Attributes:
+            out (Any):    Output stream to write to.
+            indent (str): Amount of indentation.
         """
         out.write('{1}<machine name="{0.name}" cpu="{0.cpu}" memory="{0.memory}"/>\n'.format(self, indent))
 
-    def __hash__(self) -> int:
-        """
-        Return a hash values using the name of the machine.
-        """
-        return hash(self.name)
 
-    def __cmp__(self, machine: "Machine") -> int:
-        """
-        Compare two machines.
-        """
-        return cmp(self.name, machine.name)
-
-
-class System(Sortable):
+@dataclass(order=True, frozen=True)
+class System:
     """
     Describes a system. This includes a solver description
     together with a set of settings.
+
+    Attributes:
+        name (str):      The name of the system.
+        version (str):   The version of the system.
+        measures (str):  A string specifying the measurement function.
+                         This must be a function given in the config.
+        order (int):     An integer used to order different system.
+                         This integer should denote the occurrence in
+                         the run specification.
+        config (Config): The system configuration.
+        settings (dict[str, Setting]): Settings used with the system.
     """
 
-    def __init__(self, name: str, version: str, measures: str, order: int):
-        """
-        Initializes a system. Name and version of the system
-        are used to uniquely identify a system.
-
-        Keyword arguments:
-        name     - The name of the system
-        version  - The version of the system
-        measures - A string specifying the measurement function
-                   This must be a function given in the config
-        order    - An integer used to order different system.
-                   This integer should denote the occurrence in
-                   the run specification.
-        """
-        self.name = name
-        self.version = version
-        self.measures = measures
-        self.order = order
-        self.settings: dict[str, Setting] = {}
-        self.config: Optional[Config] = None
+    name: str
+    version: str
+    measures: str = field(compare=False)
+    order: int = field(compare=False)
+    config: "Config" = field(compare=False)
+    settings: dict[str, "Setting"] = field(default_factory=dict, compare=False)
 
     def add_setting(self, setting: "Setting") -> None:
         """
         Adds a given setting to the system.
         """
-        setting.system = self
         self.settings[setting.name] = setting
 
     def to_xml(self, out: Any, indent: str, settings: Optional[list["Setting"]] = None) -> None:
         """
         Dump the (pretty-printed) XML-representation of the system.
 
-        Keyword arguments:
-        out      - Output stream to write to
-        indent   - Amount of indentation
-        settings - If None all the settings of the system are printed,
-                   otherwise the given settings are printed
+        Attributes:
+            out (Any):    Output stream to write to.
+            indent (str): Amount of indentation.
+            settings (Optional[list["Setting"]]): If None all the settings of the system are printed,
+                                                  otherwise the given settings are printed.
         """
         assert isinstance(self.config, Config)
         out.write(
@@ -117,69 +99,44 @@ class System(Sortable):
             setting.to_xml(out, indent + "\t")
         out.write("{0}</system>\n".format(indent))
 
-    def __hash__(self) -> int:
-        """
-        Calculates a hash value for the system using its name and version.
-        """
-        return hash((self.name, self.version))
-
-    def __cmp__(self, system: "System") -> int:
-        """
-        Compares two systems using name and version.
-        """
-        return cmp((self.name, self.version), (system.name, system.version))
-
 
 # pylint: disable=too-many-instance-attributes, too-many-positional-arguments
-class Setting(Sortable):
+@dataclass(order=True, frozen=True)
+class Setting:
     """
     Describes a setting for a system. This are command line options
     that can be passed to the system. Additionally, settings can be tagged.
+
+    Attributes:
+        name (str):     A name uniquely identifying a setting.
+                        (In the scope of a system)
+        cmdline (str):  A string of command line options.
+        tag (set[str]): A set of tags.
+        order (int):    An integer specifying the order of settings.
+                        (This should denote the occurrence in the job specification.
+                        Again in the scope of a system.)
+        procs (Optional[int]): Number of processes used by the solver. (pbs only)
+        ppn (Optional[int]):   Processes per node. (pbs only)
+        pbstemplate (str):     Path to pbs-template file. (pbs only, related to mpi-version)
+        attr (dict[str, Any]): A dictionary of additional optional attributes.
     """
 
-    def __init__(
-        self,
-        name: str,
-        cmdline: str,
-        tag: set[str],
-        order: int,
-        procs: Optional[int],
-        ppn: Optional[int],
-        pbstemplate: str,
-        attr: dict[str, Any],
-    ):
-        """
-        Initializes a system.
-
-        name        - A name uniquely identifying a setting.
-                      (In the scope of a system)
-        cmdline     - A string of command line options
-        tag         - A set of tags
-        order       - An integer specifying the order of settings
-                      (This should denote the occurrence in the job specification.
-                      Again in the scope of a system.)
-        procs       - Number of processes used by the solver (pbs only)
-        ppn         - Processes per node (pbs only)
-        pbstemplate - Path to pbs-template file (pbs only, related to mpi-version)
-        attr        - A dictionary of additional optional attributes.
-        """
-        self.name = name
-        self.cmdline = cmdline
-        self.tag = tag
-        self.order = order
-        self.procs = procs
-        self.ppn = ppn
-        self.pbstemplate = pbstemplate
-        self.attr = attr
-        self.system: "System"
+    name: str
+    cmdline: str = field(compare=False)
+    tag: set[str] = field(compare=False)
+    order: int = field(compare=False)
+    procs: Optional[int] = field(compare=False)
+    ppn: Optional[int] = field(compare=False)
+    pbstemplate: str = field(compare=False)
+    attr: dict[str, Any] = field(compare=False)
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
         Dump a (pretty-printed) XML-representation of the setting.
 
-        Keyword arguments:
-        out     - Output stream to write to
-        indent  - Amount of indentation
+        Attributes:
+            out (Any):    Output stream to write to.
+            indent (str): Amount of indentation.
         """
         tag = " ".join(sorted(self.tag))
         out.write('{1}<setting name="{0.name}" cmdline="{0.cmdline}" tag="{2}"'.format(self, indent, tag))
@@ -193,48 +150,33 @@ class Setting(Sortable):
             out.write(' {0}="{1}"'.format(key, val))
         out.write("/>\n")
 
-    def __hash__(self) -> int:
-        """
-        Calculates a hash value for the setting using its name.
-        """
-        return hash(self.name)
 
-    def __cmp__(self, setting: "Setting") -> int:
-        """
-        Compares two settings using their names.
-        """
-        return cmp(self.name, setting.name)
-
-
-class Job(Sortable):
+@dataclass(order=True, frozen=True)
+class Job:
     """
     Base class for all jobs.
+
+    Attributes:
+        name (str):    A unique name for a job.
+        timeout (int): A timeout in seconds for individual benchmark runs.
+        runs (int):    The number of runs per benchmark.
+        attr (dict[str, Any]): A dictionary of arbitrary attributes.
     """
 
-    def __init__(self, name: str, timeout: int, runs: int, attr: dict[str, Any]):
-        """
-        Initializes a job.
-
-        Keyword arguments:
-        name    - A unique name for a job
-        timeout - A timeout in seconds for individual benchmark runs
-        runs    - The number of runs per benchmark
-        attr    - A dictionary of arbitrary attributes
-        """
-        self.name = name
-        self.timeout = timeout
-        self.runs = runs
-        self.attr = attr
+    name: str
+    timeout: int = field(compare=False)
+    runs: int = field(compare=False)
+    attr: dict[str, Any] = field(compare=False)
 
     def _to_xml(self, out: Any, indent: str, xmltag: str, extra: str) -> None:
         """
         Helper function to dump a (pretty-printed) XML-representation of a job.
 
-        Keyword arguments:
-        out     - Output stream to write to
-        indent  - Amount of indentation
-        xmltag  - Tag name for the job
-        extra   - Additional arguments for the job
+        Attributes:
+            out (Any):    Output stream to write to.
+            indent (str): Amount of indentation.
+            xmltag (str): Tag name for the job.
+            extra (str):  Additional arguments for the job.
         """
         out.write(
             '{1}<{2} name="{0.name}" timeout="{0.timeout}" runs="{0.runs}"{3}'.format(self, indent, xmltag, extra)
@@ -243,76 +185,67 @@ class Job(Sortable):
             out.write(' {0}="{1}"'.format(key, val))
         out.write("/>\n")
 
-    def __hash__(self) -> int:
+    def script_gen(self) -> Any:
         """
-        Calculates a hash value for the job using its name.
+        Has to be overwritten by subclasses.
         """
-        return hash(self.name)
-
-    def __cmp__(self, job: "Job") -> int:
-        """
-        Compares two jobs using their names.
-        """
-        return cmp(self.name, job.name)
+        raise NotImplementedError
 
 
 # pylint: disable=too-few-public-methods
-class Run(Sortable):
+@dataclass
+class Run:
     """
     Base class for all runs.
 
-    Class members:
-    path - Path that holds the target location for start scripts
-    root - directory relative to the location of the run's path.
+    Attributes:
+        path (str): Path that holds the target location for start scripts.
+        root (str): directory relative to the location of the run's path.
     """
 
-    def __init__(self, path: str):
-        """
-        Initializes a run.
+    path: str
 
-        Keyword arguments:
-        path - A path that holds the location
-               where the individual start scripts for the job shall be generated
-        """
-        self.path = path
+    root: str = field(init=False)
+
+    def __post_init__(self) -> None:
         self.root = os.path.relpath(".", self.path)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-positional-arguments, too-few-public-methods
+@dataclass
 class SeqRun(Run):
     """
     Describes a sequential run.
 
-    Class members:
-    run      - The number of the run
-    job      - A reference to the job description
-    runspec  - A reference to the run description
-    instance - A reference to the instance to benchmark
-    file     - A relative path to the instance
-    args     - The command line arguments for this run
-    solver   - The solver for this run
-    timeout  - The timeout of this run
+    Attributes:
+        path (str): Path that holds the target location for start scripts.
+        run (int):     - The number of the run.
+        job (Job):    - A reference to the job description.
+        runspec (Runspec):  - A reference to the run description.
+        instance (Benchmark.Instance): - A reference to the instance to benchmark.
+        root (str): directory relative to the location of the run's path.
+        file (str):    - A relative path to the instance.
+        encodings (str): Relative paths to all encodings.
+        args (str):    - The command line arguments for this run.
+        solver (str):  - The solver for this run.
+        timeout (int): - The timeout of this run.
     """
 
-    def __init__(self, path: str, run: int, job: "Job", runspec: "Runspec", instance: "Benchmark.Instance"):
-        """
-        Initializes a sequential run.
+    run: int
+    job: "Job"
+    runspec: "Runspec"
+    instance: "Benchmark.Instance"
 
-        Keyword arguments:
-        path     - A path that holds the location
-                   where the individual start scripts for the job shall be generated
-        run      - The number of the run
-        job      - A reference to the job description
-        runspec  - A reference to the run description
-        instance - A reference to the instance to benchmark
-        """
-        Run.__init__(self, path)
-        self.run = run
-        self.job = job
-        self.runspec = runspec
-        self.instance = instance
+    file: str = field(init=False)
+    encodings: str = field(init=False)
+    args: str = field(init=False)
+    sovler: str = field(init=False)
+    timeout: int = field(init=False)
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
         self.file = os.path.relpath(self.instance.path(), self.path)
-        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in instance.encodings])
+        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in self.instance.encodings])
         self.args = self.runspec.setting.cmdline
         self.solver = self.runspec.system.name + "-" + self.runspec.system.version
         self.timeout = self.job.timeout
@@ -328,8 +261,8 @@ class ScriptGen:
         """
         Initializes the script generator.
 
-        Keyword arguments:
-        job - A reference to the associated job.
+        Attributes:
+            job (Job): A reference to the associated job.
         """
         self.skip = False
         self.job = job
@@ -339,8 +272,8 @@ class ScriptGen:
         """
         Set whether to skip.
 
-        Keyword arguments:
-        skip - Whether to skip.
+        Attributes:
+            skip (bool): Whether to skip.
         """
         self.skip = skip
 
@@ -348,10 +281,10 @@ class ScriptGen:
         """
         Returns the relative path to the start script location.
 
-        Keyword arguments:
-        runspec  - The run specification for the start script
-        instance - The benchmark instance for the start script
-        run      - The number of the run for the start script
+        Attributes:
+            runspec (Runspec):             The run specification for the start script.
+            instance (Benchmark.Instance): The benchmark instance for the start script.
+            run (int):                     The number of the run for the start script.
         """
         return os.path.join(runspec.path(), instance.benchclass.name, instance.name, "run%d" % run)
 
@@ -359,9 +292,9 @@ class ScriptGen:
         """
         Creates a new start script for the given instance.
 
-        Keyword arguments:
-        runspec  - The run specification for the start script
-        instance - The benchmark instance for the start script
+        Attributes:
+            runspec (Runspec):             The run specification for the start script.
+            instance (Benchmark.Instance): The benchmark instance for the start script.
         """
         skip = self.skip
         if runspec.system.config:
@@ -383,18 +316,17 @@ class ScriptGen:
         """
         Parses the results of a given benchmark instance and outputs them as XML.
 
-        Keyword arguments:
-        out     - Output stream to write to
-        indent  - Amount of indentation
-        runspec - The run specification of the benchmark
-        runspec - The benchmark instance
+        Attributes:
+            out (Any):                     Output stream to write to.
+            indent (str):                  Amount of indentation.
+            runspec (Runspec):             The run specification of the benchmark.
+            instance (Benchmark.Instance): The benchmark instance.
         """
+        result_parser = importlib.import_module("benchmarktool.resultparser.{0}".format(runspec.system.measures))
         for run in range(1, self.job.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
             # result parser call
-            result = getattr(benchmarktool.config, runspec.system.measures)(
-                self._path(runspec, instance, run), runspec, instance
-            )
+            result = result_parser.parse(self._path(runspec, instance, run), runspec, instance)
             for key, valtype, val in sorted(result):
                 out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val))
             out.write("{0}</run>\n".format(indent))
@@ -409,8 +341,8 @@ class SeqScriptGen(ScriptGen):
         """
         Initializes the script generator.
 
-        Keyword arguments:
-        seqJob - A reference to the associated sequential job.
+        Attributes:
+            seqJob (SeqJob): A reference to the associated sequential job.
         """
         ScriptGen.__init__(self, seqJob)
 
@@ -420,8 +352,8 @@ class SeqScriptGen(ScriptGen):
         Generates a start script that can be used to start all scripts
         generated using addToScript().
 
-        Keyword arguments:
-        path - The target location for the script
+        Attributes:
+            path (str): The target location for the script.
         """
         assert isinstance(self.job, SeqJob)
         tools.mkdir_p(path)
@@ -602,12 +534,20 @@ class PbsScriptGen(ScriptGen):
         """
 
         def __init__(self, runspec: "Runspec", path: str, queue: list[str]):
+            """
+            Initializes pbs script.
+
+            Attributes:
+                runspec (Runspec): Associated runspecification.
+                path (str):        Target location for the script.
+                queue (list[str]): Script queue.
+            """
             self.runspec = runspec
             self.path = path
             self.queue = queue
             self.num = 0
-            self.time = 0  # = None, next() sets start values anyway, None only causes
-            #         issues with typecheck
+            self.time = 0  # = None, next() sets start values anyway,
+            # None only causes issues with typecheck
             self.startscripts = ""  # = None
             self.next()
 
@@ -647,6 +587,9 @@ class PbsScriptGen(ScriptGen):
         def append(self, startfile: str) -> None:
             """
             Add startfile to list of jobs.
+
+            Attributes:
+                startfile (str): Start script.
             """
             self.num += 1
             self.startscripts += startfile + "\n"
@@ -655,8 +598,8 @@ class PbsScriptGen(ScriptGen):
         """
         Initializes the script generator.
 
-        Keyword arguments:
-        pbsJob - A reference to the associated sequential job.
+        Attributes:
+            pbsJob (PbsJob): A reference to the associated sequential job.
         """
         ScriptGen.__init__(self, pbsJob)
 
@@ -665,8 +608,8 @@ class PbsScriptGen(ScriptGen):
         Generates a start script that can be used to start all scripts
         generated using add_to_script().
 
-        Keyword arguments:
-        path - The target location for the script
+        Attributes:
+            path (str): The target location for the script.
         """
         assert isinstance(self.job, PbsJob)
         tools.mkdir_p(path)
@@ -713,24 +656,20 @@ class PbsScriptGen(ScriptGen):
         tools.set_executable(os.path.join(path, "start.sh"))
 
 
+@dataclass(order=True, frozen=True)
 class SeqJob(Job):
     """
     Describes a sequential job.
+
+    Attributes:
+        name (str):     A unique name for a job.
+        timeout (int):  A timeout in seconds for individual benchmark runs.
+        runs (int):     The number of runs per benchmark.
+        attr (dict[str,Any]): A dictionary of arbitrary attributes.
+        parallel (int): The number of runs that can be started in parallel.
     """
 
-    def __init__(self, name: str, timeout: int, runs: int, parallel: int, attr: dict[str, Any]):
-        """
-        Initializes a sequential job description.
-
-        Keyword arguments:
-        name     - A unique name for a job
-        timeout  - A timeout in seconds for individual benchmark runs
-        runs     - The number of runs per benchmark
-        parallel - The number of runs that can be started in parallel
-        attr     - A dictionary of arbitrary attributes
-        """
-        Job.__init__(self, name, timeout, runs, attr)
-        self.parallel = parallel
+    parallel: int = field(compare=False)
 
     def script_gen(self) -> "SeqScriptGen":
         """
@@ -743,56 +682,42 @@ class SeqJob(Job):
         """
         Dump a (pretty-printed) XML-representation of the sequential job.
 
-        Keyword arguments:
-        out     - Output stream to write to
-        indent  - Amount of indentation
+        Attributes:
+            out (Any):    Output stream to write to.
+            indent (str): Amount of indentation.
         """
         extra = ' parallel="{0.parallel}"'.format(self)
         Job._to_xml(self, out, indent, "seqjob", extra)
 
 
+@dataclass(order=True, frozen=True)
 class PbsJob(Job):
     """
     Describes a pbs job.
+
+    Attributes:
+        name (str):      A unique name for a job.
+        timeout (int):   A timeout in seconds for individual benchmark runs.
+        runs (int):      The number of runs per benchmark.
+        attr (dict[str,Any]): A dictionary of arbitrary attributes.
+        script_mode (str):    Specifies the script generation mode.
+        walltime (int):  The walltime for a job submitted via PBS.
+        cpt (int):       Number of cpus per task for SLURM.
+        partition (str): Partition to be used in the clusters (kr by default).
     """
 
-    def __init__(
-        self,
-        name: str,
-        timeout: int,
-        runs: int,
-        script_mode: str,
-        walltime: int,
-        cpt: int,
-        partition: str,
-        attr: dict[str, Any],
-    ):
-        """
-        Initializes a parallel job description.
-
-        Keyword arguments:
-        name        - A unique name for a job
-        timeout     - A timeout in seconds for individual benchmark runs
-        runs        - The number of runs per benchmark
-        script_mode - Specifies the script generation mode
-        walltime    - The walltime for a job submitted via PBS
-        cpt         - Number of cpus per task for SLURM
-        partition   - Partition to be used in the clusters (kr by default)
-        attr        - A dictionary of arbitrary attributes
-        """
-        Job.__init__(self, name, timeout, runs, attr)
-        self.script_mode = script_mode
-        self.walltime = walltime
-        self.cpt = cpt
-        self.partition = partition
+    script_mode: str = field(compare=False)
+    walltime: int = field(compare=False)
+    cpt: int = field(compare=False)
+    partition: str = field(compare=False)
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
         Dump a (pretty-printed) XML-representation of the parallel job.
 
-        Keyword arguments:
-        out     - Output stream to write to
-        indent  - Amount of indentation
+        Attributes:
+            out (Any):    Output stream to write to
+            indent (str): Amount of indentation
         """
         extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}" cpt="{0.cpt}" partition="{0.partition}"'.format(
             self
@@ -807,120 +732,89 @@ class PbsJob(Job):
         return PbsScriptGen(self)
 
 
-class Config(Sortable):
+@dataclass(order=True, frozen=True)
+class Config:
     """
     Describes a configuration. Currently, this only specifies a template
     that is used for start script generation.
+
+    Attributes:
+        name (str):     A name uniquely identifying the configuration.
+        template (str): A path to the template for start script generation.
     """
 
-    def __init__(self, name: str, template: str):
-        """
-        Keyword arguments:
-        name     - A name uniquely identifying the configuration
-        template - A path to the template for start script generation
-        """
-        self.name = name
-        self.template = template
+    name: str
+    template: str = field(compare=False)
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
         Dump a (pretty-printed) XML-representation of the configuration.
 
-        Keyword arguments:
-        out     - Output stream to write to
-        indent  - Amount of indentation
+        Attributes:
+            out (Any):    Output stream to write to.
+            indent (str): Amount of indentation.
         """
         out.write('{1}<config name="{0.name}" template="{0.template}"/>\n'.format(self, indent))
 
-    def __hash__(self) -> int:
-        """
-        Calculates a hash value for the configuration using its name.
-        """
-        return hash(self.name)
 
-    def __cmp__(self, config: "Config") -> int:
-        """
-        Compares two configurations using their names.
-        """
-        return cmp(self.name, config.name)
-
-
-class Benchmark(Sortable):
+@dataclass(order=True, unsafe_hash=True)
+class Benchmark:
     """
     Describes a benchmark. This includes a set of classes
     that describe where to find particular instances.
+
+    Attributes:
+        name (str):- The name of the benchmark set.
+        elements (list[Any]): A list of all benchmark elements.
+        instances (dict[benchmark.Class, set[Benchmark.Instance]]): A list of all benchmark instances.
+        initialized (bool): Whether the benchmark set is initialized or not.
     """
 
-    class Class(Sortable):
+    name: str
+    elements: list[Any] = field(default_factory=list, compare=False)
+    instances: dict["Benchmark.Class", set["Benchmark.Instance"]] = field(default_factory=dict, compare=False)
+    initialized: bool = field(default=False, compare=False)
+
+    @dataclass(order=True, frozen=True)
+    class Class:
         """
         Describes a benchmark class.
+        Attributes:
+            name (str): A name uniquely identifying a benchmark class (per benchmark).
+            id (int):   A numeric identifier.
         """
 
-        def __init__(self, name: str):
-            """
-            Initializes a benchmark class.
+        name: str
+        id: Optional[int] = field(default=None, compare=False)
 
-            Keyword arguments:
-            name - A name uniquely identifying a benchmark class (per benchmark).
-            """
-            self.name = name
-            self.id: Optional[int] = None
-
-        def __cmp__(self, other: "Benchmark.Class") -> int:
-            """
-            Compares two benchmark classes using their names.
-            """
-            return cmp(self.name, other.name)
-
-        def __hash__(self) -> int:
-            """
-            Calculates a hash value for the benchmark class using its name.
-            """
-            return hash(self.name)
-
-    class Instance(Sortable):
+    @dataclass(order=True, frozen=True)
+    class Instance:
         """
         Describes a benchmark instance.
+
+        Attributes:
+            location (str):       The location of the benchmark instance.
+            benchclass (Benchmark.Class): The class name of the instance
+            name (str):           The name of the instance
+            encodings (set[str]): Encoding associated with the instance
+            id (int):             A numeric identifier.
         """
 
-        def __init__(self, location: str, benchclass: "Benchmark.Class", name: str, encodings: set[str]):
-            """
-            Initializes a benchmark instance. The instance name uniquely identifies
-            an instance (per benchmark class).
-
-            Keyword arguments:
-            location  - The location of the benchmark instance.
-            classname - The class name of the instance
-            name  - The name of the instance
-            encodings - Encoding associated with the instance
-            """
-            self.location = location
-            self.benchclass = benchclass
-            self.name = name
-            self.id: Optional[int] = None
-            self.encodings = encodings
+        location: str = field(compare=False)
+        benchclass: "Benchmark.Class" = field(compare=False)
+        name: str
+        encodings: set[str] = field(compare=False)
+        id: Optional[int] = field(default=None, compare=False)
 
         def to_xml(self, out: Any, indent: str) -> None:
             """
             Dump a (pretty-printed) XML-representation of the configuration.
 
-            Keyword arguments:
-            out     - Output stream to write to
-            indent  - Amount of indentation
+            Attributes:
+                out (Any):    Output stream to write to
+                indent (str): Amount of indentation
             """
             out.write('{1}<instance name="{0.name}" id="{0.id}"/>\n'.format(self, indent))
-
-        def __cmp__(self, instance: "Benchmark.Instance") -> int:
-            """
-            Compares tow instances using the instance name.
-            """
-            return cmp(self.name, instance.name)
-
-        def __hash__(self) -> int:
-            """
-            Calculates a hash using the instance name.
-            """
-            return hash(self.name)
 
         def path(self) -> str:
             """
@@ -938,8 +832,8 @@ class Benchmark(Sortable):
             """
             Initializes a benchmark folder.
 
-            Keyword arguments:
-            path - The location of the folder
+            Attributes:
+                path (str): The location of the folder.
             """
             self.path = path
             self.prefixes: set[str] = set()
@@ -950,8 +844,8 @@ class Benchmark(Sortable):
             Can be used to ignore certain sub-folders or instances
             by giving a path prefix that shall be ignored.
 
-            Keyword arguments:
-            prefix - The prefix to be ignored
+            Attributes:
+                prefix (str): The prefix to be ignored.
             """
             self.prefixes.add(os.path.normpath(prefix))
 
@@ -960,8 +854,8 @@ class Benchmark(Sortable):
             Can be used to add encodings, which will be called together
             with all instances in this folder.
 
-            Keyword arguments:
-            file - The encoding file
+            Attributes:
+                file (str): The encoding file.
             """
             self.encodings.add(os.path.normpath(file))
 
@@ -969,9 +863,9 @@ class Benchmark(Sortable):
             """
             Returns whether a given path should be ignored.
 
-            Keyword arguments:
-            root - The root path
-            path - Some path relative to the root path
+            Attributes:
+                root (str): The root path.
+                path (str): Some path relative to the root path.
             """
             if path == ".svn":
                 return True
@@ -982,8 +876,8 @@ class Benchmark(Sortable):
             """
             Recursively scans the folder and adds all instances found to the given benchmark.
 
-            Keyword arguments:
-            benchmark - The benchmark to be populated.
+            Attributes:
+                benchmark (Benchmark): The benchmark to be populated.
             """
             for root, dirs, files in os.walk(self.path):
                 relroot = os.path.relpath(root, self.path)
@@ -1007,8 +901,8 @@ class Benchmark(Sortable):
             """
             Initializes to the empty set of files.
 
-            Keyword arguments:
-            path - Root path, all file paths are relative to this path
+            Attributes:
+                path (str): Root path, all file paths are relative to this path.
             """
             self.path = path
             self.files: set[str] = set()
@@ -1018,8 +912,8 @@ class Benchmark(Sortable):
             """
             Adds a file to the set of files.
 
-            Keyword arguments:
-            path - Location of the file
+            Attributes:
+                path (str): Location of the file.
             """
             self.files.add(os.path.normpath(path))
 
@@ -1028,8 +922,8 @@ class Benchmark(Sortable):
             Can be used to add encodings, which will be called together
             with all instances in these files.
 
-            Keyword arguments:
-            file - The encoding file
+            Attributes:
+                file (str): The encoding file.
             """
             self.encodings.add(os.path.normpath(file))
 
@@ -1037,32 +931,20 @@ class Benchmark(Sortable):
             """
             Adds a files in the set to the given benchmark (if they exist).
 
-            Keyword arguments:
-            benchmark - The benchmark to be populated
+            Attributes:
+                benchmark (Benchmark): The benchmark to be populated.
             """
             for path in self.files:
                 if os.path.exists(os.path.join(self.path, path)):
                     relroot, filename = os.path.split(path)
                     benchmark.add_instance(self.path, relroot, filename, self.encodings)
 
-    def __init__(self, name: str):
-        """
-        Initializes an empty benchmark set.
-
-        Keyword arguments:
-        name - The name of the benchmark set
-        """
-        self.name = name
-        self.elements: list[Any] = []
-        self.instances: dict[Benchmark.Class, set[Benchmark.Instance]] = {}
-        self.initialized = False
-
     def add_element(self, element: Any) -> None:
         """
         Adds elements to the benchmark, e.g, files or folders.
 
-        Keyword arguments:
-        element - The element to add
+        Attributes:
+            element (Any): The element to add.
         """
         self.elements.append(element)
 
@@ -1071,11 +953,11 @@ class Benchmark(Sortable):
         Adds an instance to the benchmark set. (This function
         is called during initialization by the benchmark elements)
 
-        Keyword arguments:
-        root     - The root folder of the instance
-        relroot  - The folder relative to the root folder
-        filename - The filename of the instance
-        encodings - The encodings associated to the instance
+        Attributes:
+            root (str):           The root folder of the instance.
+            relroot (str):        The folder relative to the root folder.
+            filename (str):       The filename of the instance.
+            encodings (set[str]): The encodings associated to the instance.
         """
         classname = Benchmark.Class(relroot)
         if classname not in self.instances:
@@ -1090,23 +972,28 @@ class Benchmark(Sortable):
         if not self.initialized:
             for element in self.elements:
                 element.init(self)
+            id_instances: dict["Benchmark.Class", set["Benchmark.Instance"]] = {}
             classid = 0
             for classname in sorted(self.instances.keys()):
-                classname.id = classid
+                id_class = Benchmark.Class(classname.name, classid)
+                id_instances[id_class] = set()
                 classid += 1
                 instanceid = 0
                 for instance in sorted(self.instances[classname]):
-                    instance.id = instanceid
+                    id_instances[id_class].add(
+                        Benchmark.Instance(instance.location, id_class, instance.name, instance.encodings, instanceid)
+                    )
                     instanceid += 1
+            self.instances = id_instances
             self.initialized = True
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
         Dump the (pretty-printed) XML-representation of the benchmark set.
 
-        Keyword arguments:
-        out    - Output stream to write to
-        indent - Amount of indentation
+        Attributes:
+            out (Any):    Output stream to write to.
+            indent (str): Amount of indentation.
         """
         self.init()
         out.write('{1}<benchmark name="{0}">\n'.format(self.name, indent))
@@ -1118,47 +1005,33 @@ class Benchmark(Sortable):
             out.write("{0}</class>\n".format(indent + "\t"))
         out.write("{0}</benchmark>\n".format(indent))
 
-    def __hash__(self) -> int:
-        """
-        Return a hash values using the name of the machine.
-        """
-        return hash(self.name)
 
-    def __cmp__(self, benchmark: "Benchmark") -> int:
-        """
-        Compare two benchmark sets.
-        """
-        return cmp(self.name, benchmark.name)
-
-
-class Runspec(Sortable):
+@dataclass(order=True, frozen=True)
+class Runspec:
     """
-    Describes a run specification. This specifies system, settings, machine
+    Describes a run specification. This specifies machine, system, settings, project
     to run a benchmark with.
+
+    Attributes:
+        machine (Machine):     The machine to run on.
+        system (System):       The system to run with.
+        setting (Setting):     The setting to run with.
+        benchmark (Benchmark): The benchmark.
+        project (Project):     The associated project.
     """
 
-    def __init__(self, machine: "Machine", setting: "Setting", benchmark: "Benchmark"):
-        """
-        Initializes a run specification.
-
-        Keyword arguments:
-        machine   - The machine to run on
-        setting   - The setting to run with (includes system)
-        benchmark - The benchmark
-        """
-        self.machine = machine
-        self.setting = setting
-        self.system = setting.system
-        self.benchmark = benchmark
-        self.project: Optional[Project] = None
+    machine: "Machine"
+    system: "System"
+    setting: "Setting"
+    benchmark: "Benchmark"
+    project: "Project"
 
     def path(self) -> str:
         """
         Returns an output path under which start scripts
         and benchmark results are stored.
         """
-        assert isinstance(self.project, Project)
-        name = self.setting.system.name + "-" + self.setting.system.version + "-" + self.setting.name
+        name = self.system.name + "-" + self.system.version + "-" + self.setting.name
         return os.path.join(self.project.path(), self.machine.name, "results", self.benchmark.name, name)
 
     def gen_scripts(self, script_gen: "ScriptGen") -> None:
@@ -1167,51 +1040,41 @@ class Runspec(Sortable):
         by this run specification. This will simply add all instances
         and their associated encodings to the given script generator.
 
-        Keyword arguments:
-        script_gen - A generator that is responsible for the start script generation
+        Attributes:
+            script_gen (ScriptGen): A generator that is responsible for the start script generation.
         """
         self.benchmark.init()
         for instances in self.benchmark.instances.values():
             for instance in instances:
                 script_gen.add_to_script(self, instance)
 
-    def __cmp__(self, runspec: "Runspec") -> int:
-        """
-        Compares two run specifications.
-        """
-        return cmp(
-            (self.machine, self.system, self.setting, self.benchmark),
-            (runspec.machine, runspec.system, runspec.setting, runspec.benchmark),
-        )
 
-
-class Project(Sortable):
+@dataclass(order=True, frozen=True)
+class Project:
     """
     Describes a benchmark project, i.e., a set of run specifications
     that belong together.
+    Attributes:
+        name (str):                            The name of the project.
+        runscript (Runscript):                 Associated runscript.
+        job (Job):                             Associated job.
+        runspecs (dict[str, list['Runspec']]): Run specifications of the project.
     """
 
-    def __init__(self, name: str):
-        """
-        Initializes an empty project.
-
-        Keyword arguments:
-        name - The name of the project
-        """
-        self.name = name
-        self.runspecs: dict[str, list[Runspec]] = {}
-        self.runscript: Optional[Runscript] = None
-        self.job: Optional[Job] = None
+    name: str
+    runscript: "Runscript" = field(compare=False)
+    job: Job = field(compare=False)
+    runspecs: dict[str, list["Runspec"]] = field(default_factory=dict, compare=False)
 
     def add_runtag(self, machine_name: str, benchmark_name: str, tag: str) -> None:
         """
         Adds a run tag to the project, i.e., a set of run specifications
         identified by certain tags.
 
-        Keyword arguments:
-        machine_name   - The machine to run on
-        benchmark_name - The benchmark set to evaluate
-        tag            - The tags of systems+settings to run
+        Attributes:
+            machine_name (str):   The machine to run on.
+            benchmark_name (str): The benchmark set to evaluate.
+            tag (str):            The tags of systems+settings to run.
         """
         disj = TagDisj(tag)
         assert isinstance(self.runscript, Runscript)
@@ -1227,20 +1090,20 @@ class Project(Sortable):
         Adds a run specification, described by machine, system+settings, and benchmark set,
         to the project.
 
-        Keyword arguments:
-        machine_name   - The machine to run on
-        system_name    - The system to evaluate
-        version        - The version of the system
-        setting_name   - The settings to run the system with
-        benchmark_name - The benchmark set to evaluate
+        Attributes:
+            machine_name (str):   The machine to run on.
+            system_name (str):    The system to evaluate.
+            version (str):        The version of the system.
+            setting_name (str):   The settings to run the system with.
+            benchmark_name (str): The benchmark set to evaluate.
         """
-        assert isinstance(self.runscript, Runscript)
         runspec = Runspec(
             self.runscript.machines[machine_name],
+            self.runscript.systems[(system_name, version)],
             self.runscript.systems[(system_name, version)].settings[setting_name],
             self.runscript.benchmarks[benchmark_name],
+            self,
         )
-        runspec.project = self
         if not machine_name in self.runspecs:
             self.runspecs[machine_name] = []
         self.runspecs[machine_name].append(runspec)
@@ -1250,32 +1113,18 @@ class Project(Sortable):
         Returns an output path under which start scripts
         and benchmark results are stored for this project.
         """
-        assert isinstance(self.runscript, Runscript)
         return os.path.join(self.runscript.path(), self.name)
 
     def gen_scripts(self, skip: bool) -> None:
         """
         Generates start scripts for this project.
         """
-        assert isinstance(self.job, (SeqJob, PbsJob))
         for machine, runspecs in self.runspecs.items():
             script_gen = self.job.script_gen()
             script_gen.set_skip(skip)
             for runspec in runspecs:
                 runspec.gen_scripts(script_gen)
             script_gen.gen_start_script(os.path.join(self.path(), machine))
-
-    def __hash__(self) -> int:
-        """
-        Return a hash values using the name of the project.
-        """
-        return hash(self.name)
-
-    def __cmp__(self, project: "Project") -> int:
-        """
-        Compares two projects.
-        """
-        return cmp(self.name, project.name)
 
 
 class Runscript:
@@ -1288,8 +1137,8 @@ class Runscript:
         """
         Initializes an empty run script.
 
-        Keyword arguments:
-        output - The output folder to store start scripts and result files
+        Attributes:
+            output (str): The output folder to store start scripts and result files.
         """
         self.output = output
         self.jobs: dict[str, Job] = {}
@@ -1303,29 +1152,26 @@ class Runscript:
         """
         Adds a given machine to the run script.
 
-        Keyword arguments:
-        machine - The machine to be added
+        Attributes:
+            machine (Machine): The machine to be added.
         """
         self.machines[machine.name] = machine
 
-    def add_system(self, system: "System", config: str) -> None:
+    def add_system(self, system: "System") -> None:
         """
         Adds a given system to the run script.
-        Additionally, each system will be associated with a config.
 
-        Keyword arguments:
-        system - The system to add
-        config - The name of the config of the system
+        Attributes:
+            system (System): The system to add.
         """
-        system.config = self.configs[config]
         self.systems[(system.name, system.version)] = system
 
     def add_config(self, config: "Config") -> None:
         """
         Adds a configuration to the run script.
 
-        Keyword arguments:
-        config - The config to be added
+        Attributes:
+            config (Config): The config to be added.
         """
         self.configs[config.name] = config
 
@@ -1333,8 +1179,8 @@ class Runscript:
         """
         Adds a benchmark to the run script.
 
-        Keyword arguments:
-        benchmark - The benchmark to be added
+        Attributes:
+            benchmark (Benchmark): The benchmark to be added.
         """
         self.benchmarks[benchmark.name] = benchmark
 
@@ -1342,22 +1188,18 @@ class Runscript:
         """
         Adds a job to the runscript.
 
-        Keyword arguments:
-        job - The job to be added
+        Attributes:
+            job (Job): The job to be added.
         """
         self.jobs[job.name] = job
 
-    def add_project(self, project: "Project", job_name: str) -> None:
+    def add_project(self, project: "Project") -> None:
         """
         Adds a project to therun script.
-        Additionally, the project ill be associated with a job.
 
-        Keyword arguments:
-        project - The project to add
-        job     - The name of the job of the project
+        Attributes:
+            project (Project): The project to add.
         """
-        project.runscript = self
-        project.job = self.jobs[job_name]
         self.projects[project.name] = project
 
     def gen_scripts(self, skip: bool) -> None:
@@ -1380,8 +1222,8 @@ class Runscript:
         Evaluates and prints the results of all benchmarks described
         by this run script. (Start scripts have to be run first.)
 
-        Keyword arguments:
-        out - Output stream for xml output
+        Attributes:
+            out (Any): Output stream for xml output.
         """
         machines: set[Machine] = set()
         jobs: set[SeqJob | PbsJob] = set()
@@ -1454,8 +1296,8 @@ class TagDisj:
         is interpreted as disjunction. The special value "*all*"
         matches everything.
 
-        Keyword arguments:
-        tag - a string representing a disjunctive normal form of tags
+        Attributes:
+            tag (str): a string representing a disjunctive normal form of tags.
         """
         self.tag: Any  # int | list[frozenset[...]]
         if tag == "*all*":
@@ -1471,8 +1313,8 @@ class TagDisj:
         """
         Checks whether a given set of tags is subsumed.
 
-        Keyword arguments:
-        tag - a set of tags
+        Attributes:
+            tag (Any): a set of tags.
         """
         if self.tag == self.ALL:
             return True

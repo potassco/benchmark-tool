@@ -5,13 +5,12 @@ Created on Apr 14, 2025
 """
 
 import re
-from typing import TYPE_CHECKING, Any, Optional, no_type_check
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Optional
 
 import numpy as np
 import odswriter as ods  # type: ignore[import-untyped]
 import pandas as pd  # type: ignore[import-untyped]
-
-from benchmarktool.tools import Sortable, cmp
 
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
@@ -24,6 +23,9 @@ class Formula(ods.Formula):  # type: ignore[misc]
     """
 
     def __str__(self) -> str:
+        """
+        Get ods string representation.
+        """
         s = self.formula_string
         # remove leading '='
         if s.startswith("="):
@@ -40,8 +42,8 @@ def try_float(v: Any) -> Any:
     Try to cast given value to float.
     Return input if not possible.
 
-    Keyword arguments:
-    v - Value tried to be cast to float
+    Attributes:
+        v (Any): Value tried to be cast to float.
     """
     try:
         return float(v)
@@ -53,11 +55,11 @@ def get_cell_index(col: int, row: int, abs_col: bool = False, abs_row: bool = Fa
     """
     Calculate ODS cell index.
 
-    Keyword arguments:
-    col     - Column index
-    row     - Row index
-    abs_col  - Set '$' for column
-    abs_row  - Set '$' for row
+    Attributes:
+        col (int):      Column index.
+        row (int):      Row index.
+        abs_col (bool): Set '$' for column.
+        abs_row (bool): Set '$' for row.
     """
     radix = ord("Z") - ord("A") + 1
     ret = ""
@@ -81,21 +83,21 @@ class ODSDoc:
     Class representing ODS document.
     """
 
-    def __init__(self, benchmark: "result.BenchmarkMerge", measures: Any):
+    def __init__(self, benchmark: "result.BenchmarkMerge", measures: list[tuple[str, Any]]):
         """
         Setup Instance and Class sheet.
 
-        Keyword arguments:
-        benchmark - BenchmarkMerge object
-        measures - Measures to be displayed
+        Attributes:
+            benchmark (BenchmarkMerge):       BenchmarkMerge object.
+            measures (list[tuple[str, Any]]): Measures to be displayed.
         """
         self.inst_sheet = Sheet(benchmark, measures, "Instances")
         self.class_sheet = Sheet(benchmark, measures, "Classes", self.inst_sheet)
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
-        Keyword arguments:
-        runspec - Run specification
+        Attributes:
+            runspec (Runspec): Run specification.
         """
         self.inst_sheet.add_runspec(runspec)
         self.class_sheet.add_runspec(runspec)
@@ -111,8 +113,8 @@ class ODSDoc:
         """
         Write ODS file.
 
-        Keyword arguments:
-        out - Name of the generated ODS file
+        Attributes:
+            out (str): Name of the generated ODS file.
         """
         # replace all undefined cells with None (empty cell)
         self.inst_sheet.content = self.inst_sheet.content.fillna(np.nan).replace([np.nan], [None])
@@ -134,16 +136,20 @@ class Sheet:
     """
 
     def __init__(
-        self, benchmark: "result.BenchmarkMerge", measures: Any, name: str, ref_sheet: Optional["Sheet"] = None
+        self,
+        benchmark: "result.BenchmarkMerge",
+        measures: list[tuple[str, Any]],
+        name: str,
+        ref_sheet: Optional["Sheet"] = None,
     ):
         """
         Initialize sheet.
 
-        Keyword arguments:
-        benchmark   - BenchmarkMerge object
-        measures    - Measures to be displayed
-        name        - Name of the sheet
-        refSheet    - Reference sheet
+        Attributes:
+            benchmark (BenchmarkMerge):       Benchmark.
+            measures (list[tuple[str, Any]]): Measures to be displayed.
+            name (str):                       Name of the sheet.
+            refSheet (Optional[Sheet]):       Reference sheet.
         """
         # dataframe resembling almost final ods form
         self.content = pd.DataFrame()
@@ -172,7 +178,7 @@ class Sheet:
             for benchclass in benchmark:
                 for instance in benchclass:
                     self.content.loc[row] = instance.benchclass.name + "/" + instance.name
-                    row += instance.maxRuns
+                    row += instance.values["max_runs"]
         else:
             row = 2
             for benchclass in benchmark:
@@ -195,8 +201,8 @@ class Sheet:
         """
         Add results to the their respective blocks.
 
-        Keyword arguments:
-        runspec - Run specification
+        Attributes:
+            runspec (Runspec): Run specification
         """
         key = (runspec.setting, runspec.machine)
         if key not in self.system_blocks:
@@ -219,10 +225,10 @@ class Sheet:
         """
         Add instance results to SystemBlock and add values to summary if necessary.
 
-        Keyword arguments:
-        block              - SystemBlock to which results are added
-        instance_result    - InstanceResult
-        benchclass_summary - Summary of benchmark class
+        Attributes:
+            block (SystemBlock):                 SystemBlock to which results are added.
+            instance_result (InstanceResult):    InstanceResult.
+            benchclass_summary (dict[str, Any]): Summary of benchmark class.
         """
         for run in instance_result:
             for name, value_type, value in run.iter(self.measures):
@@ -232,8 +238,11 @@ class Sheet:
                     value_type = "string"
                 if self.ref_sheet is None:
                     if value_type == "float":
-                        value = float(value)
-                    block.add_cell(instance_result.instance.line + run.number - 1, name, value_type, value)
+                        block.add_cell(
+                            instance_result.instance.values["row"] + run.number - 1, name, value_type, float(value)
+                        )
+                    else:
+                        block.add_cell(instance_result.instance.values["row"] + run.number - 1, name, value_type, value)
                 elif value_type == "float":
                     if not name in benchclass_summary:
                         benchclass_summary[name] = (0.0, 0)
@@ -251,10 +260,10 @@ class Sheet:
         """
         Add benchmark class summary to SystemBlock.
 
-        Keyword arguments:
-        block              - SystemBlock to which summary is added
-        benchclass_result  - ClassResult
-        benchclass_summary - Summary of benchmark class
+        Attributes:
+            block (SystemBlock):                 SystemBlock to which summary is added.
+            benchclass_result (ClassResult):     ClassResult.
+            benchclass_summary (dict[str, Any]): Summary of benchmark class.
         """
         for name, value in benchclass_summary.items():
             if not value is None:
@@ -262,10 +271,13 @@ class Sheet:
                 if name == "timeout":
                     temp_res = value[0]
                 block.add_cell(
-                    benchclass_result.benchclass.line, name, "classresult", (benchclass_result.benchclass, temp_res)
+                    benchclass_result.benchclass.values["row"],
+                    name,
+                    "classresult",
+                    (benchclass_result.benchclass, temp_res),
                 )
             else:
-                block.add_cell(benchclass_result.benchclass.line, name, "empty", np.nan)
+                block.add_cell(benchclass_result.benchclass.values["row"], name, "empty", np.nan)
 
     def finish(self) -> None:
         """
@@ -295,8 +307,8 @@ class Sheet:
                         ""
                         + op
                         + "(Instances.{0}:Instances.{1})".format(
-                            get_cell_index(column, self.content.at[2, column][0].instStart + 2),
-                            get_cell_index(column, self.content.at[2, column][0].instEnd + 2),
+                            get_cell_index(column, self.content.at[2, column][0].values["inst_start"] + 2),
+                            get_cell_index(column, self.content.at[2, column][0].values["inst_end"] + 2),
                         )
                     )
             if self.types.get(name, "") in ["float", "classresult"]:
@@ -312,9 +324,9 @@ class Sheet:
         """
         Add row summary (min, max, median).
 
-        Keyword arguments:
-        floatOccur  - Dict containing column references of float columns
-        offset      - Column offset
+        Attributes:
+            floatOccur (dict[str, set[Any]]): Dict containing column references of float columns.
+            offset (int):                     Column offset.
         """
         col = offset
         for col_name in ["min", "median", "max"]:
@@ -322,7 +334,7 @@ class Sheet:
             block.offset = col
             self.summary_refs[col_name] = {"col": col}
             measures: list[str]
-            if self.measures == "":
+            if len(self.measures) == 0:
                 measures = sorted(float_occur.keys())
             else:
                 measures = list(map(lambda x: x[0], self.measures))
@@ -343,11 +355,11 @@ class Sheet:
         """
         Add row summary formula.
 
-        Keyword arguments:
-        block       - SystemBlock to which summary is added
-        operator    - Summary operator
-        measure     - Name of the measure to be summarized
-        floatOccur  - Dict containing column references of float columns
+        Attributes:
+            block (SystemBlock):        SystemBlock to which summary is added.
+            operator (str):             Summary operator.
+            measure (str):              Name of the measure to be summarized.
+            floatOccur (dict[str,Any]): Dict containing column references of float columns.
         """
         for row in range(self.result_offset - 2):
             ref_range = ""
@@ -388,31 +400,31 @@ class Sheet:
                     )
 
 
-class SystemBlock(Sortable):
+@dataclass(order=True, unsafe_hash=True)
+class SystemBlock:
     """
     Dataframe containing results for system.
+
+    Attributes:
+        setting (Optional[Setting]): Benchmark setting.
+        machine (Optional[Machine]): Machine.
+        content (DataFrame):         Results.
+        columns (dict[str, Any]):    Dictionary of columns and their types.
+        offset (Optional[int]):      Offset for final block position.
     """
 
-    def __init__(self, setting: Optional["result.Setting"], machine: Optional["result.Machine"]):
-        """
-        Initialize system block for given setting and machine.
-
-        Keyword arguments:
-        setting - Benchmark setting
-        machine - Machine
-        """
-        self.setting = setting
-        self.machine = machine
-        self.content = pd.DataFrame()
-        self.columns: dict[str, Any] = {}
-        self.offset: Optional[int] = None
+    setting: Optional["result.Setting"]
+    machine: Optional["result.Machine"]
+    content: pd.DataFrame = field(default_factory=pd.DataFrame, compare=False)
+    columns: dict[str, Any] = field(default_factory=dict, compare=False)
+    offset: Optional[int] = field(default=None, compare=False)
 
     def gen_name(self, add_machine: bool) -> str:
         """
         Generate name of the block.
 
-        Keyword arguments:
-        addMachine - Whether to include the machine name in the name
+        Attributes:
+            addMachine (bool): Whether to include the machine name in the name.
         """
         res: str = ""
         if self.setting:
@@ -421,27 +433,15 @@ class SystemBlock(Sortable):
                 res += " ({0})".format(self.machine.name)
         return res
 
-    @no_type_check
-    def __cmp__(self, other: "SystemBlock") -> int:
-        if self.setting and self.machine:
-            return cmp(
-                (self.setting.system.order, self.setting.order, self.machine.name),
-                (other.setting.system.order, other.setting.order, other.machine.name),
-            )
-        return 0
-
-    def __hash__(self) -> int:
-        return hash((self.setting, self.machine))
-
     def add_cell(self, row: int, name: str, value_type: str, value: Any) -> None:
         """
         Add cell to dataframe.
 
-        Keyword arguments:
-        row         - Row of the new cell
-        name        - Name of the column of the new cell (in most cases the measure)
-        valueType   - Data type of the new cell
-        value       - Value of the new cell
+        Attributes:
+            row (int):       Row of the new cell.
+            name (str):      Name of the column of the new cell (in most cases the measure).
+            valueType (str): Data type of the new cell.
+            value (Any):     Value of the new cell.
         """
         if name not in self.columns:
             self.content.at[1, name] = name

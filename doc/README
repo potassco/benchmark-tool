@@ -1,24 +1,3 @@
-Structure
----------
-bgen  - creates start scripts
-beval - evaluates solver runs
-bconv - transforms output of eval into spreadsheets
-
-benchmarks/ - example benchmarks
-doc/        - documentation
-output/     - default output folder for the examples
-programs/   - should contain solver/tool executables
-runscripts/ - contains example run-scripts
-src/        - Python source files
-templates/  - contains example call-scripts
-
-Prerequisites
--------------
-- lxml (http://codespeak.net/lxml/)
-- pandas (https://pandas.pydata.org/)
-- odswriter (https://pypi.org/project/odswriter/)
-- >= python-2.7 (python-3 recommended)
-
 Example 1
 ---------
 The first example assumes that you want to run a benchmark that
@@ -28,12 +7,12 @@ root directory of the benchmark-tool project. To begin, the two
 executables clasp-1.3.2 [1] and runsolver-3.2.5 [2]. have to be
 copied (or symlinked) into the ./programs folder.
 Now, run:
-	./bgen ./runscripts/runscript-seq.xml
+	bgen ./runscripts/runscript-seq.xml
 This creates a set of start scripts in the ./output folder.
 To start the benchmark, run:
 	./output/clasp-big/houat/start.py
 Once the benchmark is finished, run:
-	./beval ./runscripts/runscript-seq.xml | ./bconv -o result.ods
+	beval ./runscripts/runscript-seq.xml | bconv -o result.ods
 Finally, open the file:
 	soffice result.ods
 
@@ -54,12 +33,12 @@ local python-3.1 installation; simply add it to your path:
 	/home/kaminski/local/python3/bin
 
 Now, run:
-	./bgen ./runscripts/runscript-pbs.xml
+	bgen ./runscripts/runscript-pbs.xml
 This creates a set of start scripts in the ./output folder.
 To start the benchmark, run (on the cluster):
 	./output/claspar-one-as/zuse/start.sh
 Once the benchmark is finished, run:
-	./beval ./runscripts/runscript-pbs.xml | ./bconv -o result.ods
+	beval ./runscripts/runscript-pbs.xml | bconv -o result.ods
 Finally, open the file:
 	soffice result.ods
 

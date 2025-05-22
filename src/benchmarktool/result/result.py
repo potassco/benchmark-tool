@@ -1,441 +1,425 @@
-'''
+"""
 Created on Jan 19, 2010
 
 @author: Roland Kaminski
-'''
+"""
+
+from dataclasses import dataclass, field
+from typing import Any, Iterator
 
 from benchmarktool.result.ods_gen import ODSDoc
-from benchmarktool.tools import Sortable, cmp
+
 
 class Result:
     """
-    Stores the benchmark description and its results.  
+    Stores the benchmark description and its results.
     """
-    def __init__(self):
+
+    def __init__(self) -> None:
         """
         Initializes an empty result.
         """
-        self.machines   = {}
-        self.configs    = {}
-        self.systems    = {}
-        self.jobs       = {}
-        self.benchmarks = {}
-        self.projects   = {}
-    
-    def merge(self, projects):
+        self.machines: dict[str, Machine] = {}
+        self.configs: dict[str, Config] = {}
+        self.systems: dict[tuple[str, str], System] = {}
+        self.jobs: dict[str, SeqJob | PbsJob] = {}
+        self.benchmarks: dict[str, Benchmark] = {}
+        self.projects: dict[str, Project] = {}
+
+    def merge(self, projects: list["Project"]) -> "BenchmarkMerge":
         """
         Concatenates the benchmarks in the given projects into one benchmark set.
-        
-        Keyword arguments:
-        projects - The project to merge with 
+
+        Attributes:
+            projects (list[Project]): The projects to merge with.
         """
-        benchmarks = set()
+        benchmarks: set[Benchmark] = set()
         for project in projects:
             for runspec in project:
                 for classresult in runspec:
                     for instresult in classresult.instresults:
-                        instresult.instance.maxRuns = max(instresult.instance.maxRuns, len(instresult.runs))
+                        instresult.instance.values["max_runs"] = max(
+                            instresult.instance.values["max_runs"], len(instresult.runs)
+                        )
                 benchmarks.add(runspec.benchmark)
         return BenchmarkMerge(benchmarks)
-        
-    def genOffice(self, out, selProjects, measures):
+
+    def gen_office(self, out: str, sel_projects: str, measures: list[tuple[str, Any]]) -> None:
         """
         Prints the current result in open office spreadsheet format.
-        
-        Keyword arguments:
-        out         - The output stream to write to
-        selProjects - The selected projects ("" for all) 
-        measures    - The measures to extract 
-        """
-        projects = [] 
-        for project in self.projects.values():
-            if selProjects == "" or project.name in selProjects:
-                projects.append(project)
-        benchmarkMerge = self.merge(projects)
 
-        sheet = ODSDoc(benchmarkMerge, measures)
+        Attributes:
+            out (str):                        The output file to write to.
+            sel_projects (str):               The selected projects ("" for all).
+            measures (list[tuple[str, Any]]): The measures to extract.
+        """
+        projects: list[Project] = []
+        for project in self.projects.values():
+            if sel_projects == "" or project.name in sel_projects:
+                projects.append(project)
+        benchmark_merge = self.merge(projects)
+
+        sheet = ODSDoc(benchmark_merge, measures)
         for project in projects:
             for runspec in project:
                 sheet.add_runspec(runspec)
         sheet.finish()
         sheet.make_ods(out)
 
+
 class BenchmarkMerge:
     """
-    Represents an (ordered) set of benchmark sets. 
+    Represents an (ordered) set of benchmark sets.
     """
-    def __init__(self, benchmarks):
+
+    def __init__(self, benchmarks: set["Benchmark"]):
         """
-        Initializes using the given set of benchmarks. 
+        Initializes using the given set of benchmarks.
+
+        Attributes:
+            benchmarks (set[Benchmark]): Benchmarks to merge.
         """
         self.benchmarks = benchmarks
-        instNum         = 0
-        classNum        = 0
+        inst_num = 0
+        class_num = 0
         for benchclass in self:
-            benchclass.line      = classNum
-            benchclass.instStart = instNum
-            for instance in benchclass:  
-                instance.line = instNum
-                instNum      += max(instance.maxRuns, 1)
-            benchclass.instEnd = instNum - 1
-            classNum          += 1
+            benchclass.values["row"] = class_num
+            benchclass.values["inst_start"] = inst_num
+            for instance in benchclass:
+                instance.values["row"] = inst_num
+                inst_num += max(instance.values["max_runs"], 1)
+            benchclass.values["inst_end"] = inst_num - 1
+            class_num += 1
 
-    """
-    Creates an interator over all benchmark classes in all benchmarks.
-    """
-    def __iter__(self):
+    def __iter__(self) -> Iterator["Class"]:
+        """
+        Creates an interator over all benchmark classes in all benchmarks.
+        """
         for benchmark in sorted(self.benchmarks):
-            for benchclass in benchmark:
-                yield benchclass
+            yield from benchmark
 
+
+@dataclass(order=True, frozen=True)
 class Machine:
     """
     Represents a machine.
-    """
-    def __init__(self, name, cpu, memory):
-        """
-        Initializes a machine.
-    
-        Keyword arguments:
-        name   - The name of the machine 
-        cpu    - String describing the CPU
-        memory - String describing the Memory
-        """
-        self.name   = name
-        self.cpu    = cpu
-        self.memory = memory 
 
+    Attributes:
+        name (str):   The name of the machine.
+        cpu (str):    String describing the CPU.
+        memory (str): String describing the Memory.
+    """
+
+    name: str
+    cpu: str = field(compare=False)
+    memory: str = field(compare=False)
+
+
+@dataclass(order=True, frozen=True)
 class Config:
     """
     Represents a config.
-    """
-    def __init__(self, name, template):
-        """
-        Initializes a machine.
-    
-        Keyword arguments:
-        name     - The name of the config
-        template - A path to the template file
-        """
-        self.name     = name
-        self.template = template
 
+    Attributes:
+        name (str):     The name of the config.
+        template (str): A path to the template file.
+    """
+
+    name: str
+    template: str = field(compare=False)
+
+
+@dataclass(order=True, frozen=True)
 class System:
     """
     Represents a system.
-    """
-    def __init__(self, name, version, config, measures, order):
-        """
-        Initializes a system.
-    
-        Keyword arguments:
-        name     - The name of the system
-        version  - The version
-        config   - The config (a string)
-        measures - The measurement function (a string) 
-        order    - An integer denoting the occurrence in the XML file 
-        """
-        self.name     = name
-        self.version  = version
-        self.config   = config
-        self.measures = measures
-        self.order    = order
-        self.settings = {}
 
+    Attributes:
+        name (str):                    The name of the system.
+        version (str):                 The version.
+        config (str):                  The config (a string).
+        measures (str):                The measurement function (a string).
+        order (int):                   An integer denoting the occurrence in the XML file.
+        settings (dict[str, Setting]): Dictionary of all system settings.
+    """
+
+    name: str
+    version: str
+    config: str = field(compare=False)
+    measures: str = field(compare=False)
+    order: int
+    settings: dict[str, "Setting"] = field(default_factory=dict, compare=False)
+
+
+@dataclass(order=True, frozen=True)
 class Setting:
     """
     Represents a setting.
-    """
-    def __init__(self, system, name, cmdline, tag, order, attr):
-        """
-        Initializes a setting.
-    
-        Keyword arguments:
-        system   - The system associated with the setting
-        name     - The name of the setting
-        cmdline  - Command line parameters
-        tag      - Tags of the setting
-        order    - An integer denoting the occurrence in the XML file
-        attr     - Arbitrary extra arguments 
-        """
-        self.system  = system
-        self.name    = name
-        self.cmdline = cmdline
-        self.tag     = tag
-        self.order   = order
-        self.attr    = attr
 
+    Attributes:
+        system (System):       The system associated with the setting.
+        name (str):            The name of the setting.
+        cmdline (str):         Command line parameters.
+        tag (str):             Tags of the setting.
+        order (int):           An integer denoting the occurrence in the XML file.
+        attr (dict[str, Any]): Arbitrary extra arguments.
+    """
+
+    system: "System"
+    name: str
+    cmdline: str = field(compare=False)
+    tag: str = field(compare=False)
+    order: int
+    attr: dict[str, Any] = field(compare=False)
+
+
+@dataclass(order=True, frozen=True)
 class Job:
     """
     Represents a job.
-    """
-    def __init__(self, name, timeout, runs, attrib):
-        """
-        Initializes a job.
-    
-        Keyword arguments:
-        name     - The name of the job
-        timeout  - Timeout of the job
-        runs     - Number of repetitions per instance 
-        attr     - Arbitrary extra arguments 
-        """
-        self.name    = name
-        self.timeout = timeout
-        self.runs    = runs
-        self.attrib  = attrib
 
+    Attributes:
+        name (str):            The name of the job.
+        timeout (int):         Timeout of the job.
+        runs (int):            Number of repetitions per instance.
+        attr (dict[str, Any]): Arbitrary extra arguments.
+    """
+
+    name: str
+    timeout: int = field(compare=False)
+    runs: int = field(compare=False)
+    attr: dict[str, Any] = field(compare=False)
+
+
+@dataclass(order=True, frozen=True)
 class SeqJob(Job):
     """
     Represents a sequential job.
-    """
-    def __init__(self, name, timeout, runs, parallel, attrib):
-        """
-        Initializes a job.
-    
-        Keyword arguments:
-        name     - The name of the job
-        timeout  - Timeout of the job
-        runs     - Number of repetitions per instance
-        parallel - Number of processes to start in parallel 
-        attrib   - Arbitrary extra arguments 
-        """
-        Job.__init__(self, name, timeout, runs, attrib)
-        self.parallel = parallel
 
+    Attributes:
+        name (str):              The name of the job.
+        timeout (int):           Timeout of the job.
+        runs (int):              Number of repetitions per instance.
+        attrib (dict[str, Any]): Arbitrary extra arguments.
+        parallel (int):          Number of processes to start in parallel.
+    """
+
+    parallel: int = field(compare=False)
+
+
+@dataclass(order=True, frozen=True)
 class PbsJob(Job):
     """
     Represents a pbs job.
-    """
-    def __init__(self, name, timeout, runs, script_mode, walltime, attrib):
-        """
-        Initializes a job.
-    
-        Keyword arguments:
-        name     - The name of the job
-        timeout  - Timeout of the job
-        runs     - Number of repetitions per instance
-        script_mode - Specifies the script generation mode
-        walltime    - The walltime for a job submitted via PBS 
-        attrib   - Arbitrary extra arguments 
-        """
-        Job.__init__(self, name, timeout, runs, attrib)
-        self.script_mode = script_mode
-        self.walltime    = walltime
 
-class Benchmark(Sortable):
+    Attributes:
+        name (str):              The name of the job.
+        timeout (int):           Timeout of the job.
+        runs (int):              Number of repetitions per instance.
+        attrib (dict[str, Any]): Arbitrary extra arguments.
+        script_mode (str):       Specifies the script generation mode.
+        walltime (str):          The walltime for a job submitted via PBS.
+    """
+
+    script_mode: str = field(compare=False)
+    walltime: str = field(compare=False)
+
+
+@dataclass(order=True, frozen=True)
+class Benchmark:
     """
     Represents a benchmark, i.e., a set of instances.
+
+    Attributes:
+        name (str):                 The name of the benchmark.
+        classes (dict[int, Class]): Benchmark classes in this benchmark.
     """
-    def __init__(self, name):
-        """
-        Initializes a job.
-    
-        Keyword arguments:
-        name - The name of the benchmark
-        """
-        self.name    = name
-        self.classes = {}
-        
-    def __iter__(self):
+
+    name: str
+    classes: dict[int, "Class"] = field(default_factory=dict, compare=False)
+
+    def __iter__(self) -> Iterator["Class"]:
         """
         Creates an iterator over all benchmark classes.
         """
-        for benchclass in sorted(self.classes.values()):
-            yield benchclass
-    
-    def __cmp__(self, other):
-        """
-        Compares two benchmarks.
-        """
-        return cmp(self.name, other.name)
-    
-    def __hash__(self):
-        """
-        Calculates a hash value using the name of the benchmark.
-        """
-        return hash(self.name)
+        yield from sorted(self.classes.values())
 
-class Class(Sortable):
+
+@dataclass(order=True, frozen=True)
+class Class:
     """
     Represents a benchmark class.
+
+    Attributes:
+        benchmark (Benchmark):           The benchmark associaed with this class.
+        name (str):                      The name of the benchmark.
+        id (int):                        A unique id (in the scope of the benchmark).
+        instances (dict[int, Instance]): Instances belonging to this benchmark class.
+        values (dict[str, Any]):         Mutable dict with helper values.
     """
-    def __init__(self, benchmark, name, uid):
-        """
-        Initializes a benchmark class.
-    
-        Keyword arguments:
-        benchmark - The benchmark associaed with this class 
-        name      - The name of the benchmark
-        uid       - A unique id (in the scope of the benchmark)  
-        """
-        self.benchmark = benchmark
-        self.name      = name
-        self.id        = uid
-        self.line      = None
-        self.instances = {}
 
-    def __hash__(self):
-        """
-        Hash for a class based on its name. 
-        """
-        return hash((self.benchmark, self.name))
-    
-    def __cmp__(self, other):
-        """
-        Compares two benchmark classes. 
-        """
-        return cmp((self.benchmark, self.name), (other.benchmark, other.name)) 
+    benchmark: Benchmark
+    name: str
+    id: int = field(compare=False)
+    instances: dict[int, "Instance"] = field(default_factory=dict, compare=False)
+    values: dict[str, int] = field(default_factory=dict, compare=False)
 
-    def __iter__(self):
+    def __post_init__(self) -> None:
+        """
+        Initialize mutable helper variables.
+        """
+        self.values["row"] = 0
+        self.values["inst_start"] = 0
+        self.values["inst_end"] = 0
+
+    def __iter__(self) -> Iterator["Instance"]:
         """
         Creates an iterator over all instances in the benchmark class.
         """
-        for benchinst in sorted(self.instances.values()):
-            yield benchinst
+        yield from sorted(self.instances.values())
 
-class Instance(Sortable):
+
+@dataclass(order=True, frozen=True)
+class Instance:
     """
     Represents a benchmark instance.
+
+    Attributes:
+        benchclass (Class):      The class of the instance.
+        name (str):              The name of the benchmark.
+        id (int):                A unique id (in the scope of the benchmark).
+        max_runs (int):          Max number of runs.
+        values (dict[str, Any]): Mutable dict with helper values.
     """
-    def __init__(self, benchclass, name, uid):
-        """
-        Initializes a benchmark instance.
-        
-        benchclass - The class of the instance
-        name       - The name of the instance
-        uid        - A unique id (in the scope of the class)
-        """
-        self.benchclass = benchclass
-        self.name       = name
-        self.id         = uid
-        self.line       = None
-        self.maxRuns    = 0
-    
-    def __cmp__(self, other):
-        """
-        Compares two benchmark instances. 
-        """
-        return cmp((self.benchclass, self.name), (other.benchclass, other.name))
 
-    def __hash__(self):
-        """
-        Hash for an instance based on its name. 
-        """
-        return hash((self.benchclass, self.name))
+    benchclass: Class
+    name: str
+    id: int = field(compare=False)
+    values: dict[str, int] = field(default_factory=dict, compare=False)
 
+    def __post_init__(self) -> None:
+        """
+        Initialize mutable helper variables.
+        """
+        self.values["max_runs"] = 0
+        self.values["row"] = 0
+
+
+@dataclass(order=True, frozen=True)
 class Project:
     """
     Describes a project, i.e, a collection of run specifications.
-    """
-    def __init__(self, name, job):
-        """
-        Initializes a benchmark instance.
-        
-        name - The name of the project
-        job  - Job associated with the project (a string)
-        """
-        self.name     = name
-        self.job      = job
-        self.runspecs = []
-    
-    def __iter__(self):
-        """
-        Creates an iterator over all run specification in the project. 
-        """
-        for runspec in self.runspecs:
-            yield runspec
 
-class Runspec():
+    Attributes:
+        name (str):                 The name of the project.
+        job (str):                  The name of the associated job.
+        runspecs (list['Runspec']): Run specifications of the project.
+    """
+
+    name: str
+    job: str = field(compare=False)
+    runspecs: list["Runspec"] = field(default_factory=list, compare=False)
+
+    def __iter__(self) -> Iterator["Runspec"]:
+        """
+        Creates an iterator over all run specification in the project.
+        """
+        yield from self.runspecs
+
+
+@dataclass(order=True, frozen=True)
+class Runspec:
     """
     Describes a run specification, i.e, how to run individual systems
     on a set of instances.
-    """
-    def __init__(self, system, machine, benchmark, setting):
-        """
-        Initializes a run specification.
-        
-        Keyword arguments:
-        system    - The system to evaluate
-        machine   - The machine to run on
-        benchmark - The benchmark set to evaluate
-        settings  - The settings to run with
-        """
-        self.system       = system
-        self.machine      = machine
-        self.benchmark    = benchmark
-        self.setting      = setting
-        self.classresults = []
-    
-    def __iter__(self):
-        """
-        Creates an iterator over all results (grouped by benchmark class.)  
-        """
-        for classresult in self.classresults:
-            yield classresult
 
+    Attributes:
+        system (System):                  The system to evaluate.
+        machine (Machine):                The machine to run on.
+        benchmark (Benchmark):            The benchmark set to evaluate.
+        setting (Setting):                The setting to run with.
+        classresults (list[ClassResult]): The benchmark results.
+    """
+
+    system: "System"
+    machine: "Machine"
+    benchmark: "Benchmark"
+    setting: "Setting"
+    classresults: list["ClassResult"] = field(default_factory=list, compare=False)
+
+    def __iter__(self) -> Iterator["ClassResult"]:
+        """
+        Creates an iterator over all results (grouped by benchmark class.)
+        """
+        yield from self.classresults
+
+
+@dataclass(order=True, frozen=True)
 class ClassResult:
     """
     Represents the results of all instances of a benchmark class.
+
+    Attributes:
+        benchclass (Class):                 The benchmark class for the results.
+        instresults (list[InstanceResult]): Results of instances belonging to the benchmark class.
     """
-    def __init__(self, benchclass):
-        """
-        Initializes an empty class result.
-        
-        Keyword arguments:
-        benchclass - The benchmark class for the results
-        """
-        self.benchclass  = benchclass
-        self.instresults = []
-        
-    def __iter__(self):
+
+    benchclass: "Class"
+    instresults: list["InstanceResult"] = field(default_factory=list, compare=False)
+
+    def __iter__(self) -> Iterator["InstanceResult"]:
         """
         Creates an iterator over all the individual results per instance.
         """
-        for instresult in self.instresults:
-            yield instresult
+        yield from self.instresults
 
+
+@dataclass(order=True, frozen=True)
 class InstanceResult:
     """
-    Represents the result of an individual instance (with possibly multiple runs). 
+    Represents the result of an individual instance (with possibly multiple runs).
+
+    Attributes:
+        instance (Instance): The instance for the results.
+        runs (list[Run]):    Results of runs belonging to the instance.
     """
-    def __init__(self, instance):
-        """
-        Initializes an empty instance result (0 runs).
-        """
-        self.instance = instance
-        self.runs     = []
-    
-    def __iter__(self):
+
+    instance: "Instance"
+    runs: list["Run"] = field(default_factory=list, compare=False)
+
+    def __iter__(self) -> Iterator["Run"]:
         """
         Creates an iterator over the result of all runs.
         """
-        for run in self.runs:
-            yield run
+        yield from self.runs
 
+
+@dataclass(order=True, frozen=True)
 class Run:
     """
-    Represents the result of an individual run of a benchmark instance. 
+    Represents the result of an individual run of a benchmark instance.
+
+    Attributes:
+        instresult (InstanceResult):           The associated instance result.
+        number (int):                          The number of the run.
+        measures (dict[str, tuple[str, str]]): Concrete measurements.
     """
-    def __init__(self, instresult, number):
-        """
-        Initializes a benchmark result.
-        
-        Keyword arguments:
-        instresult - The associated instance result
-        number     - The number of the run
-        """
-        self.instresult = instresult
-        self.number     = number
-        self.measures   = {}
-    
-    def iter(self, measures):
+
+    instresult: "InstanceResult"
+    number: int
+    measures: dict[str, tuple[str, str]] = field(default_factory=dict, compare=False)
+
+    def iter(self, measures: list[tuple[str, Any]]) -> Iterator[tuple[str, str, str]]:
         """
         Creates an iterator over all measures captured during the run.
         Measures can be filter by giving a string set of measure names.
-        If this sttring set is "" instead all measures sorted by their keys 
-        will be returned. 
+        If this string set is empty, instead all measures sorted by their keys
+        will be returned.
+
+        Attributes:
+            measures (list[tuple[str, Any]]): Selected measures.
         """
-        if measures == "": 
+        if len(measures) == 0:
             for name in sorted(self.measures.keys()):
                 yield name, self.measures[name][0], self.measures[name][1]
         else:

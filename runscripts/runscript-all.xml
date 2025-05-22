@@ -22,7 +22,7 @@
 	</system>
 	
 	<seqjob name="seq-generic" timeout="120" runs="1" parallel="8"/>
-	<pbsjob name="pbs-generic" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59"/>
+	<pbsjob name="pbs-generic" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
 
 	<benchmark name="seq-suite">
 		<folder path="benchmarks/clasp">

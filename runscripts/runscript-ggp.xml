@@ -7,7 +7,7 @@
 		<setting name="default" tag="one-as" cmdline="--stats 1" ppn="1" procs="1" pbstemplate="templates/single.pbs"/>
 	</system>
 	
-	<pbsjob name="pbs-single" timeout="20000" runs="1" script_mode="timeout" walltime="23:59:59"/>
+	<pbsjob name="pbs-single" timeout="20000" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
 
 	<benchmark name="ggp">
 		<folder path="benchmarks/ggp"/>

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "benchmarktool"
 authors = [{ name = "Roland Kaminski"},{name = "Tom Schmidt"}]
 description = "A benchmark-tool for ASP based systems."
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dynamic = ["version"]
 dependencies = [
     "lxml",
@@ -21,6 +21,11 @@ typecheck = ["types-setuptools", "mypy"]
 test = ["coverage[toml]"]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
 dev = ["fillname[test,typecheck,lint_pylint]"]
+
+[project.scripts]
+bconv = "benchmarktool.entry_points:start_bconv"
+beval = "benchmarktool.entry_points:start_beval"
+bgen = "benchmarktool.entry_points:start_bgen"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -63,12 +68,12 @@ variable-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
 good-names = ["_"]
 
 [tool.pylint."messages control"]
-disable = ["consider-using-f-string"]
+disable = ["consider-using-f-string", "duplicate-code"]
 extension-pkg-allow-list = ["lxml"]
 
 [tool.coverage.run]
 omit = [""]
-include = ["src/benchmarktool/result/ods_gen.py", "src/benchmarktool/runscript/parser.py", "src/benchmarktool/runscript/runscript.py", "tests/*"]
+include = ["src/*", "tests/*"]
 
 [tool.coverage.report]
 exclude_lines = ["assert", "nocoverage"]
