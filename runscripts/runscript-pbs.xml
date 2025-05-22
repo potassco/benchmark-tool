@@ -7,7 +7,7 @@
 		<setting name="one-as" tag="one-as" cmdline="--stats 1" ppn="8" procs="1 2 4 8 16 28" pbstemplate="templates/impi.pbs"/>
 	</system>
 	
-	<pbsjob name="pbs-generic" timeout="1200" runs="1" script_mode="timeout" walltime="23:59:59"/>
+	<pbsjob name="pbs-generic" timeout="1200" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
 
 	<benchmark name="pbs-suite">
 		<folder path="benchmarks/clasp"/>
