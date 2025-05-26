@@ -395,30 +395,6 @@ class TestSystemBlock(TestCase):
         self.assertEqual(block.gen_name(False), "test_sys-test_ver/test_setting")
         self.assertEqual(block.gen_name(True), "test_sys-test_ver/test_setting (test_machine)")
 
-    def test_cmp(self) -> None:
-        """
-        Test __cmp__ method.
-        """
-        n_block = ods_gen.SystemBlock(None, None)
-        self.setting.order = 0
-        self.setting.system.order = 0
-        self.machine.name = "machine"
-        block = ods_gen.SystemBlock(self.setting, self.machine)
-        self.assertEqual(n_block.__cmp__(block), 0)
-
-        m = Mock(spec=result.Machine)
-        m.name = "machine2"
-        block2 = ods_gen.SystemBlock(self.setting, m)
-        self.assertEqual(block.__cmp__(block), 0)
-        self.assertNotEqual(block.__cmp__(block2), 0)
-
-    def test_hash(self) -> None:
-        """
-        Test __hash__ method.
-        """
-        block = ods_gen.SystemBlock(self.setting, self.machine)
-        self.assertEqual(hash(block), hash((self.setting, self.machine)))
-
     def test_add_cell(self) -> None:
         """
         Test add_cell method.

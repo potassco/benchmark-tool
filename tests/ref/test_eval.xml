@@ -2,10 +2,11 @@
 	<machine name="test_machine" cpu="test_cpu" memory="test_mem"/>
 	<config name="test_config" template="templates/seq-test.sh"/>
 	<system name="test_sys" version="1.0.0" measures="test" config="test_config">
-		<setting name="test_setting" cmdline="test_cmdline" tag="basic" pbstemplate="templates/single.pbs"/>
-		<setting name="test_setting2" cmdline="test_cmdline" tag="basic" pbstemplate="templates/single.pbs"/>
+		<setting name="test_setting" cmdline="test_cmdline" tag="basic"/>
+		<setting name="test_setting2" cmdline="test_cmdline" tag="basic"/>
 	</system>
-	<seqjob name="test_seq" timeout="10" runs="2" parallel="1" script_mode="timeout" walltime="50:00:00"/>
+	<seqjob name="test_seq" timeout="10" runs="2" parallel="1"/>
+	<pbsjob name="test_pbs" timeout="10" runs="2" script_mode="timeout" walltime="23:59:59"/>
 	<benchmark name="test_bench">
 		<class name="test_class" id="0">
 			<instance name="test_inst" id="0"/>

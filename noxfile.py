@@ -12,10 +12,7 @@ if "GITHUB_ACTIONS" in os.environ:
     EDITABLE_TESTS = False
 
 FILES_TO_BE_CHECKED = [
-    "src/benchmarktool/tools.py",
-    "src/benchmarktool/result/ods_gen.py",
-    "src/benchmarktool/runscript/parser.py", 
-    "src/benchmarktool/runscript/runscript.py",
+    "src",
 ]
 
 @nox.session
