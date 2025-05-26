@@ -1,3 +1,28 @@
+# A simple script to dispatch jobs to a SLURM cluster.
+# It checks the number of running jobs for a given user
+# and dispatches jobs from a specified folder
+# until the maximum number of jobs is reached.
+
+# Arguments:
+# -f, --folder: folder where the files to dispatch are (default: current directory)
+# -u, --username: username to monitor (default: current user)
+# -j, --maxjobs: maximum number of jobs running at once (default: 100)
+# -w, --wait-time: time to wait between checks in seconds (default: 1)
+
+# Example usage from inside the folder with the jobs:
+# `python ../../../dispatcher.py -f . -j 100 -w 1`
+
+# Notes:
+# This script should be used in conjunction with "screen" to setup a long-running job dispatcher.
+# First, start a screen session running the command(For more information on screen, see `man screen`):
+# `screen`
+# Or continue an existing session with:
+# `screen -r`
+# Then, run this script from within the screen session.
+# To exit the screen session, use Ctrl+A followed by D.
+# The jobs will continue to be dispatched in the background.
+
+
 import sys
 import os
 import time
