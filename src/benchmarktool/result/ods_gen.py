@@ -7,13 +7,91 @@ Created on Apr 14, 2025
 import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
+from unittest import mock
 
 import numpy as np
 import odswriter as ods  # type: ignore[import-untyped]
 import pandas as pd  # type: ignore[import-untyped]
 
+from benchmarktool.result import ods_config
+
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
+
+ods.ods_components.styles_xml = ods_config.styles_xml
+
+
+def write_row(self, cells):
+    """
+    Method to write ods row.
+    Replaces ods.Sheet.writerow
+    """
+    import decimal
+
+    row = self.dom.createElement("table:table-row")
+    content_cells = 0
+
+    for cell_data in cells:
+        cell = self.dom.createElement("table:table-cell")
+        text = None
+
+        if isinstance(cell_data, tuple):
+            value = cell_data[0]
+            style = cell_data[1]
+        else:
+            value = cell_data
+            style = None
+
+        if isinstance(value, bool):
+            # Bool condition must be checked before numeric because:
+            # isinstance(True, int): True
+            # isinstance(True, bool): True
+            cell.setAttribute("office:value-type", "boolean")
+            cell.setAttribute("office:boolean-value", "true" if value else "false")
+            cell.setAttribute("table:style-name", "cBool")
+            text = "TRUE" if value else "FALSE"
+
+        elif isinstance(value, (float, int, decimal.Decimal, int)):
+            cell.setAttribute("office:value-type", "float")
+            float_str = str(value)
+            cell.setAttribute("office:value", float_str)
+            if style is not None:
+                cell.setAttribute("table:style-name", style)
+            text = float_str
+
+        elif isinstance(value, Formula):
+            cell.setAttribute("table:formula", str(value))
+            if style is not None:
+                cell.setAttribute("table:style-name", style)
+
+        elif value is None:
+            pass  # Empty element
+
+        else:
+            # String and unknown types become string cells
+            cell.setAttribute("office:value-type", "string")
+            if style is not None:
+                cell.setAttribute("table:style-name", style)
+            text = str(value)
+
+        if text:
+            p = self.dom.createElement("text:p")
+            p.appendChild(self.dom.createTextNode(text))
+            cell.appendChild(p)
+
+        row.appendChild(cell)
+
+        content_cells += 1
+
+    if self.cols is not None:
+        if content_cells > self.cols:
+            raise Exception("More cells than cols.")
+
+        for _ in range(content_cells, self.cols):
+            cell = self.dom.createElement("table:table-cell")
+            row.appendChild(cell)
+
+    self.table.appendChild(row)
 
 
 class Formula(ods.Formula):  # type: ignore[misc]
@@ -116,17 +194,16 @@ class ODSDoc:
         Attributes:
             out (str): Name of the generated ODS file.
         """
-        # replace all undefined cells with None (empty cell)
-        self.inst_sheet.content = self.inst_sheet.content.fillna(np.nan).replace([np.nan], [None])
-        self.class_sheet.content = self.class_sheet.content.fillna(np.nan).replace([np.nan], [None])
 
-        with ods.writer(open(out, "wb")) as odsfile:
-            inst_sheet = odsfile.new_sheet("Instances")
-            for line in range(len(self.inst_sheet.content.index)):
-                inst_sheet.writerow(list(self.inst_sheet.content.iloc[line]))
-            class_sheet = odsfile.new_sheet("Classes")
-            for line in range(len(self.class_sheet.content.index)):
-                class_sheet.writerow(list(self.class_sheet.content.iloc[line]))
+        with mock.patch.object(ods.Sheet, "writerow", write_row):
+            with ods.writer(open(out, "wb")) as odsfile:
+                inst_sheet = odsfile.new_sheet("Instances")
+                for line in range(len(self.inst_sheet.content.index)):
+                    # print(list(self.inst_sheet.content.iloc[line]))
+                    inst_sheet.writerow(list(self.inst_sheet.content.iloc[line]))
+                class_sheet = odsfile.new_sheet("Classes")
+                for line in range(len(self.class_sheet.content.index)):
+                    class_sheet.writerow(list(self.class_sheet.content.iloc[line]))
 
 
 # pylint: disable=too-many-instance-attributes
@@ -169,6 +246,8 @@ class Sheet:
         self.ref_sheet = ref_sheet
         # references for summary generation
         self.summary_refs: dict[str, Any] = {}
+        # dataframe containing all results and stats
+        self.values = pd.DataFrame()
 
         # first column
         self.content[0] = None
@@ -303,6 +382,7 @@ class Sheet:
                     op = "AVERAGE"
                     if name == "timeout":
                         op = "SUM"
+                    self.values.at[row, column] = self.content.at[row, column][1]
                     self.content.at[row, column] = Formula(
                         ""
                         + op
@@ -316,17 +396,27 @@ class Sheet:
                     float_occur[name] = set()
                 float_occur[name].add(column)
 
+        self.values = (
+            self.content.iloc[2 : self.result_offset - 1, 1:].combine_first(self.values).combine_first(self.content)
+        )
+
         # add summaries
         self.add_row_summary(float_occur, col)
         self.add_col_summary()
+
+        # color cells
+        self.add_styles(float_occur)
+
+        # replace all undefined cells with None (empty cell)
+        self.content = self.content.fillna(np.nan).replace([np.nan], [None])
 
     def add_row_summary(self, float_occur: dict[str, set[Any]], offset: int) -> None:
         """
         Add row summary (min, max, median).
 
         Attributes:
-            floatOccur (dict[str, set[Any]]): Dict containing column references of float columns.
-            offset (int):                     Column offset.
+            float_occur (dict[str, set[Any]]): Dict containing column references of float columns.
+            offset (int):                      Column offset.
         """
         col = offset
         for col_name in ["min", "median", "max"]:
@@ -340,26 +430,32 @@ class Sheet:
                 measures = list(map(lambda x: x[0], self.measures))
             for measure in measures:
                 if measure in float_occur:
-                    self._add_summary_formula(block, col_name, measure, float_occur)
-                    self.summary_refs[col_name][measure] = "{0}:{1}".format(
-                        get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
+                    self.values.at[1, col] = measure
+                    self._add_summary_formula(block, col_name, measure, float_occur, col)
+                    self.summary_refs[col_name][measure] = (
+                        col,
+                        "{0}:{1}".format(
+                            get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
+                        ),
                     )
                     col += 1
             self.content = self.content.join(block.content)
             self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, block.offset] = col_name
+            self.values.at[0, block.offset] = col_name
 
     def _add_summary_formula(
-        self, block: "SystemBlock", operator: str, measure: str, float_occur: dict[str, Any]
+        self, block: "SystemBlock", operator: str, measure: str, float_occur: dict[str, Any], col: int
     ) -> None:
         """
         Add row summary formula.
 
         Attributes:
-            block (SystemBlock):        SystemBlock to which summary is added.
-            operator (str):             Summary operator.
-            measure (str):              Name of the measure to be summarized.
-            floatOccur (dict[str,Any]): Dict containing column references of float columns.
+            block (SystemBlock):          SystemBlock to which summary is added.
+            operator (str):               Summary operator.
+            measure (str):                Name of the measure to be summarized.
+            float_occur (dict[str, Any]): Dict containing column references of float columns.
+            col (int):                    Current column index.
         """
         for row in range(self.result_offset - 2):
             ref_range = ""
@@ -368,6 +464,9 @@ class Sheet:
                     ref_range += ";"
                 ref_range += get_cell_index(col_ref, row + 2, True)
             block.add_cell(row, measure, "formular", Formula("{1}({0})".format(ref_range, operator.upper())))
+            self.values.at[2 + row, col] = getattr(np, "nan" + operator)(
+                self.values.loc[2 + row, sorted(float_occur[measure])]
+            )
 
     def add_col_summary(self) -> None:
         """
@@ -376,28 +475,154 @@ class Sheet:
         for col in self.content:
             name = self.content.at[1, col]
             if self.types.get(name, "") in ["float", "classresult"]:
-                res_value = "{0}:{1}".format(
+                ref_value = "{0}:{1}".format(
                     get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
                 )
-                self.content.at[self.result_offset + 1, col] = Formula("SUM({0})".format(res_value))
-                self.content.at[self.result_offset + 2, col] = Formula("AVERAGE({0})".format(res_value))
-                self.content.at[self.result_offset + 3, col] = Formula("STDEV({0})".format(res_value))
+                values = np.array(self.values.loc[2 : self.result_offset - 1, col])
+                # SUM
+                self.content.at[self.result_offset + 1, col] = Formula("SUM({0})".format(ref_value))
+                self.values.at[self.result_offset + 1, col] = np.nansum(values)
+                # AVG
+                self.content.at[self.result_offset + 2, col] = Formula("AVERAGE({0})".format(ref_value))
+                self.values.at[self.result_offset + 2, col] = np.nanmean(values)
+                # DEV
+                self.content.at[self.result_offset + 3, col] = Formula("STDEV({0})".format(ref_value))
+                if len(values) != 1:
+                    self.values.at[self.result_offset + 3, col] = np.nanstd(values, ddof=1)
+                else:
+                    self.values.at[self.result_offset + 3, col] = np.nan
                 if col < self.summary_refs["min"]["col"]:
+                    # DST
                     self.content.at[self.result_offset + 4, col] = Formula(
-                        "SUMPRODUCT(--({0}-{1})^2)^0.5".format(res_value, self.summary_refs["min"][name])
+                        "SUMPRODUCT(--({0}-{1})^2)^0.5".format(ref_value, self.summary_refs["min"][name][1])
                     )
+                    self.values.at[self.result_offset + 4, col] = (
+                        np.nansum(
+                            (
+                                values
+                                - np.array(
+                                    self.values.loc[2 : self.result_offset - 1, self.summary_refs["min"][name][0]]
+                                )
+                            )
+                            ** 2
+                        )
+                        ** 0.5
+                    )
+                    # BEST (values * -1, since higher better)
                     self.content.at[self.result_offset + 5, col] = Formula(
-                        "SUMPRODUCT(--({0}={1}))".format(res_value, self.summary_refs["min"][name])
+                        "SUMPRODUCT(--({0}={1}))".format(ref_value, self.summary_refs["min"][name][1])
                     )
+                    self.values.at[self.result_offset + 5, col] = -1 * np.nansum(
+                        values
+                        == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["min"][name][0]])
+                    )
+                    # BETTER (values * -1, since higher better)
                     self.content.at[self.result_offset + 6, col] = Formula(
-                        "SUMPRODUCT(--({0}<{1}))".format(res_value, self.summary_refs["median"][name])
+                        "SUMPRODUCT(--({0}<{1}))".format(ref_value, self.summary_refs["median"][name][1])
                     )
+                    self.values.at[self.result_offset + 6, col] = -1 * np.nansum(
+                        values
+                        < np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["median"][name][0]])
+                    )
+                    # WORSE
                     self.content.at[self.result_offset + 7, col] = Formula(
-                        "SUMPRODUCT(--({0}>{1}))".format(res_value, self.summary_refs["median"][name])
+                        "SUMPRODUCT(--({0}>{1}))".format(ref_value, self.summary_refs["median"][name][1])
                     )
+                    self.values.at[self.result_offset + 7, col] = np.nansum(
+                        values
+                        > np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["median"][name][0]])
+                    )
+                    # WORST
                     self.content.at[self.result_offset + 8, col] = Formula(
-                        "SUMPRODUCT(--({0}={1}))".format(res_value, self.summary_refs["max"][name])
+                        "SUMPRODUCT(--({0}={1}))".format(ref_value, self.summary_refs["max"][name][1])
                     )
+                    self.values.at[self.result_offset + 8, col] = np.nansum(
+                        values
+                        == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["max"][name][0]])
+                    )
+
+    def add_styles(self, float_occur):
+        """
+        Color float results and their summaries.
+
+        Attributes:
+            float_occur (dict[str, Any]): Dict containing column references of float columns.
+        """
+        for measure in self.measures:
+            if measure[0] in float_occur:
+                func = measure[1]
+                if func == "t":
+                    diff = 2
+                elif func == "to":
+                    diff = 0
+                else:
+                    return
+                # results:
+                values = np.nan_to_num(
+                    np.array(
+                        self.values.loc[2 : self.result_offset - 1, sorted(float_occur[measure[0]])].values, dtype=float
+                    )
+                )
+                min_values = np.array(
+                    self.values[[self.summary_refs["min"][measure[0]][0]]].loc[2 : self.result_offset - 1].values,
+                    dtype=float,
+                )
+                median_values = np.array(
+                    self.values[[self.summary_refs["median"][measure[0]][0]]].loc[2 : self.result_offset - 1].values,
+                    dtype=float,
+                )
+                max_values = np.array(
+                    self.values[[self.summary_refs["max"][measure[0]][0]]].loc[2 : self.result_offset - 1].values,
+                    dtype=float,
+                )
+                max_min_diff = (max_values - min_values) > diff
+                max_med_diff = (max_values - median_values) > diff
+
+                self.content = (
+                    self.content.loc[2 : self.result_offset - 1, sorted(float_occur[measure[0]])]
+                    .mask(
+                        (values == min_values) & (values < median_values) & max_min_diff,
+                        self.content.map(lambda x: (x, "cellBest")),
+                    )
+                    .combine_first(self.content)
+                )
+                self.content = (
+                    self.content.loc[2 : self.result_offset - 1, sorted(float_occur[measure[0]])]
+                    .mask(
+                        (values == max_values) & (values > median_values) & max_med_diff,
+                        self.content.map(lambda x: (x, "cellWorst")),
+                    )
+                    .combine_first(self.content)
+                )
+
+                # summary
+                values = np.nan_to_num(
+                    np.array(
+                        self.values.loc[self.result_offset + 1 :, sorted(float_occur[measure[0]])].values, dtype=float
+                    )
+                )
+                min_values = np.reshape(np.min(values, axis=1), (-1, 1))
+                median_values = np.reshape(np.median(values, axis=1), (-1, 1))
+                max_values = np.reshape(np.max(values, axis=1), (-1, 1))
+                max_min_diff = (max_values - min_values) > diff
+                max_med_diff = (max_values - median_values) > diff
+
+                self.content = (
+                    self.content.loc[self.result_offset + 1 :, sorted(float_occur[measure[0]])]
+                    .mask(
+                        (values == min_values) & (values < median_values) & max_min_diff,
+                        self.content.map(lambda x: (x, "cellBest")),
+                    )
+                    .combine_first(self.content)
+                )
+                self.content = (
+                    self.content.loc[self.result_offset + 1 :, sorted(float_occur[measure[0]])]
+                    .mask(
+                        (values == max_values) & (values > median_values) & max_med_diff,
+                        self.content.map(lambda x: (x, "cellWorst")),
+                    )
+                    .combine_first(self.content)
+                )
 
 
 @dataclass(order=True, unsafe_hash=True)
