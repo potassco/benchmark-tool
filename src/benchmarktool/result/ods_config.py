@@ -2,7 +2,7 @@
 ODS configuration.
 """
 
-styles_xml = """<?xml version="1.0" encoding="UTF-8"?>
+STYLES_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <office:document-styles 
     xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" 
     xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" 

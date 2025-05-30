@@ -18,10 +18,11 @@ from benchmarktool.result import ods_config
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
 
-ods.ods_components.styles_xml = ods_config.styles_xml
+ods.ods_components.styles_xml = ods_config.STYLES_XML
 
 
-def write_row(self, cells):
+# pylint: disable=all
+def write_row(self: ods.Sheet, cells: list[Any]) -> None:  # pragma: no cover
     """
     Method to write ods row.
     Replaces ods.Sheet.writerow
@@ -199,7 +200,6 @@ class ODSDoc:
             with ods.writer(open(out, "wb")) as odsfile:
                 inst_sheet = odsfile.new_sheet("Instances")
                 for line in range(len(self.inst_sheet.content.index)):
-                    # print(list(self.inst_sheet.content.iloc[line]))
                     inst_sheet.writerow(list(self.inst_sheet.content.iloc[line]))
                 class_sheet = odsfile.new_sheet("Classes")
                 for line in range(len(self.class_sheet.content.index)):
@@ -541,13 +541,16 @@ class Sheet:
                         == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["max"][name][0]])
                     )
 
-    def add_styles(self, float_occur):
+    def add_styles(self, float_occur: dict[str, Any]) -> None:
         """
         Color float results and their summaries.
 
         Attributes:
             float_occur (dict[str, Any]): Dict containing column references of float columns.
         """
+        # filter empty rows and remove header
+        results = self.values[~self.values[1].isna()].loc[2:]
+
         for measure in self.measures:
             if measure[0] in float_occur:
                 func = measure[1]
@@ -557,50 +560,11 @@ class Sheet:
                     diff = 0
                 else:
                     return
-                # results:
-                values = np.nan_to_num(
-                    np.array(
-                        self.values.loc[2 : self.result_offset - 1, sorted(float_occur[measure[0]])].values, dtype=float
-                    )
-                )
-                min_values = np.array(
-                    self.values[[self.summary_refs["min"][measure[0]][0]]].loc[2 : self.result_offset - 1].values,
-                    dtype=float,
-                )
-                median_values = np.array(
-                    self.values[[self.summary_refs["median"][measure[0]][0]]].loc[2 : self.result_offset - 1].values,
-                    dtype=float,
-                )
-                max_values = np.array(
-                    self.values[[self.summary_refs["max"][measure[0]][0]]].loc[2 : self.result_offset - 1].values,
-                    dtype=float,
-                )
-                max_min_diff = (max_values - min_values) > diff
-                max_med_diff = (max_values - median_values) > diff
 
-                self.content = (
-                    self.content.loc[2 : self.result_offset - 1, sorted(float_occur[measure[0]])]
-                    .mask(
-                        (values == min_values) & (values < median_values) & max_min_diff,
-                        self.content.map(lambda x: (x, "cellBest")),
-                    )
-                    .combine_first(self.content)
-                )
-                self.content = (
-                    self.content.loc[2 : self.result_offset - 1, sorted(float_occur[measure[0]])]
-                    .mask(
-                        (values == max_values) & (values > median_values) & max_med_diff,
-                        self.content.map(lambda x: (x, "cellWorst")),
-                    )
-                    .combine_first(self.content)
-                )
+                rows = results.index
+                cols = sorted(float_occur[measure[0]])
 
-                # summary
-                values = np.nan_to_num(
-                    np.array(
-                        self.values.loc[self.result_offset + 1 :, sorted(float_occur[measure[0]])].values, dtype=float
-                    )
-                )
+                values = np.nan_to_num(np.array(results.loc[:, cols].values, dtype=float))
                 min_values = np.reshape(np.min(values, axis=1), (-1, 1))
                 median_values = np.reshape(np.median(values, axis=1), (-1, 1))
                 max_values = np.reshape(np.max(values, axis=1), (-1, 1))
@@ -608,18 +572,18 @@ class Sheet:
                 max_med_diff = (max_values - median_values) > diff
 
                 self.content = (
-                    self.content.loc[self.result_offset + 1 :, sorted(float_occur[measure[0]])]
+                    self.content.loc[rows, cols]
                     .mask(
                         (values == min_values) & (values < median_values) & max_min_diff,
-                        self.content.map(lambda x: (x, "cellBest")),
+                        self.content.loc[rows].map(lambda x: (x, "cellBest")),
                     )
                     .combine_first(self.content)
                 )
                 self.content = (
-                    self.content.loc[self.result_offset + 1 :, sorted(float_occur[measure[0]])]
+                    self.content.loc[rows, cols]
                     .mask(
                         (values == max_values) & (values > median_values) & max_med_diff,
-                        self.content.map(lambda x: (x, "cellWorst")),
+                        self.content.loc[rows].map(lambda x: (x, "cellWorst")),
                     )
                     .combine_first(self.content)
                 )
