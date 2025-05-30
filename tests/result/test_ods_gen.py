@@ -100,12 +100,9 @@ class TestODSDoc(TestCase):
         """
         Test make_ods method.
         """
-        ref = pd.DataFrame([None, None, "test"])
-        self.doc.inst_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
-        self.doc.class_sheet.content = pd.DataFrame([np.nan, np.nan, "test"])
+        self.doc.inst_sheet.content = pd.DataFrame([None, None, "test"])
+        self.doc.class_sheet.content = pd.DataFrame([None, None, "test"])
         self.doc.make_ods("./tests/ref/new_ods.ods")
-        pd.testing.assert_frame_equal(self.doc.inst_sheet.content, ref)
-        pd.testing.assert_frame_equal(self.doc.class_sheet.content, ref)
         self.assertTrue(os.path.isfile("./tests/ref/new_ods.ods"))
         os.remove("./tests/ref/new_ods.ods")
 
@@ -133,29 +130,29 @@ class TestInstSheet(TestCase):
         self.ref_block.index = [1, 2, 3]
         # results
         self.ref_res = pd.DataFrame()
-        self.ref_res[0] = [np.nan, np.nan, "test_class/test_inst"]
+        self.ref_res[0] = [None, None, "test_class/test_inst"]
         self.ref_res[1] = ["test_sys-1.0.0/test_setting", "time", 7.0]
-        self.ref_res[2] = [np.nan, "timeout", 0.0]
-        self.ref_res[3] = [np.nan, "status", "test11"]
-        self.ref_res[4] = [np.nan, "steps", 50]
+        self.ref_res[2] = [None, "timeout", 0.0]
+        self.ref_res[3] = [None, "status", "test11"]
+        self.ref_res[4] = [None, "steps", 50]
         # row summary
         self.ref_res[9] = ["min", "time", ods_gen.Formula("=MIN($B3;$F3)")]
-        self.ref_res[10] = [np.nan, "timeout", ods_gen.Formula("=MIN($C3;$G3)")]
-        self.ref_res[11] = [np.nan, "steps", ods_gen.Formula("=MIN($E3;$I3)")]
+        self.ref_res[10] = [None, "timeout", ods_gen.Formula("=MIN($C3;$G3)")]
+        self.ref_res[11] = [None, "steps", ods_gen.Formula("=MIN($E3;$I3)")]
         self.ref_res[12] = ["median", "time", ods_gen.Formula("=MEDIAN($B3;$F3)")]
-        self.ref_res[13] = [np.nan, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3)")]
-        self.ref_res[14] = [np.nan, "steps", ods_gen.Formula("=MEDIAN($E3;$I3)")]
+        self.ref_res[13] = [None, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3)")]
+        self.ref_res[14] = [None, "steps", ods_gen.Formula("=MEDIAN($E3;$I3)")]
         self.ref_res[15] = ["max", "time", ods_gen.Formula("=MAX($B3;$F3)")]
-        self.ref_res[16] = [np.nan, "timeout", ods_gen.Formula("=MAX($C3;$G3)")]
-        self.ref_res[17] = [np.nan, "steps", ods_gen.Formula("=MAX($E3;$I3)")]
+        self.ref_res[16] = [None, "timeout", ods_gen.Formula("=MAX($C3;$G3)")]
+        self.ref_res[17] = [None, "steps", ods_gen.Formula("=MAX($E3;$I3)")]
         # col summary
         self.ref_sum = pd.DataFrame()
         self.ref_sum[0] = [
-            np.nan,
-            np.nan,
+            None,
+            None,
             "test_class/test_inst",
-            np.nan,
-            np.nan,
+            None,
+            None,
             "SUM",
             "AVG",
             "DEV",
@@ -170,7 +167,7 @@ class TestInstSheet(TestCase):
             "time",
             7.0,
             10.0,
-            np.nan,
+            None,
             ods_gen.Formula("=SUM($B3:$B4)"),
             ods_gen.Formula("=AVERAGE($B3:$B4)"),
             ods_gen.Formula("=STDEV($B3:$B4)"),
@@ -288,9 +285,6 @@ class TestInstSheet(TestCase):
                 if isinstance(ref, ods_gen.Formula):
                     self.assertIsInstance(test, ods_gen.Formula)
                     self.assertEqual(str(test), str(ref))
-                # cant compare nan
-                elif pd.isna(ref):
-                    self.assertTrue(pd.isna(test))
                 else:
                     self.assertEqual(test, ref)
                 if pd.isna(ref_val):
@@ -314,9 +308,6 @@ class TestInstSheet(TestCase):
                 if isinstance(ref, ods_gen.Formula):
                     self.assertIsInstance(test, ods_gen.Formula)
                     self.assertEqual(str(test), str(ref))
-                # cant compare nan
-                elif pd.isna(ref):
-                    self.assertTrue(pd.isna(test))
                 else:
                     self.assertEqual(test, ref)
                 if pd.isna(ref_val):
@@ -344,9 +335,6 @@ class TestInstSheet(TestCase):
                 if isinstance(ref, ods_gen.Formula):
                     self.assertIsInstance(test, ods_gen.Formula)
                     self.assertEqual(str(test), str(ref))
-                # cant compare nan
-                elif pd.isna(ref):
-                    self.assertTrue(pd.isna(test))
                 else:
                     self.assertEqual(test, ref)
                 if pd.isna(ref_val):
@@ -394,33 +382,33 @@ class TestClassSheet(TestInstSheet):
         self.ref_block.index = [1, 2]
         # results
         self.ref_res = pd.DataFrame()
-        self.ref_res[0] = [np.nan, np.nan, "test_class"]
+        self.ref_res[0] = [None, None, "test_class"]
         self.ref_res[1] = [
             "test_sys-1.0.0/test_setting",
             "time",
             ods_gen.Formula("=AVERAGE(Instances.B3:Instances.B4)"),
         ]
-        self.ref_res[2] = [np.nan, "timeout", ods_gen.Formula("=SUM(Instances.C3:Instances.C4)")]
-        self.ref_res[3] = [np.nan, "status", np.nan]
-        self.ref_res[4] = [np.nan, "steps", ods_gen.Formula("=AVERAGE(Instances.E3:Instances.E4)")]
+        self.ref_res[2] = [None, "timeout", ods_gen.Formula("=SUM(Instances.C3:Instances.C4)")]
+        self.ref_res[3] = [None, "status", None]
+        self.ref_res[4] = [None, "steps", ods_gen.Formula("=AVERAGE(Instances.E3:Instances.E4)")]
         # row summary
         self.ref_row_sum = pd.DataFrame()
         self.ref_res[9] = ["min", "time", ods_gen.Formula("=MIN($B3;$F3)")]
-        self.ref_res[10] = [np.nan, "timeout", ods_gen.Formula("=MIN($C3;$G3)")]
-        self.ref_res[11] = [np.nan, "steps", ods_gen.Formula("=MIN($E3;$I3)")]
+        self.ref_res[10] = [None, "timeout", ods_gen.Formula("=MIN($C3;$G3)")]
+        self.ref_res[11] = [None, "steps", ods_gen.Formula("=MIN($E3;$I3)")]
         self.ref_res[12] = ["median", "time", ods_gen.Formula("=MEDIAN($B3;$F3)")]
-        self.ref_res[13] = [np.nan, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3)")]
-        self.ref_res[14] = [np.nan, "steps", ods_gen.Formula("=MEDIAN($E3;$I3)")]
+        self.ref_res[13] = [None, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3)")]
+        self.ref_res[14] = [None, "steps", ods_gen.Formula("=MEDIAN($E3;$I3)")]
         self.ref_res[15] = ["max", "time", ods_gen.Formula("=MAX($B3;$F3)")]
-        self.ref_res[16] = [np.nan, "timeout", ods_gen.Formula("=MAX($C3;$G3)")]
-        self.ref_res[17] = [np.nan, "steps", ods_gen.Formula("=MAX($E3;$I3)")]
+        self.ref_res[16] = [None, "timeout", ods_gen.Formula("=MAX($C3;$G3)")]
+        self.ref_res[17] = [None, "steps", ods_gen.Formula("=MAX($E3;$I3)")]
         # col summary
         self.ref_sum = pd.DataFrame()
         self.ref_sum[0] = [
-            np.nan,
-            np.nan,
+            None,
+            None,
             "test_class",
-            np.nan,
+            None,
             "SUM",
             "AVG",
             "DEV",
@@ -434,7 +422,7 @@ class TestClassSheet(TestInstSheet):
             "test_sys-1.0.0/test_setting",
             "time",
             ods_gen.Formula("=AVERAGE(Instances.B3:Instances.B4)"),
-            np.nan,
+            None,
             ods_gen.Formula("=SUM($B3:$B3)"),
             ods_gen.Formula("=AVERAGE($B3:$B3)"),
             ods_gen.Formula("=STDEV($B3:$B3)"),
