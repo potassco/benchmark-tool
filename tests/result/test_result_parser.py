@@ -144,4 +144,4 @@ class TestParser(TestCase):
 
         # measures
         self.assertEqual(len(run.measures), 7)
-        self.assertTupleEqual(run.measures["time"], ("float", "10"))
+        self.assertTupleEqual(run.measures["time"], ("float", "7"))

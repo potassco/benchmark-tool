@@ -20,16 +20,16 @@
 						<measure name="cost" type="float" val="4.0"/>
 						<measure name="error" type="float" val="0"/>
 						<measure name="memout" type="float" val="0"/>
-						<measure name="steps" type="int" val="39208"/>
-						<measure name="time" type="float" val="10"/>
-						<measure name="timeout" type="float" val="1"/>
+						<measure name="steps" type="int" val="50"/>
+						<measure name="time" type="float" val="7"/>
+						<measure name="timeout" type="float" val="0"/>
 						<measure name="status" type="string" val="test11"/>
 					</run>
 					<run number="2">
 						<measure name="cost" type="float" val="2.0"/>
 						<measure name="error" type="float" val="0"/>
 						<measure name="memout" type="float" val="0"/>
-						<measure name="steps" type="int" val="3003"/>
+						<measure name="steps" type="int" val="40"/>
 						<measure name="time" type="float" val="10"/>
 						<measure name="timeout" type="float" val="1"/>
 						<measure name="status" type="string" val="test12"/>
@@ -44,7 +44,7 @@
 						<measure name="cost" type="float" val="4.0"/>
 						<measure name="error" type="float" val="0"/>
 						<measure name="memout" type="float" val="0"/>
-						<measure name="steps" type="int" val="39208"/>
+						<measure name="steps" type="int" val="49"/>
 						<measure name="time" type="float" val="10"/>
 						<measure name="timeout" type="float" val="1"/>
 						<measure name="status" type="string" val="test21"/>
@@ -53,7 +53,7 @@
 						<measure name="cost" type="float" val="2.0"/>
 						<measure name="error" type="float" val="0"/>
 						<measure name="memout" type="float" val="0"/>
-						<measure name="steps" type="int" val="3003"/>
+						<measure name="steps" type="int" val="10"/>
 						<measure name="time" type="float" val="10"/>
 						<measure name="timeout" type="float" val="1"/>
 						<measure name="status" type="string" val="test22"/>
