@@ -76,4 +76,4 @@ omit = [""]
 include = ["src/*", "tests/*"]
 
 [tool.coverage.report]
-exclude_lines = ["assert", "nocoverage"]
+exclude_also = ["assert", "nocoverage"]
