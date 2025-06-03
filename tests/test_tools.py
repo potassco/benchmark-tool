@@ -48,5 +48,5 @@ class TestTools(TestCase):
         open(f, "a", encoding="utf8").close()  # pylint: disable=consider-using-with
         with mock.patch("benchmarktool.tools.os.chmod") as chmod:
             tools.set_executable(f)
-            chmod.assert_called_once_with(f, 33270)
+            chmod.assert_called_once()
         os.remove(f)

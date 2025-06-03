@@ -115,6 +115,7 @@ class TestParser(TestCase):
         self.assertEqual(setting.ppn, 2)
         self.assertEqual(setting.pbstemplate, "templates/impi.pbs")
         self.assertDictEqual(setting.attr, {})
+        self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
         setting = system.settings["one-as-n8"]
         self.assertIsInstance(setting, runscript.Setting)
         self.assertEqual(setting.name, "one-as-n8")
@@ -125,6 +126,7 @@ class TestParser(TestCase):
         self.assertEqual(setting.ppn, 2)
         self.assertEqual(setting.pbstemplate, "templates/impi.pbs")
         self.assertDictEqual(setting.attr, {})
+        self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
         setting = system.settings["min"]
         self.assertIsInstance(setting, runscript.Setting)
         self.assertEqual(setting.name, "min")
@@ -135,6 +137,7 @@ class TestParser(TestCase):
         self.assertIsNone(setting.ppn)
         self.assertEqual(setting.pbstemplate, "templates/single.pbs")
         self.assertDictEqual(setting.attr, {})
+        self.assertDictEqual(setting.encodings, {"_default_": set(), "test": {"test21.lp"}, "test2": {"test22.lp"}})
 
         # configs
         self.assertEqual(len(run.configs), 2)
@@ -152,14 +155,21 @@ class TestParser(TestCase):
         bench = run.benchmarks["seq-suite"]
         self.assertIsInstance(bench, runscript.Benchmark)
         self.assertEqual(bench.name, "seq-suite")
-        self.assertEqual(len(bench.elements), 2)
+        self.assertEqual(len(bench.elements), 3)
         folder = bench.elements[0]
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
         self.assertEqual(folder.path, "benchmarks/clasp")
         self.assertSetEqual(folder.prefixes, {"pigeons"})
         self.assertEqual(len(folder.encodings), 1)
         self.assertTrue(all(e in ["benchmarks/no_pigeons.lp", "benchmarks\\no_pigeons.lp"] for e in folder.encodings))
-        files = bench.elements[1]
+        self.assertSetEqual(folder.enctags, {"test", "test-no", "test2"})
+        folder = bench.elements[1]
+        self.assertIsInstance(folder, runscript.Benchmark.Folder)
+        self.assertEqual(folder.path, "test-folder")
+        self.assertSetEqual(folder.prefixes, set())
+        self.assertSetEqual(folder.encodings, set())
+        self.assertSetEqual(folder.enctags, set())
+        files = bench.elements[2]
         self.assertIsInstance(files, runscript.Benchmark.Files)
         self.assertEqual(files.path, "benchmarks/clasp")
         self.assertEqual(len(files.files), 2)
@@ -176,6 +186,7 @@ class TestParser(TestCase):
             )
         )
         self.assertEqual(len(files.encodings), 2)
+        self.assertSetEqual(files.enctags, {"test", "test-no", "test2"})
 
     def test_filter_attr(self):
         """

@@ -112,15 +112,30 @@ class TestSetting(TestCase):
         self.assertEqual(
             o.getvalue(),
             '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
-            'procs="1" ppn="2" pbstemplate="template" key="val"/>\n',
+            'procs="1" ppn="2" pbstemplate="template" key="val">\n'
+            "\t</setting>\n",
         )
 
-        s = runscript.Setting(self.name, self.cmdline, self.tag, self.order, None, None, self.template, {})
+        s = runscript.Setting(
+            self.name,
+            self.cmdline,
+            self.tag,
+            self.order,
+            None,
+            None,
+            self.template,
+            {},
+            {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}},
+        )
         o = io.StringIO()
         s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" pbstemplate="template"/>\n',
+            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" pbstemplate="template">\n'
+            '\t\t<encoding file="def.lp"/>\n'
+            '\t\t<encoding file="test1.lp" tag="test"/>\n'
+            '\t\t<encoding file="test2.lp" tag="test"/>\n'
+            "\t</setting>\n",
         )
 
 
@@ -257,12 +272,14 @@ class TestSeqRun(TestRun):
         self.runspec = mock.Mock(spec=runscript.Runspec)
         self.runspec.setting = mock.Mock(spec=runscript.Setting)
         self.runspec.setting.cmdline = "cmdline"
+        self.runspec.setting.encodings = {"_default_": {"def.lp"}, "test": {"test.lp"}}
         self.runspec.system = mock.Mock(spec=runscript.System)
         self.runspec.system.name = "sys_name"
         self.runspec.system.version = "sys_version"
         self.instance = mock.Mock(spec=runscript.Benchmark.Instance)
         self.instance.path.return_value = "inst_path"
-        self.instance.encodings = {"encoding"}
+        self.instance.encodings = {"encoding.lp"}
+        self.instance.enctags = {"test", "none"}
         self.r = runscript.SeqRun(self.path, self.run_var, self.job, self.runspec, self.instance)
 
     def test_init(self):
@@ -275,9 +292,8 @@ class TestSeqRun(TestRun):
         self.assertEqual(self.r.runspec, self.runspec)
         self.assertEqual(self.r.instance, self.instance)
         self.assertEqual(self.r.file, os.path.relpath(self.instance.path(), self.path))
-        self.assertEqual(
-            self.r.encodings, " ".join([f'"{os.path.relpath(e, self.path)}"' for e in self.instance.encodings])
-        )
+        print(self.r.encodings)
+        self.assertEqual(self.r.encodings, '"../def.lp" "../encoding.lp" "../test.lp"')
         self.assertEqual(self.r.args, self.runspec.setting.cmdline)
         self.assertEqual(self.r.solver, self.runspec.system.name + "-" + self.runspec.system.version)
         self.assertEqual(self.r.timeout, self.job.timeout)
@@ -302,6 +318,7 @@ class TestScriptGen(TestCase):
         self.runspec = mock.Mock(spec=runscript.Runspec)
         self.runspec.setting = mock.Mock(spec=runscript.Setting)
         self.runspec.setting.cmdline = "cmdline"
+        self.runspec.setting.encodings = {}
         self.runspec.path.return_value = "runspec_path"
         self.runspec.project = mock.Mock(spec=runscript.Project)
         self.runspec.project.job = self.job
@@ -318,6 +335,7 @@ class TestScriptGen(TestCase):
         self.instance = mock.Mock(spec=runscript.Benchmark.Instance)
         self.instance.name = "inst_name"
         self.instance.encodings = {"encoding"}
+        self.instance.enctags = {}
         self.instance.path.return_value = "inst_path"
         self.instance.benchclass = mock.Mock(sepc=runscript.Benchmark.Class)
         self.instance.benchclass.name = "class_name"
@@ -626,14 +644,15 @@ class TestInstance(TestCase):
         self.benchclass.name = "bench_name"
         self.name = "inst_name"
         self.encodings = {"encoding"}
-        self.ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings)
+        self.enctags = set()
+        self.ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings, self.enctags)
 
     def test_to_xml(self):
         """
         Test to_xml method.
         """
         o = io.StringIO()
-        ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings, 2)
+        ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings, self.enctags, 2)
         ins.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
@@ -663,6 +682,7 @@ class TestFolder(TestCase):
         self.assertEqual(self.f.path, self.path)
         self.assertSetEqual(self.f.prefixes, set())
         self.assertSetEqual(self.f.encodings, set())
+        self.assertSetEqual(self.f.enctags, set())
 
     def test_add_ignore(self):
         """
@@ -679,6 +699,14 @@ class TestFolder(TestCase):
         encoding = "encoding"
         self.f.add_encoding(encoding)
         self.assertSetEqual(self.f.encodings, {encoding})
+
+    def test_add_enctags(self):
+        """
+        Test add_enctags method.
+        """
+        tags = {"tag1", "tag2"}
+        self.f.add_enctags(tags)
+        self.assertSetEqual(self.f.enctags, tags)
 
     def test_skip(self):
         """
@@ -725,6 +753,7 @@ class TestFiles(TestCase):
         self.assertEqual(self.f.path, self.path)
         self.assertSetEqual(self.f.files, set())
         self.assertSetEqual(self.f.encodings, set())
+        self.assertSetEqual(self.f.enctags, set())
 
     def test_add_file(self):
         """
@@ -741,6 +770,14 @@ class TestFiles(TestCase):
         encoding = "encoding"
         self.f.add_encoding(encoding)
         self.assertSetEqual(self.f.encodings, {encoding})
+
+    def test_add_enctags(self):
+        """
+        Test add_enctags method.
+        """
+        tags = {"tag1", "tag2"}
+        self.f.add_enctags(tags)
+        self.assertSetEqual(self.f.enctags, tags)
 
     def test_init_m(self):
         """
@@ -783,9 +820,10 @@ class TestBenchmark(TestCase):
         self.assertDictEqual(self.b.instances, {})
         root = "root"
         encodings = set()
-        self.b.add_instance(root, "class1", "inst1", encodings)
-        self.b.add_instance(root, "class1", "inst2", encodings)
-        self.b.add_instance(root, "class2", "inst1", encodings)
+        enctags = set()
+        self.b.add_instance(root, "class1", "inst1", encodings, enctags)
+        self.b.add_instance(root, "class1", "inst2", encodings, enctags)
+        self.b.add_instance(root, "class2", "inst1", encodings, enctags)
         for key, val in self.b.instances.items():
             self.assertIsInstance(key, runscript.Benchmark.Class)
             self.assertIsInstance(val, set)
@@ -800,9 +838,9 @@ class TestBenchmark(TestCase):
         self.b.add_element(runscript.Benchmark.Folder("path"))
         class1 = runscript.Benchmark.Class("class1")
         class2 = runscript.Benchmark.Class("class2")
-        inst1 = runscript.Benchmark.Instance("loc", class1, "inst1", set())
-        inst2 = runscript.Benchmark.Instance("loc", class1, "inst2", set())
-        inst3 = runscript.Benchmark.Instance("loc", class2, "inst3", set())
+        inst1 = runscript.Benchmark.Instance("loc", class1, "inst1", set(), set())
+        inst2 = runscript.Benchmark.Instance("loc", class1, "inst2", set(), set())
+        inst3 = runscript.Benchmark.Instance("loc", class2, "inst3", set(), set())
         self.b.instances = {class1: {inst1, inst2}, class2: {inst3}}
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.Folder.init") as folder_init:
             self.b.init()
@@ -830,7 +868,7 @@ class TestBenchmark(TestCase):
         """
         o = io.StringIO()
         bclass = runscript.Benchmark.Class("class", 0)
-        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set())
+        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set(), set())
         self.b = runscript.Benchmark(self.name, [], {bclass: {inst}})
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.Instance.to_xml"):
             self.b.to_xml(o, "\t")
@@ -877,7 +915,7 @@ class TestRunspec(TestCase):
         Test gen_script method.
         """
         bclass = runscript.Benchmark.Class("class")
-        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set())
+        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set(), set())
         self.rs.benchmark.instances = {bclass: {inst}}
         self.rs.benchmark.init = mock.Mock()
         script_gen = mock.Mock(spec=runscript.ScriptGen)

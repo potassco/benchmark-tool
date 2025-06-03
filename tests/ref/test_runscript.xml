@@ -7,7 +7,7 @@
 	<system name="clasp" version="1.3.2" measures="clasp" config="seq-generic">
 		<!-- optionally allows for tagging settings -->
 		<setting name="default"  tag="seq" cmdline="--stats 1"/>
-		<setting name="vsids"    tag="seq" cmdline="--stats --heu=vsids 1"/>
+		<setting name="vsids"    tag="seq" cmdline="--stats --heu=vsids 1"/>	
 		<setting name="progress" tag="seq" cmdline="--stats --save-progress 1"/>
 		<setting name="estimate" tag="seq" cmdline="--stats --estimate 1"/>
 		<setting name="recstr"   tag="seq" cmdline="--stats --recursive-str 1"/>
@@ -17,9 +17,16 @@
 
 	<config name="pbs-generic" template="templates/pbs-generic.sh"/>
 	<system name="claspar" version="2.1.0" measures="claspar" config="pbs-generic">
-		<setting name="one-as" tag="par one-as" cmdline="--stats 1" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
+		<setting name="one-as" tag="par one-as" cmdline="--stats 1" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs">
+			<encoding file="def.lp"/>
+			<encoding file="test1.lp" tag="test"/>
+			<encoding file="test2.lp" tag="test"/>
+		</setting>
 		<setting name="all-as" tag="par all-as" cmdline="--stats -q 0" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
-		<setting name="min" cmdline=""/>
+		<setting name="min" cmdline="">
+			<encoding file="test21.lp" tag="test"/>
+			<encoding file="test22.lp" tag="test2"/>
+		</setting>
 	</system>
 	
 	<seqjob name="seq-generic" timeout="120" runs="1" parallel="8"/>
@@ -30,13 +37,19 @@
 		<folder path="benchmarks/clasp">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<ignore prefix="pigeons"/>
+			<enctag tag="test test-no"/>
+			<enctag tag="test2"/>
 		</folder>
+		<folder path="test-folder"/>
 		<files path="benchmarks/clasp">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<encoding file="benchmarks/no_pigeons2.lp"/>
 			<add file="pigeons/pigeonhole10-unsat.lp"/>
 			<add file="pigeons/pigeonhole11-unsat.lp"/>
+			<enctag tag="test test-no"/>
+			<enctag tag="test2"/>
 		</files>
+		
 	</benchmark>
 	<benchmark name="pbs-suite">
 		<folder path="benchmarks/clasp"/>
