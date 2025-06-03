@@ -7,7 +7,7 @@ cd "$(dirname $0)"
 
 #top -n 1 -b > top.txt
 
-[[ -e .finished ]] || $CAT "{run.file}" | "{run.root}/programs/runsolver-3.3.4" \
+[[ -e .finished ]] || $CAT "{run.file}" {run.encodings} | "{run.root}/programs/runsolver-3.4.1" \
 	-M 20000 \
 	-w runsolver.watcher \
 	-o runsolver.solver \

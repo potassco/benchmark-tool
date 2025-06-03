@@ -13,9 +13,6 @@ from typing import Any, Optional
 
 from benchmarktool import tools
 
-# needed to embed measurements functions via exec
-
-
 # pylint: disable=too-many-lines
 
 
@@ -119,6 +116,7 @@ class Setting:
         ppn (Optional[int]):   Processes per node. (pbs only)
         pbstemplate (str):     Path to pbs-template file. (pbs only, related to mpi-version)
         attr (dict[str, Any]): A dictionary of additional optional attributes.
+        encodings (dict[str, set[str]]): Encodings used with this setting, keyed with tags.
     """
 
     name: str
@@ -129,6 +127,8 @@ class Setting:
     ppn: Optional[int] = field(compare=False)
     pbstemplate: str = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
+
+    encodings: dict[str, set[str]] = field(compare=False, default_factory=dict)
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
@@ -148,7 +148,14 @@ class Setting:
             out.write(' {0}="{1}"'.format("pbstemplate", self.pbstemplate))
         for key, val in self.attr.items():
             out.write(' {0}="{1}"'.format(key, val))
-        out.write("/>\n")
+        out.write(">\n")
+        for enctag, encodings in self.encodings.items():
+            for enc in sorted(encodings):
+                if enctag == "_default_":
+                    out.write('{0}<encoding file="{1}"/>\n'.format(indent + "\t", enc))
+                else:
+                    out.write('{0}<encoding file="{1}" tag="{2}"/>\n'.format(indent + "\t", enc, enctag))
+        out.write("{0}</setting>\n".format(indent))
 
 
 @dataclass(order=True, frozen=True)
@@ -245,7 +252,13 @@ class SeqRun(Run):
     def __post_init__(self) -> None:
         super().__post_init__()
         self.file = os.path.relpath(self.instance.path(), self.path)
-        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in self.instance.encodings])
+
+        encodings = self.instance.encodings
+        encodings = encodings.union(self.runspec.setting.encodings.get("_default_", set()))
+        for i in self.instance.enctags:
+            encodings = encodings.union(self.runspec.setting.encodings.get(i, set()))
+        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in sorted(encodings)])
+
         self.args = self.runspec.setting.cmdline
         self.solver = self.runspec.system.name + "-" + self.runspec.system.version
         self.timeout = self.job.timeout
@@ -794,9 +807,10 @@ class Benchmark:
 
         Attributes:
             location (str):       The location of the benchmark instance.
-            benchclass (Benchmark.Class): The class name of the instance
-            name (str):           The name of the instance
-            encodings (set[str]): Encoding associated with the instance
+            benchclass (Benchmark.Class): The class name of the instance.
+            name (str):           The name of the instance.
+            encodings (set[str]): Encoding associated with the instance.
+            enctags (set[str]):   Encoding tags associated with the instance.
             id (int):             A numeric identifier.
         """
 
@@ -804,6 +818,7 @@ class Benchmark:
         benchclass: "Benchmark.Class" = field(compare=False)
         name: str
         encodings: set[str] = field(compare=False)
+        enctags: set[str] = field(compare=False)
         id: Optional[int] = field(default=None, compare=False)
 
         def to_xml(self, out: Any, indent: str) -> None:
@@ -838,6 +853,7 @@ class Benchmark:
             self.path = path
             self.prefixes: set[str] = set()
             self.encodings: set[str] = set()
+            self.enctags: set[str] = set()
 
         def add_ignore(self, prefix: str) -> None:
             """
@@ -858,6 +874,17 @@ class Benchmark:
                 file (str): The encoding file.
             """
             self.encodings.add(os.path.normpath(file))
+
+        def add_enctags(self, tags: set[str]) -> None:
+            """
+            Can be used to add encoding tags, which refers to encodings
+            specified by the setting, whic will be called together
+            with all instances in this folder.
+
+            Attributes:
+                tag (set[str]): The encoding tags.
+            """
+            self.enctags = self.enctags.union(tags)
 
         def _skip(self, root: str, path: str) -> bool:
             """
@@ -890,7 +917,7 @@ class Benchmark:
                 for filename in files:
                     if self._skip(relroot, filename):
                         continue
-                    benchmark.add_instance(self.path, relroot, filename, self.encodings)
+                    benchmark.add_instance(self.path, relroot, filename, self.encodings, self.enctags)
 
     class Files:
         """
@@ -907,6 +934,7 @@ class Benchmark:
             self.path = path
             self.files: set[str] = set()
             self.encodings: set[str] = set()
+            self.enctags: set[str] = set()
 
         def add_file(self, path: str) -> None:
             """
@@ -927,6 +955,17 @@ class Benchmark:
             """
             self.encodings.add(os.path.normpath(file))
 
+        def add_enctags(self, tags: set[str]) -> None:
+            """
+            Can be used to add encoding tags, which refers to encodings
+            specified by the setting, whic will be called together
+            with all instances in this folder.
+
+            Attributes:
+                tag (set[str]): The encoding tags.
+            """
+            self.enctags = self.enctags.union(tags)
+
         def init(self, benchmark: "Benchmark") -> None:
             """
             Adds a files in the set to the given benchmark (if they exist).
@@ -937,7 +976,7 @@ class Benchmark:
             for path in self.files:
                 if os.path.exists(os.path.join(self.path, path)):
                     relroot, filename = os.path.split(path)
-                    benchmark.add_instance(self.path, relroot, filename, self.encodings)
+                    benchmark.add_instance(self.path, relroot, filename, self.encodings, self.enctags)
 
     def add_element(self, element: Any) -> None:
         """
@@ -948,7 +987,7 @@ class Benchmark:
         """
         self.elements.append(element)
 
-    def add_instance(self, root: str, relroot: str, filename: str, encodings: set[str]) -> None:
+    def add_instance(self, root: str, relroot: str, filename: str, encodings: set[str], enctags: set[str]) -> None:
         """
         Adds an instance to the benchmark set. (This function
         is called during initialization by the benchmark elements)
@@ -958,11 +997,12 @@ class Benchmark:
             relroot (str):        The folder relative to the root folder.
             filename (str):       The filename of the instance.
             encodings (set[str]): The encodings associated to the instance.
+            enctags (set[str]):   The encoding tags associated to the instance.
         """
         classname = Benchmark.Class(relroot)
         if classname not in self.instances:
             self.instances[classname] = set()
-        self.instances[classname].add(Benchmark.Instance(root, classname, filename, encodings))
+        self.instances[classname].add(Benchmark.Instance(root, classname, filename, encodings, enctags))
 
     def init(self) -> None:
         """
@@ -981,7 +1021,9 @@ class Benchmark:
                 instanceid = 0
                 for instance in sorted(self.instances[classname]):
                     id_instances[id_class].add(
-                        Benchmark.Instance(instance.location, id_class, instance.name, instance.encodings, instanceid)
+                        Benchmark.Instance(
+                            instance.location, id_class, instance.name, instance.encodings, instance.enctags, instanceid
+                        )
                     )
                     instanceid += 1
             self.instances = id_instances
