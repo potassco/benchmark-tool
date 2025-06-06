@@ -186,7 +186,7 @@ class TestParser(TestCase):
             )
         )
         self.assertEqual(len(files.encodings), 2)
-        self.assertSetEqual(files.enctags, {"test", "test-no", "test2"})
+        self.assertSetEqual(files.enctags, {"test2"})
 
     def test_filter_attr(self):
         """

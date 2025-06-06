@@ -19,13 +19,13 @@
 	<system name="claspar" version="2.1.0" measures="claspar" config="pbs-generic">
 		<setting name="one-as" tag="par one-as" cmdline="--stats 1" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs">
 			<encoding file="def.lp"/>
-			<encoding file="test1.lp" tag="test"/>
-			<encoding file="test2.lp" tag="test"/>
+			<encoding file="test1.lp" enctag="test"/>
+			<encoding file="test2.lp" enctag="test"/>
 		</setting>
 		<setting name="all-as" tag="par all-as" cmdline="--stats -q 0" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
 		<setting name="min" cmdline="">
-			<encoding file="test21.lp" tag="test"/>
-			<encoding file="test22.lp" tag="test2"/>
+			<encoding file="test21.lp" enctag="test"/>
+			<encoding file="test22.lp" enctag="test2"/>
 		</setting>
 	</system>
 	
@@ -34,25 +34,22 @@
 	<pbsjob name="pbs-part" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59" cpt="1" partition="test"/>
 
 	<benchmark name="seq-suite">
-		<folder path="benchmarks/clasp">
+		<folder path="benchmarks/clasp" enctag="test test-no test2">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<ignore prefix="pigeons"/>
-			<enctag tag="test test-no"/>
-			<enctag tag="test2"/>
 		</folder>
 		<folder path="test-folder"/>
-		<files path="benchmarks/clasp">
+		<files path="benchmarks/clasp" enctag="test2">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<encoding file="benchmarks/no_pigeons2.lp"/>
 			<add file="pigeons/pigeonhole10-unsat.lp"/>
 			<add file="pigeons/pigeonhole11-unsat.lp"/>
-			<enctag tag="test test-no"/>
-			<enctag tag="test2"/>
 		</files>
-		
 	</benchmark>
+
 	<benchmark name="pbs-suite">
 		<folder path="benchmarks/clasp"/>
+		<files path="benchmarks/clasp"/>
 	</benchmark>
 
 	<project name="clasp-big" job="seq-generic">

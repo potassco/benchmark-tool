@@ -102,7 +102,7 @@ class Parser:
                         <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
                             <xs:complexType>
                                 <xs:attribute name="file" type="xs:string" use="required"/>
-                                <xs:attribute name="tag">
+                                <xs:attribute name="enctag">
                                     <xs:simpleType>
                                         <xs:list itemType="nameType"/>
                                     </xs:simpleType>
@@ -185,17 +185,13 @@ class Parser:
                                 <xs:attribute name="file" type="xs:string" use="required"/>
                             </xs:complexType>
                         </xs:element>
-                        <xs:element name="enctag">
-                            <xs:complexType>
-                                <xs:attribute name="tag" use="required">
-                                    <xs:simpleType>
-                                        <xs:list itemType="nameType"/>
-                                    </xs:simpleType>
-                                </xs:attribute>
-                            </xs:complexType>
-                        </xs:element>
                     </xs:choice>
                     <xs:attribute name="path" type="xs:string" use="required"/>
+                    <xs:attribute name="enctag">
+                        <xs:simpleType>
+                            <xs:list itemType="nameType"/>
+                        </xs:simpleType>
+                    </xs:attribute>
                 </xs:complexType>
             </xs:element>
             <xs:element name="folder">
@@ -211,17 +207,13 @@ class Parser:
                                 <xs:attribute name="file" type="xs:string" use="required"/>
                             </xs:complexType>
                         </xs:element>
-                        <xs:element name="enctag">
-                            <xs:complexType>
-                                <xs:attribute name="tag" use="required">
-                                    <xs:simpleType>
-                                        <xs:list itemType="nameType"/>
-                                    </xs:simpleType>
-                                </xs:attribute>
-                            </xs:complexType>
-                        </xs:element>
                     </xs:choice>
                     <xs:attribute name="path" type="xs:string" use="required"/>
+                    <xs:attribute name="enctag">
+                        <xs:simpleType>
+                            <xs:list itemType="nameType"/>
+                        </xs:simpleType>
+                    </xs:attribute>
                 </xs:complexType>
             </xs:element>
         </xs:choice>
@@ -415,10 +407,10 @@ class Parser:
 
                     encodings: dict[str, set[str]] = {"_default_": set()}
                     for grandchild in child.xpath("./encoding"):
-                        if grandchild.get("tag") is None:
+                        if grandchild.get("enctag") is None:
                             encodings["_default_"].add(os.path.normpath(grandchild.get("file")))
                         else:
-                            enctags = set(grandchild.get("tag").split(None))
+                            enctags = set(grandchild.get("enctag").split(None))
                             for t in enctags:
                                 if t not in encodings:
                                     encodings[t] = set()
@@ -443,23 +435,27 @@ class Parser:
                 benchmark = Benchmark(node.get("name"))
                 for child in node.xpath("./folder"):
                     element = Benchmark.Folder(child.get("path"))
+                    if child.get("enctag") is None:
+                        tag = set()
+                    else:
+                        tag = set(child.get("enctag").split(None))
+                    element.add_enctags(tag)
                     for grandchild in child.xpath("./encoding"):
                         element.add_encoding(grandchild.get("file"))
                     for grandchild in child.xpath("./ignore"):
                         element.add_ignore(grandchild.get("prefix"))
-                    for grandchild in child.xpath("./enctag"):
-                        tag = set(grandchild.get("tag").split(None))
-                        element.add_enctags(tag)
                     benchmark.add_element(element)
                 for child in node.xpath("./files"):
                     element = Benchmark.Files(child.get("path"))
+                    if child.get("enctag") is None:
+                        tag = set()
+                    else:
+                        tag = set(child.get("enctag").split(None))
+                    element.add_enctags(tag)
                     for grandchild in child.xpath("./encoding"):
                         element.add_encoding(grandchild.get("file"))
                     for grandchild in child.xpath("./add"):
                         element.add_file(grandchild.get("file"))
-                    for grandchild in child.xpath("./enctag"):
-                        tag = set(grandchild.get("tag").split(None))
-                        element.add_enctags(tag)
                     benchmark.add_element(element)
                 run.add_benchmark(benchmark)
 
