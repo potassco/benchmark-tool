@@ -153,7 +153,7 @@ class Parser:
         <xs:attribute name="script_mode" use="required">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
-                    <xs:enumeration value="single"/>
+                    <xs:enumeration value="multi"/>
                     <xs:enumeration value="timeout"/>
                 </xs:restriction>
              </xs:simpleType>
