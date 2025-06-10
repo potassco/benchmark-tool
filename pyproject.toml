@@ -20,7 +20,7 @@ lint_pylint = ["pylint"]
 typecheck = ["types-setuptools", "mypy"]
 test = ["coverage[toml]"]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
-dev = ["fillname[test,typecheck,lint_pylint]"]
+dev = ["benchmarktool[test,typecheck,lint_pylint]"]
 
 [project.scripts]
 bconv = "benchmarktool.entry_points:start_bconv"
