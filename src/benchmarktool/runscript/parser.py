@@ -111,6 +111,7 @@ class Parser:
                         </xs:element>
                     </xs:sequence>
                     <xs:attribute name="name" type="nameType" use="required"/>
+                    <xs:attribute name="cmdline" type="xs:string"/>
                     <xs:attribute name="tag">
                         <xs:simpleType>
                             <xs:list itemType="nameType"/>
@@ -418,11 +419,14 @@ class Parser:
 
                     for num in procs:
                         name = child.get("name")
+                        cmdline = child.get("cmdline")
+                        if cmdline is None:
+                            cmdline = ""
                         if num is not None:
                             name += "-n{0}".format(num)
                         compound_settings[child.get("name")].append(name)
                         setting = Setting(
-                            name, child.get("cmdline"), tag, setting_order, num, ppn, pbstemplate, attr, encodings
+                            name, cmdline, tag, setting_order, num, ppn, pbstemplate, attr, encodings
                         )
                         system.add_setting(setting)
                         setting_order += 1

@@ -23,7 +23,7 @@
 			<encoding file="test2.lp" enctag="test"/>
 		</setting>
 		<setting name="all-as" tag="par all-as" cmdline="--stats -q 0" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
-		<setting name="min" cmdline="">
+		<setting name="min">
 			<encoding file="test21.lp" enctag="test"/>
 			<encoding file="test22.lp" enctag="test2"/>
 		</setting>
