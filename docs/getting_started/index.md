@@ -15,6 +15,8 @@ $ conda activate <env-name>
 $ pip install .
 ```
 
+The provided default templates make use of [runlim](https://github.com/arminbiere/runlim) to supervise benchmark execution. If you want to use them, make sure to build the latest version and copy (or symlink) the executable into the `./programs` directory. You might have to adjust the version number inside the template, see [here](./bgen/templates.md#run-templates).
+
 ## Structure
 
 The repository is structures as follows:  

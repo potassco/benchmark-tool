@@ -19,10 +19,10 @@ The following references can currently be used:
 `run.args`: additional arguments to be used by the solver/program
 
 
-Most templates make use of the [runsolver](http://www.cril.univ-artois.fr/~roussel/runsolver/) program to supervise the benchmark runs.
+Most templates make use of the [runlim](https://github.com/arminbiere/runlim) program to supervise the benchmark runs.
 
 !!! info
-    When using the provided templates you might have to update the runsolver version inside the template.
+    When using the provided templates you might have to update the runlim version inside the template.
 
 ## Pbs Templates
 
