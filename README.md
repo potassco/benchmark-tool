@@ -1,6 +1,6 @@
 # benchmarktool
 
-A tool to easier generate, run and evalute benchmarks.
+A tool to easier generate, run and evaluate benchmarks.
 
 ## Structure
 
@@ -26,6 +26,13 @@ $ conda activate <env-name>
 $ pip install .
 ```
 
+A documentation can be build and hosted using:
+```bash
+$ pip install .[doc]
+$ mkdocs serve
+```
+And afterwards accessed at `http://localhost:8000/systems/benchmark-tool/`.
+
 ## Usage
 
 You can check a successful installation by running
@@ -39,7 +46,7 @@ Supported entry points:
 `beval` - evaluates solver runs  
 `bconv` - transforms output of eval into spreadsheets  
 
-For more information and examples check `./doc/`.
+For more information and examples check the documentation.
 
 > **_NOTE:_**  
 This project is still in active development. 
