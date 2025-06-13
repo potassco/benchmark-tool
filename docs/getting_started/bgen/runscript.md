@@ -9,8 +9,7 @@ A runscript defines all aspects of a benchmark set. The following sections will 
 through all parts of a typical runscript and show what is possible, so you can adapt
 an existing runscript to your needs or create a new one from scratch.
 
-While [runscript-example.xml](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-example.xml) is an example for a small runscript, [runscript-all.xml](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-all.xml) tries
-to show the full scope of possibilities.
+Some example runscripts can be found [here](../../examples/index.md#runscripts)
 
 ## Folder Structure
 
@@ -29,7 +28,7 @@ The name of the folder second in the hierarchy represents the project, which wil
 The folder third in the hierarchy corresponds to the name of the machine the benchmark was run on. A machine is defined in the runscript as seen below:
 
 ```xml
-<machine name="zuse" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
+<machine name="hpc" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
 ```
 
 !!! info
@@ -58,7 +57,7 @@ For more information regarding run templates check [here](templates.md#run-templ
 
 The following line shows, how a system is defined.
 ```xml
-<system name="clingo" version="4.5.4" measures="clingo" config="seq-generic">
+<system name="clingo" version="5.8.0" measures="clingo" config="seq-generic">
     ...
 </system>
 ```
@@ -149,7 +148,7 @@ Projects are used to combine all of the previous elements to define a complete b
 
 ```xml
 <project name="clingo-basic" job="seq-gen">
-    <runtag machine="zuse" benchmark="no-pigeons" tag="basic"/>
+    <runtag machine="hpc" benchmark="no-pigeons" tag="basic"/>
 </project>
 ```
 
@@ -157,11 +156,11 @@ Each project is identified by its *name*. The value of *name* is also what gives
 
 The *runtag* element specifies a machine and benchmark (group of instances) to be run. One or multiple settings to be used can be selected by the *tag*. The special tag *all* can be used to select all settings. The system to be used is inferred through the setting.
 
-In the above example all instances defined in the 'no-pigeons' benchmark are run using the 'seq-gen' job configuration on machine 'zuse' once for each setting with the tag 'basic'.
+In the above example all instances defined in the 'no-pigeons' benchmark are run using the 'seq-gen' job configuration on machine 'hpc' once for each setting with the tag 'basic'.
 
 ```xml
 <project name="clingo-pbs" job="pbs-gen">
-    <runspec machine="zuse" benchmark="no-pigeons" system="clingo" version="4.5.4" setting="setting-1"/>
+    <runspec machine="hpc" benchmark="no-pigeons" system="clingo" version="5.8.0" setting="setting-1"/>
 </project>
 ```
 
