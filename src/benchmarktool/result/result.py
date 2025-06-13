@@ -22,7 +22,7 @@ class Result:
         self.machines: dict[str, Machine] = {}
         self.configs: dict[str, Config] = {}
         self.systems: dict[tuple[str, str], System] = {}
-        self.jobs: dict[str, SeqJob | PbsJob] = {}
+        self.jobs: dict[str, SeqJob | DistJob] = {}
         self.benchmarks: dict[str, Benchmark] = {}
         self.projects: dict[str, Project] = {}
 
@@ -208,9 +208,9 @@ class SeqJob(Job):
 
 
 @dataclass(order=True, frozen=True)
-class PbsJob(Job):
+class DistJob(Job):
     """
-    Represents a pbs job.
+    Represents a dist job.
 
     Attributes:
         name (str):              The name of the job.
@@ -218,7 +218,7 @@ class PbsJob(Job):
         runs (int):              Number of repetitions per instance.
         attrib (dict[str, Any]): Arbitrary extra arguments.
         script_mode (str):       Specifies the script generation mode.
-        walltime (str):          The walltime for a job submitted via PBS.
+        walltime (str):          The walltime for a distributed job.
     """
 
     script_mode: str = field(compare=False)

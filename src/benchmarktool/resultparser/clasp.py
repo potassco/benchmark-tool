@@ -24,6 +24,7 @@ clasp_re = {
     "interrupted": ("string", re.compile(r"(c )?(?P<val>INTERRUPTED!)")),
     "error": ("string", re.compile(r"^\*\*\* clasp ERROR: (?P<val>.*)$")),
     "memerror": ("string", re.compile(r"^(Maximum VSize exceeded|\[runlim\] status:\s*out of memory)(?P<val>.*)")),
+    "mem": ("float", re.compile(r"^\[runlim\] space:[\t]*(?P<val>[0-9]+(\.[0-9]+)?) MB")),
 }
 
 

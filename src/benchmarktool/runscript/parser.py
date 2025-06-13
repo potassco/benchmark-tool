@@ -5,6 +5,7 @@ representation in form of python classes.
 """
 
 __author__ = "Roland Kaminski"
+import os
 from typing import Any, Optional
 
 from lxml import etree  # type: ignore[import-untyped]
@@ -14,7 +15,7 @@ from benchmarktool.runscript.runscript import (
     Benchmark,
     Config,
     Machine,
-    PbsJob,
+    DistJob,
     Project,
     Runscript,
     SeqJob,
@@ -39,7 +40,7 @@ class Parser:
         Initializes the parser.
         """
 
-    # pylint: disable=too-many-branches, too-many-statements
+    # pylint: disable=too-many-branches, too-many-statements, too-many-nested-blocks
     def parse(self, file_name: str) -> Runscript:
         """
         Parse a given runscript and return its representation
@@ -68,7 +69,7 @@ class Parser:
             </xs:element>
             <xs:element name="config" type="configType"/>
             <xs:element name="benchmark" type="benchmarkType"/>
-            <xs:element name="pbsjob" type="pbsjobType"/>
+            <xs:element name="distjob" type="distjobType"/>
             <xs:element name="seqjob" type="seqjobType"/>
             <xs:element name="project" type="projectType"/>
         </xs:choice>
@@ -97,7 +98,20 @@ class Parser:
         <xs:choice minOccurs="1" maxOccurs="unbounded">
             <xs:element name="setting">
                 <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
+                            <xs:complexType>
+                                <xs:attribute name="file" type="xs:string" use="required"/>
+                                <xs:attribute name="enctag">
+                                    <xs:simpleType>
+                                        <xs:list itemType="nameType"/>
+                                    </xs:simpleType>
+                                </xs:attribute>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
                     <xs:attribute name="name" type="nameType" use="required"/>
+                    <xs:attribute name="cmdline" type="xs:string"/>
                     <xs:attribute name="tag">
                         <xs:simpleType>
                             <xs:list itemType="nameType"/>
@@ -109,7 +123,7 @@ class Parser:
                             <xs:list itemType="xs:integer"/>
                          </xs:simpleType>
                     </xs:attribute>
-                    <xs:attribute name="pbstemplate" type="xs:string"/>
+                    <xs:attribute name="disttemplate" type="xs:string"/>
                     <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
             </xs:element>
@@ -134,13 +148,13 @@ class Parser:
         <xs:attribute name="parallel" type="xs:positiveInteger" use="required"/>
     </xs:complexType>
     
-    <!-- a pbsjob -->
-    <xs:complexType name="pbsjobType">
+    <!-- a distjob -->
+    <xs:complexType name="distjobType">
         <xs:attributeGroup ref="jobAttr"/>
         <xs:attribute name="script_mode" use="required">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
-                    <xs:enumeration value="single"/>
+                    <xs:enumeration value="multi"/>
                     <xs:enumeration value="timeout"/>
                 </xs:restriction>
              </xs:simpleType>
@@ -158,44 +172,52 @@ class Parser:
     
     <!-- a benchmark -->
     <xs:complexType name="benchmarkType">
-        <xs:sequence minOccurs="0" maxOccurs="unbounded">
-            <xs:choice>
-                <xs:element name="files">
-                    <xs:complexType>
-                        <xs:sequence>
-                            <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
-                                <xs:complexType>
-                                    <xs:attribute name="file" type="xs:string" use="required"/>
-                                </xs:complexType>
-                            </xs:element>
-                            <xs:element name="add" minOccurs="0" maxOccurs="unbounded">
-                                <xs:complexType>
-                                    <xs:attribute name="file" type="xs:string" use="required"/>
-                                </xs:complexType>
-                            </xs:element>
-                        </xs:sequence>
-                        <xs:attribute name="path" type="xs:string" use="required"/>
-                    </xs:complexType>
-                </xs:element>
-                <xs:element name="folder">
-                    <xs:complexType>
-                        <xs:sequence>
-                            <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
-                                <xs:complexType>
-                                    <xs:attribute name="file" type="xs:string" use="required"/>
-                                </xs:complexType>
-                            </xs:element>
-                            <xs:element name="ignore" minOccurs="0" maxOccurs="unbounded">
-                                <xs:complexType>
-                                    <xs:attribute name="prefix" type="xs:string" use="required"/>
-                                </xs:complexType>
-                            </xs:element>
-                        </xs:sequence>
-                        <xs:attribute name="path" type="xs:string" use="required"/>
-                    </xs:complexType>
-                </xs:element>
-            </xs:choice>
-        </xs:sequence>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="files">
+                <xs:complexType>
+                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="add">
+                            <xs:complexType>
+                                <xs:attribute name="file" type="xs:string" use="required"/>
+                            </xs:complexType>
+                        </xs:element>
+                        <xs:element name="encoding">
+                            <xs:complexType>
+                                <xs:attribute name="file" type="xs:string" use="required"/>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:choice>
+                    <xs:attribute name="path" type="xs:string" use="required"/>
+                    <xs:attribute name="enctag">
+                        <xs:simpleType>
+                            <xs:list itemType="nameType"/>
+                        </xs:simpleType>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="folder">
+                <xs:complexType>
+                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="ignore">
+                            <xs:complexType>
+                                <xs:attribute name="prefix" type="xs:string" use="required"/>
+                            </xs:complexType>
+                        </xs:element>
+                        <xs:element name="encoding">
+                            <xs:complexType>
+                                <xs:attribute name="file" type="xs:string" use="required"/>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:choice>
+                    <xs:attribute name="path" type="xs:string" use="required"/>
+                    <xs:attribute name="enctag">
+                        <xs:simpleType>
+                            <xs:list itemType="nameType"/>
+                        </xs:simpleType>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+        </xs:choice>
         <xs:attribute name="name" type="nameType" use="required"/>
     </xs:complexType>
     
@@ -290,7 +312,7 @@ class Parser:
             <xs:field xpath="@job"/>
         </xs:keyref>
         <xs:key name="jobKey">
-            <xs:selector xpath="seqjob|pbsjob"/>
+            <xs:selector xpath="seqjob|distjob"/>
             <xs:field xpath="@name"/>
         </xs:key>
         <!-- project keys -->
@@ -312,9 +334,9 @@ class Parser:
             root = doc.getroot()
             run = Runscript(root.get("output"))
 
-            job: PbsJob | SeqJob
+            job: DistJob | SeqJob
 
-            for node in root.xpath("./pbsjob"):
+            for node in root.xpath("./distjob"):
                 attr = self._filter_attr(
                     node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime", "cpt", "partition"]
                 )
@@ -323,7 +345,7 @@ class Parser:
                 if partition is None:
                     partition = "kr"
 
-                job = PbsJob(
+                job = DistJob(
                     node.get("name"),
                     tools.xml_time(node.get("timeout")),
                     int(node.get("runs")),
@@ -374,21 +396,38 @@ class Parser:
                         del attr["ppn"]
                     else:
                         ppn = None
-                    if "pbstemplate" in attr:
-                        pbstemplate = attr["pbstemplate"]
-                        del attr["pbstemplate"]
+                    if "disttemplate" in attr:
+                        disttemplate = attr["disttemplate"]
+                        del attr["disttemplate"]
                     else:
-                        pbstemplate = "templates/single.pbs"
+                        disttemplate = "templates/single.dist"
                     if child.get("tag") is None:
                         tag = set()
                     else:
                         tag = set(child.get("tag").split(None))
+
+                    encodings: dict[str, set[str]] = {"_default_": set()}
+                    for grandchild in child.xpath("./encoding"):
+                        if grandchild.get("enctag") is None:
+                            encodings["_default_"].add(os.path.normpath(grandchild.get("file")))
+                        else:
+                            enctags = set(grandchild.get("enctag").split(None))
+                            for t in enctags:
+                                if t not in encodings:
+                                    encodings[t] = set()
+                                encodings[t].add(os.path.normpath(grandchild.get("file")))
+
                     for num in procs:
                         name = child.get("name")
+                        cmdline = child.get("cmdline")
+                        if cmdline is None:
+                            cmdline = ""
                         if num is not None:
                             name += "-n{0}".format(num)
                         compound_settings[child.get("name")].append(name)
-                        setting = Setting(name, child.get("cmdline"), tag, setting_order, num, ppn, pbstemplate, attr)
+                        setting = Setting(
+                            name, cmdline, tag, setting_order, num, ppn, disttemplate, attr, encodings
+                        )
                         system.add_setting(setting)
                         setting_order += 1
 
@@ -400,6 +439,11 @@ class Parser:
                 benchmark = Benchmark(node.get("name"))
                 for child in node.xpath("./folder"):
                     element = Benchmark.Folder(child.get("path"))
+                    if child.get("enctag") is None:
+                        tag = set()
+                    else:
+                        tag = set(child.get("enctag").split(None))
+                    element.add_enctags(tag)
                     for grandchild in child.xpath("./encoding"):
                         element.add_encoding(grandchild.get("file"))
                     for grandchild in child.xpath("./ignore"):
@@ -407,6 +451,11 @@ class Parser:
                     benchmark.add_element(element)
                 for child in node.xpath("./files"):
                     element = Benchmark.Files(child.get("path"))
+                    if child.get("enctag") is None:
+                        tag = set()
+                    else:
+                        tag = set(child.get("enctag").split(None))
+                    element.add_enctags(tag)
                     for grandchild in child.xpath("./encoding"):
                         element.add_encoding(grandchild.get("file"))
                     for grandchild in child.xpath("./add"):

@@ -75,14 +75,14 @@ class TestParser(TestCase):
         self.assertEqual(seq_job.runs, 2)
         self.assertEqual(seq_job.parallel, 1)
         self.assertDictEqual(seq_job.attr, {})
-        pbs_job = res.jobs["test_pbs"]
-        self.assertIsInstance(pbs_job, result.PbsJob)
-        self.assertEqual(pbs_job.name, "test_pbs")
-        self.assertEqual(pbs_job.timeout, 10)
-        self.assertEqual(pbs_job.runs, 2)
-        self.assertEqual(pbs_job.script_mode, "timeout")
-        self.assertEqual(pbs_job.walltime, "23:59:59")
-        self.assertDictEqual(pbs_job.attr, {})
+        dist_job = res.jobs["test_dist"]
+        self.assertIsInstance(dist_job, result.DistJob)
+        self.assertEqual(dist_job.name, "test_dist")
+        self.assertEqual(dist_job.timeout, 10)
+        self.assertEqual(dist_job.runs, 2)
+        self.assertEqual(dist_job.script_mode, "timeout")
+        self.assertEqual(dist_job.walltime, "23:59:59")
+        self.assertDictEqual(dist_job.attr, {})
 
         # benchmarks
         self.assertEqual(len(res.benchmarks), 1)

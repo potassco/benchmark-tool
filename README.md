@@ -1,16 +1,17 @@
 # benchmarktool
 
-A tool to easier generate, run and evalute benchmarks.
+A tool to easier generate, run and evaluate benchmarks.
 
 ## Structure
 
-`benchmarks/` - example benchmarks
-`doc/`      - documentation
-`output/`    - default output folder for the examples
-`programs/`   - should contain solver/tool executables
-`runscripts/` - contains example run-scripts
-`src/`       - Python source files
-`templates/`  - contains example call-scripts
+This repository is structures as follows:  
+`./benchmarks/`: example benchmarks  
+`./docs/`: documentation  
+`./output/`: default output folder for the examples  
+`./programs/`: place solver/tool executables here  
+`./runscripts/`: contains example run-scripts  
+`./src/`: Python source files  
+`./templates/`: contains example script templates  
 
 ## Installation
 
@@ -25,6 +26,13 @@ $ conda activate <env-name>
 $ pip install .
 ```
 
+A documentation can be build and hosted using:
+```bash
+$ pip install .[doc]
+$ mkdocs serve
+```
+And afterwards accessed at `http://localhost:8000/systems/benchmark-tool/`.
+
 ## Usage
 
 You can check a successful installation by running
@@ -33,12 +41,12 @@ You can check a successful installation by running
 $ bgen -h
 ```
 
-Supported entry points:
-`bgen`  - creates start scripts
-`beval` - evaluates solver runs
-`bconv` - transforms output of eval into spreadsheets
+Supported entry points:  
+`bgen`  - creates start scripts  
+`beval` - evaluates solver runs  
+`bconv` - transforms output of eval into spreadsheets  
 
-For more information and examples check `./doc/`.
+For more information and examples check the documentation.
 
 > **_NOTE:_**  
 This project is still in active development. 

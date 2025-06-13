@@ -36,7 +36,7 @@ def xml_time(str_rep: str) -> int:
     return seconds + minutes * 60 + hours * 60 * 60
 
 
-def pbs_time(int_rep: int) -> str:
+def dist_time(int_rep: int) -> str:
     """
     Converts integer value in seconds to [[h:]m:]s time format.
 

@@ -220,16 +220,16 @@ class TestSeqJob(TestJob):
         self.assertEqual(self.j.parallel, self.para)
 
 
-class TestPbsJob(TestJob):
+class TestDistJob(TestJob):
     """
-    Test cases for PbsJob class.
+    Test cases for DistJob class.
     """
 
     def setUp(self):
         super().setUp()
         self.sm = "sm"
         self.wt = "wt"
-        self.j = result.PbsJob(self.name, self.timeout, self.runs, self.attr, self.sm, self.wt)
+        self.j = result.DistJob(self.name, self.timeout, self.runs, self.attr, self.sm, self.wt)
 
     def test_init(self):
         """

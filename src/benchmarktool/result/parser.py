@@ -17,7 +17,7 @@ from benchmarktool.result.result import (
     Instance,
     InstanceResult,
     Machine,
-    PbsJob,
+    DistJob,
     Project,
     Result,
     Run,
@@ -106,14 +106,14 @@ class Parser:
                 parallel = int(attrib.pop("parallel"))
                 seq_job = SeqJob(name, timeout, runs, attrib, parallel)
                 self.result.jobs[seq_job.name] = seq_job
-            case "pbsjob":
+            case "distjob":
                 name = attrib.pop("name")
                 timeout = tools.xml_time(attrib.pop("timeout"))
                 runs = int(attrib.pop("runs"))
                 script_mode = attrib.pop("script_mode")
                 walltime = attrib.pop("walltime")
-                pbs_job = PbsJob(name, timeout, runs, attrib, script_mode, walltime)
-                self.result.jobs[pbs_job.name] = pbs_job
+                dist_job = DistJob(name, timeout, runs, attrib, script_mode, walltime)
+                self.result.jobs[dist_job.name] = dist_job
             case "benchmark":
                 self.benchscope = True
                 self.benchmark = Benchmark(attrib["name"])
