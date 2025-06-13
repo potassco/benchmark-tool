@@ -86,11 +86,11 @@ Settings are identified by their name and define additional arguments and encodi
 
  Each setting can also contain any number of encoding elements. The *file* attribute is a relative path from the directory, where `bgen` is run, to the encoding. If no *tag* is defined the encoding is passed to the system via the run template for all instances when this setting is selected. A *tag* can be provided to make the encoding usage instance dependant. Multiple encodings can be selected by using the same tag.
 
- The setting element additionaly supports an optional attribute *pbstemplate*. The default value is `"templates/single.pbs"` which is a reference to [single.pbs](https://github.com/potassco/benchmark-tool/blob/master/templates/single.pbs). This attribute is only relevant for pbs jobs. More information to pbs templates can be found [here](templates.md#pbs-templates).
+ The setting element additionaly supports an optional attribute *disttemplate*. The default value is `"templates/single.dist"` which is a reference to [single.dist](https://github.com/potassco/benchmark-tool/blob/master/templates/single.dist). This attribute is only relevant for distjobs. More information to dist templates can be found [here](templates.md#dist-templates).
 
 ## Job
 
-A job is used to define additional arguments for individual runs. Any number of jobs can be defined. There are two types of jobs, 'default' sequential *seqjob*s and *pbsjob*s for running the benchmarks on a cluster.
+A job is used to define additional arguments for individual runs. Any number of jobs can be defined. There are two types of jobs, 'default' sequential *seqjob*s and *distjob*s for running the benchmarks on a cluster.
 
 ```xml
 <seqjob name="seq-gen" timeout="900" runs="1" parallel="1"/>
@@ -98,17 +98,17 @@ A job is used to define additional arguments for individual runs. Any number of 
 A seqjob is identified by its name and sets the *timeout* in seconds for a single run, the number of *runs* for each instance and the number of runs performed in *parallel*.
 
 ```xml
-<pbsjob name="pbs-gen" timeout="900" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
+<distjob name="dist-gen" timeout="900" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
 ```
-A pbsjob is also identified by its name and defines a *timeout* and the number of *runs*. *walltime* sets an overall time limit for all runs in the HH:MM:SS format. 
+A distjob is also identified by its name and defines a *timeout* and the number of *runs*. *walltime* sets an overall time limit for all runs in the HH:MM:SS format. 
 
 The *script_mode* attribute, defines how runs are grouped and dispatched to the cluster. 'multi' dispatches all runs individually to the cluster for maximum possible parallelization.
 'timeout' dispatches groups of runs depending on the set *timeout* and *walltime*. If it is not possible to execute all runs sequentially inside the *walltime* specified, they will be split into as many groups as necessary so that the *walltime* is never surpassed. For example, if the *walltime* is 25 hours and you have 100 instances with a *timeout* of 1 hour each and 1 run each, there will be 4 groups, each with 25 runs, which will be dispatched.
 
 !!! info
-        If you have a lot of runs *script_mode* 'multi' can cause issues with the cluster scheduler. Either use 'timeout' or dispatch the generated `.pbs` jobs using the `./dispatcher.py`.
+        If you have a lot of runs *script_mode* 'multi' can cause issues with the cluster scheduler. Either use 'timeout' or dispatch the generated `.dist` jobs using the `./dispatcher.py`.
     
-A last optional attribute for pbsjobs is *partition*, which is the name of the partition used on the cluster. The default value is 'kr'. Other values for this argument can be "short" and "long". If short is used the walltime can not exceed 24 hours.
+A last optional attribute for distjobs is *partition*, which is the name of the partition used on the cluster. The default value is 'kr'. Other values for this argument can be "short" and "long". If short is used the walltime can not exceed 24 hours.
 
 ## Benchmark/Instances
 
@@ -159,7 +159,7 @@ The *runtag* element specifies a machine and benchmark (group of instances) to b
 In the above example all instances defined in the 'no-pigeons' benchmark are run using the 'seq-gen' job configuration on machine 'hpc' once for each setting with the tag 'basic'.
 
 ```xml
-<project name="clingo-pbs" job="pbs-gen">
+<project name="clingo-dist" job="dist-gen">
     <runspec machine="hpc" benchmark="no-pigeons" system="clingo" version="5.8.0" setting="setting-1"/>
 </project>
 ```

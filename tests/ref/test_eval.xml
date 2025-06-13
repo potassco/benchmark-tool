@@ -6,7 +6,7 @@
 		<setting name="test_setting2" cmdline="test_cmdline" tag="basic"/>
 	</system>
 	<seqjob name="test_seq" timeout="10" runs="2" parallel="1"/>
-	<pbsjob name="test_pbs" timeout="10" runs="2" script_mode="timeout" walltime="23:59:59"/>
+	<distjob name="test_dist" timeout="10" runs="2" script_mode="timeout" walltime="23:59:59"/>
 	<benchmark name="test_bench">
 		<class name="test_class" id="0">
 			<instance name="test_inst" id="0"/>

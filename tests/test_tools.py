@@ -32,13 +32,13 @@ class TestTools(TestCase):
         self.assertEqual(tools.xml_time("10:10"), 610)
         self.assertEqual(tools.xml_time("10:10:10"), 36610)
 
-    def test_pbs_time(self):
+    def test_dist_time(self):
         """
-        Test pbs_time function.
+        Test dist_time function.
         """
-        self.assertEqual(tools.pbs_time(10), "00:00:10")
-        self.assertEqual(tools.pbs_time(610), "00:10:10")
-        self.assertEqual(tools.pbs_time(36610), "10:10:10")
+        self.assertEqual(tools.dist_time(10), "00:00:10")
+        self.assertEqual(tools.dist_time(610), "00:10:10")
+        self.assertEqual(tools.dist_time(36610), "10:10:10")
 
     def test_set_executable(self):
         """

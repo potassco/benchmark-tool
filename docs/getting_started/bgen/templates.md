@@ -4,7 +4,7 @@ title: "Templates"
 
 # Templates
 
-Templates are used to simplify the creation of different scripts. While run templates (`.sh` scripts) are used to generate scripts for individual benchmark runs, pbs templates (`.pbs` scripts) are used to enable computation on a cluster.
+Templates are used to simplify the creation of different scripts. While run templates (`.sh` scripts) are used to generate scripts for individual benchmark runs, dist templates (`.dist` scripts) are used to enable computation on a cluster.
 
 A collection of templates can be found [here](https://github.com/potassco/benchmark-tool/blob/master/templates).
 
@@ -24,9 +24,9 @@ Most templates make use of the [runlim](https://github.com/arminbiere/runlim) pr
 !!! info
     When using the provided templates you might have to update the runlim version inside the template.
 
-## Pbs Templates
+## Dist Templates
 
-Pbs templates describes how a single new job will look like, when grouping multiple jobs together to run on a cluster. This includes setting job parameters such as walltime, loading the environment and deciding in which order the jobs will be run.
+Dist templates describes how a single new job will look like, when grouping multiple jobs together to run on a cluster. This includes setting job parameters such as walltime, loading the environment and deciding in which order the jobs will be run.
 
 While parameters can be set using the default `#SBATCH` syntax of SLURM, environments can be loaded explicitly in this file or by sourcing a `.bashrc`file.
 

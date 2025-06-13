@@ -15,7 +15,7 @@ from benchmarktool.runscript.runscript import (
     Benchmark,
     Config,
     Machine,
-    PbsJob,
+    DistJob,
     Project,
     Runscript,
     SeqJob,
@@ -69,7 +69,7 @@ class Parser:
             </xs:element>
             <xs:element name="config" type="configType"/>
             <xs:element name="benchmark" type="benchmarkType"/>
-            <xs:element name="pbsjob" type="pbsjobType"/>
+            <xs:element name="distjob" type="distjobType"/>
             <xs:element name="seqjob" type="seqjobType"/>
             <xs:element name="project" type="projectType"/>
         </xs:choice>
@@ -123,7 +123,7 @@ class Parser:
                             <xs:list itemType="xs:integer"/>
                          </xs:simpleType>
                     </xs:attribute>
-                    <xs:attribute name="pbstemplate" type="xs:string"/>
+                    <xs:attribute name="disttemplate" type="xs:string"/>
                     <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
             </xs:element>
@@ -148,8 +148,8 @@ class Parser:
         <xs:attribute name="parallel" type="xs:positiveInteger" use="required"/>
     </xs:complexType>
     
-    <!-- a pbsjob -->
-    <xs:complexType name="pbsjobType">
+    <!-- a distjob -->
+    <xs:complexType name="distjobType">
         <xs:attributeGroup ref="jobAttr"/>
         <xs:attribute name="script_mode" use="required">
             <xs:simpleType>
@@ -312,7 +312,7 @@ class Parser:
             <xs:field xpath="@job"/>
         </xs:keyref>
         <xs:key name="jobKey">
-            <xs:selector xpath="seqjob|pbsjob"/>
+            <xs:selector xpath="seqjob|distjob"/>
             <xs:field xpath="@name"/>
         </xs:key>
         <!-- project keys -->
@@ -334,9 +334,9 @@ class Parser:
             root = doc.getroot()
             run = Runscript(root.get("output"))
 
-            job: PbsJob | SeqJob
+            job: DistJob | SeqJob
 
-            for node in root.xpath("./pbsjob"):
+            for node in root.xpath("./distjob"):
                 attr = self._filter_attr(
                     node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime", "cpt", "partition"]
                 )
@@ -345,7 +345,7 @@ class Parser:
                 if partition is None:
                     partition = "kr"
 
-                job = PbsJob(
+                job = DistJob(
                     node.get("name"),
                     tools.xml_time(node.get("timeout")),
                     int(node.get("runs")),
@@ -396,11 +396,11 @@ class Parser:
                         del attr["ppn"]
                     else:
                         ppn = None
-                    if "pbstemplate" in attr:
-                        pbstemplate = attr["pbstemplate"]
-                        del attr["pbstemplate"]
+                    if "disttemplate" in attr:
+                        disttemplate = attr["disttemplate"]
+                        del attr["disttemplate"]
                     else:
-                        pbstemplate = "templates/single.pbs"
+                        disttemplate = "templates/single.dist"
                     if child.get("tag") is None:
                         tag = set()
                     else:
@@ -426,7 +426,7 @@ class Parser:
                             name += "-n{0}".format(num)
                         compound_settings[child.get("name")].append(name)
                         setting = Setting(
-                            name, cmdline, tag, setting_order, num, ppn, pbstemplate, attr, encodings
+                            name, cmdline, tag, setting_order, num, ppn, disttemplate, attr, encodings
                         )
                         system.add_setting(setting)
                         setting_order += 1

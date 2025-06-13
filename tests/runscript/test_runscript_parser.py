@@ -35,16 +35,16 @@ class TestParser(TestCase):
         self.assertEqual(seq_job.timeout, 120)
         self.assertEqual(seq_job.runs, 1)
         self.assertEqual(seq_job.parallel, 8)
-        pbs_job = run.jobs["pbs-generic"]
-        self.assertIsInstance(pbs_job, runscript.PbsJob)
-        self.assertEqual(pbs_job.name, "pbs-generic")
-        self.assertEqual(pbs_job.timeout, 120)
-        self.assertEqual(pbs_job.runs, 1)
-        self.assertEqual(pbs_job.script_mode, "timeout")
-        self.assertEqual(pbs_job.walltime, 86399)  # = 23:59:59
-        self.assertEqual(pbs_job.cpt, 1)
-        self.assertEqual(pbs_job.partition, "kr")  # default
-        self.assertEqual(run.jobs["pbs-part"].partition, "test")
+        dist_job = run.jobs["dist-generic"]
+        self.assertIsInstance(dist_job, runscript.DistJob)
+        self.assertEqual(dist_job.name, "dist-generic")
+        self.assertEqual(dist_job.timeout, 120)
+        self.assertEqual(dist_job.runs, 1)
+        self.assertEqual(dist_job.script_mode, "timeout")
+        self.assertEqual(dist_job.walltime, 86399)  # = 23:59:59
+        self.assertEqual(dist_job.cpt, 1)
+        self.assertEqual(dist_job.partition, "kr")  # default
+        self.assertEqual(run.jobs["dist-part"].partition, "test")
 
         # projects
         self.assertEqual(len(run.projects), 3)
@@ -60,15 +60,15 @@ class TestParser(TestCase):
         self.assertEqual(project.name, "claspar-all-as")
         self.assertTrue("houat" in project.runspecs)
         self.assertEqual(project.runscript, run)
-        self.assertIsInstance(project.job, runscript.PbsJob)
-        self.assertEqual(project.job.name, "pbs-generic")
+        self.assertIsInstance(project.job, runscript.DistJob)
+        self.assertEqual(project.job.name, "dist-generic")
         project = run.projects["claspar-one-as"]
         self.assertIsInstance(project, runscript.Project)
         self.assertEqual(project.name, "claspar-one-as")
         self.assertTrue("zuse" in project.runspecs)
         self.assertEqual(project.runscript, run)
-        self.assertIsInstance(project.job, runscript.PbsJob)
-        self.assertEqual(project.job.name, "pbs-generic")
+        self.assertIsInstance(project.job, runscript.DistJob)
+        self.assertEqual(project.job.name, "dist-generic")
 
         # machines
         self.assertEqual(len(run.machines), 2)
@@ -102,7 +102,7 @@ class TestParser(TestCase):
         self.assertEqual(system.order, 1)
         self.assertEqual(len(system.settings), 2 * 4 + 1)  # 2 settings * 4 procs + 1 extra
         self.assertIsInstance(system.config, runscript.Config)
-        self.assertEqual(system.config.name, "pbs-generic")
+        self.assertEqual(system.config.name, "dist-generic")
 
         # settings
         setting = system.settings["one-as-n1"]
@@ -113,7 +113,7 @@ class TestParser(TestCase):
         self.assertEqual(setting.order, 0)
         self.assertEqual(setting.procs, 1)
         self.assertEqual(setting.ppn, 2)
-        self.assertEqual(setting.pbstemplate, "templates/impi.pbs")
+        self.assertEqual(setting.disttemplate, "templates/impi.dist")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
         setting = system.settings["one-as-n8"]
@@ -124,7 +124,7 @@ class TestParser(TestCase):
         self.assertEqual(setting.order, 3)
         self.assertEqual(setting.procs, 8)
         self.assertEqual(setting.ppn, 2)
-        self.assertEqual(setting.pbstemplate, "templates/impi.pbs")
+        self.assertEqual(setting.disttemplate, "templates/impi.dist")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
         setting = system.settings["min"]
@@ -135,7 +135,7 @@ class TestParser(TestCase):
         self.assertEqual(setting.order, 8)
         self.assertIsNone(setting.procs)
         self.assertIsNone(setting.ppn)
-        self.assertEqual(setting.pbstemplate, "templates/single.pbs")
+        self.assertEqual(setting.disttemplate, "templates/single.dist")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": set(), "test": {"test21.lp"}, "test2": {"test22.lp"}})
 
@@ -145,10 +145,10 @@ class TestParser(TestCase):
         self.assertIsInstance(config, runscript.Config)
         self.assertEqual(config.name, "seq-generic")
         self.assertEqual(config.template, "templates/seq-generic.sh")
-        config = run.configs["pbs-generic"]
+        config = run.configs["dist-generic"]
         self.assertIsInstance(config, runscript.Config)
-        self.assertEqual(config.name, "pbs-generic")
-        self.assertEqual(config.template, "templates/pbs-generic.sh")
+        self.assertEqual(config.name, "dist-generic")
+        self.assertEqual(config.template, "templates/dist-generic.sh")
 
         # benchmarks
         self.assertEqual(len(run.benchmarks), 2)

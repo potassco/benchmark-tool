@@ -12,7 +12,7 @@
 
 	<seqjob name="seq-gen" timeout="900" runs="1" parallel="1"/>
 
-	<pbsjob name="pbs-gen" timeout="1200" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
+	<distjob name="dist-gen" timeout="1200" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
 
 	<benchmark name="no-pigeons">
 		<folder path="benchmarks/clasp/">
@@ -24,7 +24,7 @@
 		<runtag machine="hpc" benchmark="no-pigeons" tag="basic"/>
 	</project>
 
-	<project name="clasp-pbs-job" job="pbs-gen">
+	<project name="clasp-dist-job" job="dist-gen">
 		<runtag machine="hpc" benchmark="no-pigeons" tag="basic"/>
 	</project>
 

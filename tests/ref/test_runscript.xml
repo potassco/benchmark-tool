@@ -15,14 +15,14 @@
 		<setting name="norest"   tag="seq" cmdline="--stats --restarts=no 1"/>
 	</system>
 
-	<config name="pbs-generic" template="templates/pbs-generic.sh"/>
-	<system name="claspar" version="2.1.0" measures="claspar" config="pbs-generic">
-		<setting name="one-as" tag="par one-as" cmdline="--stats 1" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs">
+	<config name="dist-generic" template="templates/dist-generic.sh"/>
+	<system name="claspar" version="2.1.0" measures="claspar" config="dist-generic">
+		<setting name="one-as" tag="par one-as" cmdline="--stats 1" ppn="2" procs="1 2 4 8" disttemplate="templates/impi.dist">
 			<encoding file="def.lp"/>
 			<encoding file="test1.lp" enctag="test"/>
 			<encoding file="test2.lp" enctag="test"/>
 		</setting>
-		<setting name="all-as" tag="par all-as" cmdline="--stats -q 0" ppn="2" procs="1 2 4 8" pbstemplate="templates/impi.pbs"/>
+		<setting name="all-as" tag="par all-as" cmdline="--stats -q 0" ppn="2" procs="1 2 4 8" disttemplate="templates/impi.dist"/>
 		<setting name="min">
 			<encoding file="test21.lp" enctag="test"/>
 			<encoding file="test22.lp" enctag="test2"/>
@@ -30,8 +30,8 @@
 	</system>
 	
 	<seqjob name="seq-generic" timeout="120" runs="1" parallel="8"/>
-	<pbsjob name="pbs-generic" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59" cpt="1"/>
-	<pbsjob name="pbs-part" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59" cpt="1" partition="test"/>
+	<distjob name="dist-generic" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59" cpt="1"/>
+	<distjob name="dist-part" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59" cpt="1" partition="test"/>
 
 	<benchmark name="seq-suite">
 		<folder path="benchmarks/clasp" enctag="test test-no test2">
@@ -47,7 +47,7 @@
 		</files>
 	</benchmark>
 
-	<benchmark name="pbs-suite">
+	<benchmark name="dist-suite">
 		<folder path="benchmarks/clasp"/>
 		<files path="benchmarks/clasp"/>
 	</benchmark>
@@ -55,11 +55,11 @@
 	<project name="clasp-big" job="seq-generic">
 		<runtag machine="houat" benchmark="seq-suite" tag="seq"/>
 	</project>
-	<project name="claspar-all-as" job="pbs-generic">
-		<runtag machine="houat" benchmark="pbs-suite" tag="par one-as"/>
+	<project name="claspar-all-as" job="dist-generic">
+		<runtag machine="houat" benchmark="dist-suite" tag="par one-as"/>
 	</project>
-	<project name="claspar-one-as" job="pbs-generic">
-		<runspec machine="zuse" benchmark="pbs-suite" system="claspar" version="2.1.0" setting="one-as"/>
+	<project name="claspar-one-as" job="dist-generic">
+		<runspec machine="zuse" benchmark="dist-suite" system="claspar" version="2.1.0" setting="one-as"/>
 	</project>
 
 </runscript>
