@@ -112,15 +112,30 @@ class TestSetting(TestCase):
         self.assertEqual(
             o.getvalue(),
             '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
-            'procs="1" ppn="2" pbstemplate="template" key="val"/>\n',
+            'procs="1" ppn="2" disttemplate="template" key="val">\n'
+            "\t</setting>\n",
         )
 
-        s = runscript.Setting(self.name, self.cmdline, self.tag, self.order, None, None, self.template, {})
+        s = runscript.Setting(
+            self.name,
+            self.cmdline,
+            self.tag,
+            self.order,
+            None,
+            None,
+            self.template,
+            {},
+            {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}},
+        )
         o = io.StringIO()
         s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" pbstemplate="template"/>\n',
+            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" disttemplate="template">\n'
+            '\t\t<encoding file="def.lp"/>\n'
+            '\t\t<encoding file="test1.lp" tag="test"/>\n'
+            '\t\t<encoding file="test2.lp" tag="test"/>\n'
+            "\t</setting>\n",
         )
 
 
@@ -190,9 +205,9 @@ class TestSeqJob(TestJob):
 
 
 # pylint: disable=too-many-instance-attributes
-class TestPbsJob(TestJob):
+class TestDistJob(TestJob):
     """
-    Test cases for PbsJob class.
+    Test cases for DistJob class.
     """
 
     def setUp(self):
@@ -204,7 +219,7 @@ class TestPbsJob(TestJob):
         self.cpt = 2
         self.partition = "all"
         self.attr = {"key": "val"}
-        self.j = runscript.PbsJob(
+        self.j = runscript.DistJob(
             self.name, self.timeout, self.runs, self.attr, self.scriptmode, self.walltime, self.cpt, self.partition
         )
 
@@ -214,7 +229,7 @@ class TestPbsJob(TestJob):
         """
         o = io.StringIO()
         o2 = io.StringIO()
-        self.j._to_xml(o, "\t", "pbsjob", ' script_mode="mode" walltime="100" cpt="2" partition="all"')
+        self.j._to_xml(o, "\t", "distjob", ' script_mode="mode" walltime="100" cpt="2" partition="all"')
         self.j.to_xml(o2, "\t")
         self.assertEqual(o2.getvalue(), o.getvalue())
 
@@ -222,8 +237,8 @@ class TestPbsJob(TestJob):
         """
         Test script_gen method.
         """
-        ref = runscript.PbsScriptGen
-        with mock.patch("benchmarktool.runscript.runscript.PbsScriptGen", spec=True):
+        ref = runscript.DistScriptGen
+        with mock.patch("benchmarktool.runscript.runscript.DistScriptGen", spec=True):
             self.assertIsInstance(self.j.script_gen(), ref)
 
 
@@ -257,12 +272,14 @@ class TestSeqRun(TestRun):
         self.runspec = mock.Mock(spec=runscript.Runspec)
         self.runspec.setting = mock.Mock(spec=runscript.Setting)
         self.runspec.setting.cmdline = "cmdline"
+        self.runspec.setting.encodings = {"_default_": {"def.lp"}, "test": {"test.lp"}}
         self.runspec.system = mock.Mock(spec=runscript.System)
         self.runspec.system.name = "sys_name"
         self.runspec.system.version = "sys_version"
         self.instance = mock.Mock(spec=runscript.Benchmark.Instance)
         self.instance.path.return_value = "inst_path"
-        self.instance.encodings = {"encoding"}
+        self.instance.encodings = {"encoding.lp"}
+        self.instance.enctags = {"test", "none"}
         self.r = runscript.SeqRun(self.path, self.run_var, self.job, self.runspec, self.instance)
 
     def test_init(self):
@@ -275,9 +292,8 @@ class TestSeqRun(TestRun):
         self.assertEqual(self.r.runspec, self.runspec)
         self.assertEqual(self.r.instance, self.instance)
         self.assertEqual(self.r.file, os.path.relpath(self.instance.path(), self.path))
-        self.assertEqual(
-            self.r.encodings, " ".join([f'"{os.path.relpath(e, self.path)}"' for e in self.instance.encodings])
-        )
+        print(self.r.encodings)
+        self.assertEqual(self.r.encodings, '"../def.lp" "../encoding.lp" "../test.lp"')
         self.assertEqual(self.r.args, self.runspec.setting.cmdline)
         self.assertEqual(self.r.solver, self.runspec.system.name + "-" + self.runspec.system.version)
         self.assertEqual(self.r.timeout, self.job.timeout)
@@ -302,6 +318,7 @@ class TestScriptGen(TestCase):
         self.runspec = mock.Mock(spec=runscript.Runspec)
         self.runspec.setting = mock.Mock(spec=runscript.Setting)
         self.runspec.setting.cmdline = "cmdline"
+        self.runspec.setting.encodings = {}
         self.runspec.path.return_value = "runspec_path"
         self.runspec.project = mock.Mock(spec=runscript.Project)
         self.runspec.project.job = self.job
@@ -318,6 +335,7 @@ class TestScriptGen(TestCase):
         self.instance = mock.Mock(spec=runscript.Benchmark.Instance)
         self.instance.name = "inst_name"
         self.instance.encodings = {"encoding"}
+        self.instance.enctags = {}
         self.instance.path.return_value = "inst_path"
         self.instance.benchclass = mock.Mock(sepc=runscript.Benchmark.Class)
         self.instance.benchclass.name = "class_name"
@@ -431,9 +449,9 @@ class TestSeqScriptGen(TestScriptGen):
         os.remove("./tests/ref/start.py")
 
 
-class TestPbsScript(TestCase):
+class TestDistScript(TestCase):
     """
-    Test cases for PbsScriptGen.PbsScript class.
+    Test cases for DistScriptGen.DistScript class.
     """
 
     def setUp(self):
@@ -445,8 +463,8 @@ class TestPbsScript(TestCase):
         """
         Test class initialization.
         """
-        with mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.PbsScript.next") as next_m:
-            ps = runscript.PbsScriptGen.PbsScript(self.runspec, self.path, self.queue)
+        with mock.patch("benchmarktool.runscript.runscript.DistScriptGen.DistScript.next") as next_m:
+            ps = runscript.DistScriptGen.DistScript(self.runspec, self.path, self.queue)
             next_m.assert_called_once()
         self.assertEqual(ps.runspec, self.runspec)
         self.assertEqual(ps.path, self.path)
@@ -459,41 +477,41 @@ class TestPbsScript(TestCase):
         """
         Test write method.
         """
-        with mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.PbsScript.next"):
-            ps = runscript.PbsScriptGen.PbsScript(self.runspec, self.path, self.queue)
+        with mock.patch("benchmarktool.runscript.runscript.DistScriptGen.DistScript.next"):
+            ps = runscript.DistScriptGen.DistScript(self.runspec, self.path, self.queue)
         ps.startscripts = "job.sh"
         ps.num = 1
         ps.runspec.setting = mock.Mock(spec=runscript.Setting)
-        ps.runspec.setting.pbstemplate = "tests/ref/test_pbstemplate.pbs"
+        ps.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
         ps.runspec.setting.procs = 4
         ps.runspec.setting.ppn = 2
 
         ps.runspec.project = mock.Mock(spec=runscript.Project)
-        ps.runspec.project.job = mock.Mock(spec=runscript.PbsJob)
+        ps.runspec.project.job = mock.Mock(spec=runscript.DistJob)
         ps.runspec.project.job.walltime = 100
         ps.runspec.project.job.cpt = 1
         ps.runspec.project.job.partition = "all"
         ps.write()
 
-        self.assertTrue(ps.queue[0] in ["tests/ref/start0000.pbs", "tests/ref\\start0000.pbs"])
-        self.assertTrue(os.path.isfile("./tests/ref/start0000.pbs"))
-        with open("./tests/ref/start0000.pbs", "r", encoding="utf8") as f:
+        self.assertTrue(ps.queue[0] in ["tests/ref/start0000.dist", "tests/ref\\start0000.dist"])
+        self.assertTrue(os.path.isfile("./tests/ref/start0000.dist"))
+        with open("./tests/ref/start0000.dist", "r", encoding="utf8") as f:
             x = f.read()
         self.assertEqual(
             x, '#SBATCH --time=00:01:40\n#SBATCH --cpus-per-task=1\n#SBATCH --partition=all\n\njobs="job.sh"'
         )
-        os.remove("./tests/ref/start0000.pbs")
+        os.remove("./tests/ref/start0000.dist")
 
     def test_next(self):
         """
         Test next method.
         """
-        with mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.PbsScript.next"):
-            ps = runscript.PbsScriptGen.PbsScript(self.runspec, self.path, self.queue)
+        with mock.patch("benchmarktool.runscript.runscript.DistScriptGen.DistScript.next"):
+            ps = runscript.DistScriptGen.DistScript(self.runspec, self.path, self.queue)
         ps.startscripts = "test"
         ps.num = 2
         ps.time = 10
-        with mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.PbsScript.write") as write:
+        with mock.patch("benchmarktool.runscript.runscript.DistScriptGen.DistScript.write") as write:
             ps.next()
             write.assert_called_once()
         self.assertEqual(ps.startscripts, "")
@@ -504,8 +522,8 @@ class TestPbsScript(TestCase):
         """
         Test append method.
         """
-        with mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.PbsScript.next"):
-            ps = runscript.PbsScriptGen.PbsScript(self.runspec, self.path, self.queue)
+        with mock.patch("benchmarktool.runscript.runscript.DistScriptGen.DistScript.next"):
+            ps = runscript.DistScriptGen.DistScript(self.runspec, self.path, self.queue)
         self.assertEqual(ps.num, 0)
         self.assertEqual(ps.startscripts, "")
         ps.append("new")
@@ -513,14 +531,14 @@ class TestPbsScript(TestCase):
         self.assertEqual(ps.startscripts, "new\n")
 
 
-class TestPbsScriptGen(TestScriptGen):
+class TestDistScriptGen(TestScriptGen):
     """
-    Test cases for PbsScriptGen class.
+    Test cases for DistScriptGen class.
     """
 
     def setUp(self):
-        self.job = mock.Mock(spec=runscript.PbsJob)
-        self.sg = runscript.PbsScriptGen(self.job)
+        self.job = mock.Mock(spec=runscript.DistJob)
+        self.sg = runscript.DistScriptGen(self.job)
 
     def test_gen_start_script(self):
         """
@@ -529,7 +547,7 @@ class TestPbsScriptGen(TestScriptGen):
         self.setup_obj()
         self.runspec.setting.ppn = 1
         self.runspec.setting.procs = 2
-        self.runspec.setting.pbstemplate = "tests/ref/test_pbstemplate.pbs"
+        self.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
         self.runspec.project.job.walltime = 20
         self.runspec.project.job.cpt = 4
         self.runspec.project.job.partition = "all"
@@ -548,12 +566,12 @@ class TestPbsScriptGen(TestScriptGen):
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
             x = f.read()
-        self.assertEqual(x, '#!/bin/bash\n\ncd "$(dirname $0)"\nsbatch "start0000.pbs"\nsbatch "start0001.pbs"')
+        self.assertEqual(x, '#!/bin/bash\n\ncd "$(dirname $0)"\nsbatch "start0000.dist"\nsbatch "start0001.dist"')
         os.remove("./tests/ref/start.sh")
-        self.assertTrue(os.path.isfile("./tests/ref/start0000.pbs"))
-        os.remove("./tests/ref/start0000.pbs")
-        self.assertTrue(os.path.isfile("./tests/ref/start0001.pbs"))
-        os.remove("./tests/ref/start0001.pbs")
+        self.assertTrue(os.path.isfile("./tests/ref/start0000.dist"))
+        os.remove("./tests/ref/start0000.dist")
+        self.assertTrue(os.path.isfile("./tests/ref/start0001.dist"))
+        os.remove("./tests/ref/start0001.dist")
 
         self.job.script_mode = "timeout"
         with (
@@ -568,12 +586,12 @@ class TestPbsScriptGen(TestScriptGen):
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
             x = f.read()
-        self.assertEqual(x, '#!/bin/bash\n\ncd "$(dirname $0)"\nsbatch "start0000.pbs"\nsbatch "start0001.pbs"')
+        self.assertEqual(x, '#!/bin/bash\n\ncd "$(dirname $0)"\nsbatch "start0000.dist"\nsbatch "start0001.dist"')
         os.remove("./tests/ref/start.sh")
-        self.assertTrue(os.path.isfile("./tests/ref/start0000.pbs"))
-        os.remove("./tests/ref/start0000.pbs")
-        self.assertTrue(os.path.isfile("./tests/ref/start0001.pbs"))
-        os.remove("./tests/ref/start0001.pbs")
+        self.assertTrue(os.path.isfile("./tests/ref/start0000.dist"))
+        os.remove("./tests/ref/start0000.dist")
+        self.assertTrue(os.path.isfile("./tests/ref/start0001.dist"))
+        os.remove("./tests/ref/start0001.dist")
 
 
 class TestConfig(TestCase):
@@ -626,14 +644,15 @@ class TestInstance(TestCase):
         self.benchclass.name = "bench_name"
         self.name = "inst_name"
         self.encodings = {"encoding"}
-        self.ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings)
+        self.enctags = set()
+        self.ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings, self.enctags)
 
     def test_to_xml(self):
         """
         Test to_xml method.
         """
         o = io.StringIO()
-        ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings, 2)
+        ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings, self.enctags, 2)
         ins.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
@@ -663,6 +682,7 @@ class TestFolder(TestCase):
         self.assertEqual(self.f.path, self.path)
         self.assertSetEqual(self.f.prefixes, set())
         self.assertSetEqual(self.f.encodings, set())
+        self.assertSetEqual(self.f.enctags, set())
 
     def test_add_ignore(self):
         """
@@ -679,6 +699,14 @@ class TestFolder(TestCase):
         encoding = "encoding"
         self.f.add_encoding(encoding)
         self.assertSetEqual(self.f.encodings, {encoding})
+
+    def test_add_enctags(self):
+        """
+        Test add_enctags method.
+        """
+        tags = {"tag1", "tag2"}
+        self.f.add_enctags(tags)
+        self.assertSetEqual(self.f.enctags, tags)
 
     def test_skip(self):
         """
@@ -725,6 +753,7 @@ class TestFiles(TestCase):
         self.assertEqual(self.f.path, self.path)
         self.assertSetEqual(self.f.files, set())
         self.assertSetEqual(self.f.encodings, set())
+        self.assertSetEqual(self.f.enctags, set())
 
     def test_add_file(self):
         """
@@ -741,6 +770,14 @@ class TestFiles(TestCase):
         encoding = "encoding"
         self.f.add_encoding(encoding)
         self.assertSetEqual(self.f.encodings, {encoding})
+
+    def test_add_enctags(self):
+        """
+        Test add_enctags method.
+        """
+        tags = {"tag1", "tag2"}
+        self.f.add_enctags(tags)
+        self.assertSetEqual(self.f.enctags, tags)
 
     def test_init_m(self):
         """
@@ -783,9 +820,10 @@ class TestBenchmark(TestCase):
         self.assertDictEqual(self.b.instances, {})
         root = "root"
         encodings = set()
-        self.b.add_instance(root, "class1", "inst1", encodings)
-        self.b.add_instance(root, "class1", "inst2", encodings)
-        self.b.add_instance(root, "class2", "inst1", encodings)
+        enctags = set()
+        self.b.add_instance(root, "class1", "inst1", encodings, enctags)
+        self.b.add_instance(root, "class1", "inst2", encodings, enctags)
+        self.b.add_instance(root, "class2", "inst1", encodings, enctags)
         for key, val in self.b.instances.items():
             self.assertIsInstance(key, runscript.Benchmark.Class)
             self.assertIsInstance(val, set)
@@ -800,9 +838,9 @@ class TestBenchmark(TestCase):
         self.b.add_element(runscript.Benchmark.Folder("path"))
         class1 = runscript.Benchmark.Class("class1")
         class2 = runscript.Benchmark.Class("class2")
-        inst1 = runscript.Benchmark.Instance("loc", class1, "inst1", set())
-        inst2 = runscript.Benchmark.Instance("loc", class1, "inst2", set())
-        inst3 = runscript.Benchmark.Instance("loc", class2, "inst3", set())
+        inst1 = runscript.Benchmark.Instance("loc", class1, "inst1", set(), set())
+        inst2 = runscript.Benchmark.Instance("loc", class1, "inst2", set(), set())
+        inst3 = runscript.Benchmark.Instance("loc", class2, "inst3", set(), set())
         self.b.instances = {class1: {inst1, inst2}, class2: {inst3}}
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.Folder.init") as folder_init:
             self.b.init()
@@ -830,7 +868,7 @@ class TestBenchmark(TestCase):
         """
         o = io.StringIO()
         bclass = runscript.Benchmark.Class("class", 0)
-        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set())
+        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set(), set())
         self.b = runscript.Benchmark(self.name, [], {bclass: {inst}})
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.Instance.to_xml"):
             self.b.to_xml(o, "\t")
@@ -877,7 +915,7 @@ class TestRunspec(TestCase):
         Test gen_script method.
         """
         bclass = runscript.Benchmark.Class("class")
-        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set())
+        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set(), set())
         self.rs.benchmark.instances = {bclass: {inst}}
         self.rs.benchmark.init = mock.Mock()
         script_gen = mock.Mock(spec=runscript.ScriptGen)
@@ -972,15 +1010,15 @@ class TestProject(TestCase):
             rs.gen_scripts.assert_called_once()
             gen_start.assert_called_once_with(os.path.join(prj.path(), "machine"))
 
-        # PbsJob
-        j = runscript.PbsJob("job", 1, 1, {}, "", 1, 1, "")
+        # DistJob
+        j = runscript.DistJob("job", 1, 1, {}, "", 1, 1, "")
         rs = mock.Mock(spec=runscript.Runspec)
         rs.gen_scripts = mock.Mock()
         prj = runscript.Project(self.name, rs, j, {"machine": [rs]})
         with (
-            mock.patch("benchmarktool.runscript.runscript.PbsJob.script_gen", wraps=j.script_gen) as s_gen,
-            mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.set_skip") as skip,
-            mock.patch("benchmarktool.runscript.runscript.PbsScriptGen.gen_start_script") as gen_start,
+            mock.patch("benchmarktool.runscript.runscript.DistJob.script_gen", wraps=j.script_gen) as s_gen,
+            mock.patch("benchmarktool.runscript.runscript.DistScriptGen.set_skip") as skip,
+            mock.patch("benchmarktool.runscript.runscript.DistScriptGen.gen_start_script") as gen_start,
             mock.patch("benchmarktool.runscript.runscript.Project.path", return_value="prj_path"),
         ):
             prj.gen_scripts(False)

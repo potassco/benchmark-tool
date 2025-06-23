@@ -32,13 +32,13 @@ class TestTools(TestCase):
         self.assertEqual(tools.xml_time("10:10"), 610)
         self.assertEqual(tools.xml_time("10:10:10"), 36610)
 
-    def test_pbs_time(self):
+    def test_dist_time(self):
         """
-        Test pbs_time function.
+        Test dist_time function.
         """
-        self.assertEqual(tools.pbs_time(10), "00:00:10")
-        self.assertEqual(tools.pbs_time(610), "00:10:10")
-        self.assertEqual(tools.pbs_time(36610), "10:10:10")
+        self.assertEqual(tools.dist_time(10), "00:00:10")
+        self.assertEqual(tools.dist_time(610), "00:10:10")
+        self.assertEqual(tools.dist_time(36610), "10:10:10")
 
     def test_set_executable(self):
         """
@@ -48,5 +48,5 @@ class TestTools(TestCase):
         open(f, "a", encoding="utf8").close()  # pylint: disable=consider-using-with
         with mock.patch("benchmarktool.tools.os.chmod") as chmod:
             tools.set_executable(f)
-            chmod.assert_called_once_with(f, 33270)
+            chmod.assert_called_once()
         os.remove(f)

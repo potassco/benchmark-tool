@@ -13,9 +13,6 @@ from typing import Any, Optional
 
 from benchmarktool import tools
 
-# needed to embed measurements functions via exec
-
-
 # pylint: disable=too-many-lines
 
 
@@ -115,10 +112,11 @@ class Setting:
         order (int):    An integer specifying the order of settings.
                         (This should denote the occurrence in the job specification.
                         Again in the scope of a system.)
-        procs (Optional[int]): Number of processes used by the solver. (pbs only)
-        ppn (Optional[int]):   Processes per node. (pbs only)
-        pbstemplate (str):     Path to pbs-template file. (pbs only, related to mpi-version)
+        procs (Optional[int]): Number of processes used by the solver. (dist only)
+        ppn (Optional[int]):   Processes per node. (dist only)
+        disttemplate (str):     Path to dist-template file. (dist only, related to mpi-version)
         attr (dict[str, Any]): A dictionary of additional optional attributes.
+        encodings (dict[str, set[str]]): Encodings used with this setting, keyed with tags.
     """
 
     name: str
@@ -127,8 +125,10 @@ class Setting:
     order: int = field(compare=False)
     procs: Optional[int] = field(compare=False)
     ppn: Optional[int] = field(compare=False)
-    pbstemplate: str = field(compare=False)
+    disttemplate: str = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
+
+    encodings: dict[str, set[str]] = field(compare=False, default_factory=dict)
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
@@ -144,11 +144,18 @@ class Setting:
             out.write(' {0}="{1}"'.format("procs", self.procs))
         if self.ppn is not None:
             out.write(' {0}="{1}"'.format("ppn", self.ppn))
-        if self.pbstemplate is not None:
-            out.write(' {0}="{1}"'.format("pbstemplate", self.pbstemplate))
+        if self.disttemplate is not None:
+            out.write(' {0}="{1}"'.format("disttemplate", self.disttemplate))
         for key, val in self.attr.items():
             out.write(' {0}="{1}"'.format(key, val))
-        out.write("/>\n")
+        out.write(">\n")
+        for enctag, encodings in self.encodings.items():
+            for enc in sorted(encodings):
+                if enctag == "_default_":
+                    out.write('{0}<encoding file="{1}"/>\n'.format(indent + "\t", enc))
+                else:
+                    out.write('{0}<encoding file="{1}" tag="{2}"/>\n'.format(indent + "\t", enc, enctag))
+        out.write("{0}</setting>\n".format(indent))
 
 
 @dataclass(order=True, frozen=True)
@@ -245,7 +252,13 @@ class SeqRun(Run):
     def __post_init__(self) -> None:
         super().__post_init__()
         self.file = os.path.relpath(self.instance.path(), self.path)
-        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in self.instance.encodings])
+
+        encodings = self.instance.encodings
+        encodings = encodings.union(self.runspec.setting.encodings.get("_default_", set()))
+        for i in self.instance.enctags:
+            encodings = encodings.union(self.runspec.setting.encodings.get(i, set()))
+        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in sorted(encodings)])
+
         self.args = self.runspec.setting.cmdline
         self.solver = self.runspec.system.name + "-" + self.runspec.system.version
         self.timeout = self.job.timeout
@@ -337,14 +350,14 @@ class SeqScriptGen(ScriptGen):
     A class that generates and evaluates start scripts for sequential runs.
     """
 
-    def __init__(self, seqJob: "SeqJob"):
+    def __init__(self, seq_job: "SeqJob"):
         """
         Initializes the script generator.
 
         Attributes:
             seqJob (SeqJob): A reference to the associated sequential job.
         """
-        ScriptGen.__init__(self, seqJob)
+        ScriptGen.__init__(self, seq_job)
 
     # pylint: disable=line-too-long
     def gen_start_script(self, path: str) -> None:
@@ -523,19 +536,19 @@ if __name__ == '__main__':
         tools.set_executable(os.path.join(path, "start.py"))
 
 
-class PbsScriptGen(ScriptGen):
+class DistScriptGen(ScriptGen):
     """
-    A class that generates and evaluates start scripts for pbs runs.
+    A class that generates and evaluates start scripts for dist runs.
     """
 
-    class PbsScript:
+    class DistScript:
         """
-        Class realizing a pbs script.
+        Class realizing a dist script.
         """
 
         def __init__(self, runspec: "Runspec", path: str, queue: list[str]):
             """
-            Initializes pbs script.
+            Initializes dist script.
 
             Attributes:
                 runspec (Runspec): Associated runspecification.
@@ -557,15 +570,15 @@ class PbsScriptGen(ScriptGen):
             """
             if self.num > 0:
                 assert isinstance(self.runspec.project, Project)
-                assert isinstance(self.runspec.project.job, PbsJob)
+                assert isinstance(self.runspec.project.job, DistJob)
                 self.num = 0
-                with open(self.runspec.setting.pbstemplate, "r", encoding="utf8") as f:
+                with open(self.runspec.setting.disttemplate, "r", encoding="utf8") as f:
                     template = f.read()
-                script = os.path.join(self.path, "start{0:04}.pbs".format(len(self.queue)))
+                script = os.path.join(self.path, "start{0:04}.dist".format(len(self.queue)))
                 with open(script, "w", encoding="utf8") as f:
                     f.write(
                         template.format(
-                            walltime=tools.pbs_time(self.runspec.project.job.walltime),
+                            walltime=tools.dist_time(self.runspec.project.job.walltime),
                             nodes=self.runspec.setting.procs,
                             ppn=self.runspec.setting.ppn,
                             jobs=self.startscripts,
@@ -594,14 +607,14 @@ class PbsScriptGen(ScriptGen):
             self.num += 1
             self.startscripts += startfile + "\n"
 
-    def __init__(self, pbsJob: "PbsJob"):
+    def __init__(self, dist_job: "DistJob"):
         """
         Initializes the script generator.
 
         Attributes:
-            pbsJob (PbsJob): A reference to the associated sequential job.
+            distJob (DistJob): A reference to the associated sequential job.
         """
-        ScriptGen.__init__(self, pbsJob)
+        ScriptGen.__init__(self, dist_job)
 
     def gen_start_script(self, path: str) -> None:
         """
@@ -611,42 +624,42 @@ class PbsScriptGen(ScriptGen):
         Attributes:
             path (str): The target location for the script.
         """
-        assert isinstance(self.job, PbsJob)
+        assert isinstance(self.job, DistJob)
         tools.mkdir_p(path)
         queue: list[str] = []
-        pbs_scripts: dict[tuple[Optional[int], Optional[int], str, int, int, str], PbsScriptGen.PbsScript] = {}
+        dist_scripts: dict[tuple[Optional[int], Optional[int], str, int, int, str], DistScriptGen.DistScript] = {}
         for runspec, instpath, instname in self.startfiles:
             assert isinstance(runspec.project, Project)
-            assert isinstance(runspec.project.job, PbsJob)
+            assert isinstance(runspec.project.job, DistJob)
             relpath = os.path.relpath(instpath, path)
             job_script = os.path.join(relpath, instname)
-            pbs_key = (
+            dist_key = (
                 runspec.setting.ppn,
                 runspec.setting.procs,
-                runspec.setting.pbstemplate,
+                runspec.setting.disttemplate,
                 runspec.project.job.walltime,
                 runspec.project.job.cpt,
                 runspec.project.job.partition,
             )
 
-            if pbs_key not in pbs_scripts:
-                pbs_script = PbsScriptGen.PbsScript(runspec, path, queue)
-                pbs_scripts[pbs_key] = pbs_script
+            if dist_key not in dist_scripts:
+                dist_script = DistScriptGen.DistScript(runspec, path, queue)
+                dist_scripts[dist_key] = dist_script
             else:
-                pbs_script = pbs_scripts[pbs_key]
+                dist_script = dist_scripts[dist_key]
 
             if self.job.script_mode == "multi":
-                if pbs_script.num > 0:
-                    pbs_script.next()
-                pbs_script.append(job_script)
+                if dist_script.num > 0:
+                    dist_script.next()
+                dist_script.append(job_script)
             elif self.job.script_mode == "timeout":
-                if pbs_script.time + runspec.project.job.timeout + 300 >= runspec.project.job.walltime:
-                    pbs_script.next()
-                pbs_script.time += runspec.project.job.timeout + 300
-                pbs_script.append(job_script)
+                if dist_script.time + runspec.project.job.timeout + 300 >= runspec.project.job.walltime:
+                    dist_script.next()
+                dist_script.time += runspec.project.job.timeout + 300
+                dist_script.append(job_script)
 
-        for pbs_script in pbs_scripts.values():
-            pbs_script.write()
+        for dist_script in dist_scripts.values():
+            dist_script.write()
 
         with open(os.path.join(path, "start.sh"), "w", encoding="utf8") as startfile:
             startfile.write(
@@ -691,9 +704,9 @@ class SeqJob(Job):
 
 
 @dataclass(order=True, frozen=True)
-class PbsJob(Job):
+class DistJob(Job):
     """
-    Describes a pbs job.
+    Describes a dist job.
 
     Attributes:
         name (str):      A unique name for a job.
@@ -701,7 +714,7 @@ class PbsJob(Job):
         runs (int):      The number of runs per benchmark.
         attr (dict[str,Any]): A dictionary of arbitrary attributes.
         script_mode (str):    Specifies the script generation mode.
-        walltime (int):  The walltime for a job submitted via PBS.
+        walltime (int):  The walltime for a distributed job.
         cpt (int):       Number of cpus per task for SLURM.
         partition (str): Partition to be used in the clusters (kr by default).
     """
@@ -722,14 +735,14 @@ class PbsJob(Job):
         extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}" cpt="{0.cpt}" partition="{0.partition}"'.format(
             self
         )
-        Job._to_xml(self, out, indent, "pbsjob", extra)
+        Job._to_xml(self, out, indent, "distjob", extra)
 
-    def script_gen(self) -> "PbsScriptGen":
+    def script_gen(self) -> "DistScriptGen":
         """
         Returns a class that can generate start scripts and evaluate benchmark results.
         (see SeqScriptGen)
         """
-        return PbsScriptGen(self)
+        return DistScriptGen(self)
 
 
 @dataclass(order=True, frozen=True)
@@ -794,9 +807,10 @@ class Benchmark:
 
         Attributes:
             location (str):       The location of the benchmark instance.
-            benchclass (Benchmark.Class): The class name of the instance
-            name (str):           The name of the instance
-            encodings (set[str]): Encoding associated with the instance
+            benchclass (Benchmark.Class): The class name of the instance.
+            name (str):           The name of the instance.
+            encodings (set[str]): Encoding associated with the instance.
+            enctags (set[str]):   Encoding tags associated with the instance.
             id (int):             A numeric identifier.
         """
 
@@ -804,6 +818,7 @@ class Benchmark:
         benchclass: "Benchmark.Class" = field(compare=False)
         name: str
         encodings: set[str] = field(compare=False)
+        enctags: set[str] = field(compare=False)
         id: Optional[int] = field(default=None, compare=False)
 
         def to_xml(self, out: Any, indent: str) -> None:
@@ -838,6 +853,7 @@ class Benchmark:
             self.path = path
             self.prefixes: set[str] = set()
             self.encodings: set[str] = set()
+            self.enctags: set[str] = set()
 
         def add_ignore(self, prefix: str) -> None:
             """
@@ -858,6 +874,17 @@ class Benchmark:
                 file (str): The encoding file.
             """
             self.encodings.add(os.path.normpath(file))
+
+        def add_enctags(self, tags: set[str]) -> None:
+            """
+            Can be used to add encoding tags, which refers to encodings
+            specified by the setting, whic will be called together
+            with all instances in this folder.
+
+            Attributes:
+                tag (set[str]): The encoding tags.
+            """
+            self.enctags = self.enctags.union(tags)
 
         def _skip(self, root: str, path: str) -> bool:
             """
@@ -890,7 +917,7 @@ class Benchmark:
                 for filename in files:
                     if self._skip(relroot, filename):
                         continue
-                    benchmark.add_instance(self.path, relroot, filename, self.encodings)
+                    benchmark.add_instance(self.path, relroot, filename, self.encodings, self.enctags)
 
     class Files:
         """
@@ -907,6 +934,7 @@ class Benchmark:
             self.path = path
             self.files: set[str] = set()
             self.encodings: set[str] = set()
+            self.enctags: set[str] = set()
 
         def add_file(self, path: str) -> None:
             """
@@ -927,6 +955,17 @@ class Benchmark:
             """
             self.encodings.add(os.path.normpath(file))
 
+        def add_enctags(self, tags: set[str]) -> None:
+            """
+            Can be used to add encoding tags, which refers to encodings
+            specified by the setting, whic will be called together
+            with all instances in this folder.
+
+            Attributes:
+                tag (set[str]): The encoding tags.
+            """
+            self.enctags = self.enctags.union(tags)
+
         def init(self, benchmark: "Benchmark") -> None:
             """
             Adds a files in the set to the given benchmark (if they exist).
@@ -937,7 +976,7 @@ class Benchmark:
             for path in self.files:
                 if os.path.exists(os.path.join(self.path, path)):
                     relroot, filename = os.path.split(path)
-                    benchmark.add_instance(self.path, relroot, filename, self.encodings)
+                    benchmark.add_instance(self.path, relroot, filename, self.encodings, self.enctags)
 
     def add_element(self, element: Any) -> None:
         """
@@ -948,7 +987,7 @@ class Benchmark:
         """
         self.elements.append(element)
 
-    def add_instance(self, root: str, relroot: str, filename: str, encodings: set[str]) -> None:
+    def add_instance(self, root: str, relroot: str, filename: str, encodings: set[str], enctags: set[str]) -> None:
         """
         Adds an instance to the benchmark set. (This function
         is called during initialization by the benchmark elements)
@@ -958,11 +997,12 @@ class Benchmark:
             relroot (str):        The folder relative to the root folder.
             filename (str):       The filename of the instance.
             encodings (set[str]): The encodings associated to the instance.
+            enctags (set[str]):   The encoding tags associated to the instance.
         """
         classname = Benchmark.Class(relroot)
         if classname not in self.instances:
             self.instances[classname] = set()
-        self.instances[classname].add(Benchmark.Instance(root, classname, filename, encodings))
+        self.instances[classname].add(Benchmark.Instance(root, classname, filename, encodings, enctags))
 
     def init(self) -> None:
         """
@@ -981,7 +1021,9 @@ class Benchmark:
                 instanceid = 0
                 for instance in sorted(self.instances[classname]):
                     id_instances[id_class].add(
-                        Benchmark.Instance(instance.location, id_class, instance.name, instance.encodings, instanceid)
+                        Benchmark.Instance(
+                            instance.location, id_class, instance.name, instance.encodings, instance.enctags, instanceid
+                        )
                     )
                     instanceid += 1
             self.instances = id_instances
@@ -1226,13 +1268,13 @@ class Runscript:
             out (Any): Output stream for xml output.
         """
         machines: set[Machine] = set()
-        jobs: set[SeqJob | PbsJob] = set()
+        jobs: set[SeqJob | DistJob] = set()
         configs: set[Config] = set()
         systems: dict[System, list[Setting]] = {}
         benchmarks: set[Benchmark] = set()
 
         for project in self.projects.values():
-            assert isinstance(project.job, (SeqJob, PbsJob))
+            assert isinstance(project.job, (SeqJob, DistJob))
             jobs.add(project.job)
             for runspecs in project.runspecs.values():
                 for runspec in runspecs:
@@ -1258,7 +1300,7 @@ class Runscript:
             benchmark.to_xml(out, "\t")
 
         for project in self.projects.values():
-            assert isinstance(project.job, (SeqJob, PbsJob))
+            assert isinstance(project.job, (SeqJob, DistJob))
             out.write('\t<project name="{0.name}" job="{0.job.name}">\n'.format(project))
             job_gen = project.job.script_gen()
             jobs.add(project.job)
