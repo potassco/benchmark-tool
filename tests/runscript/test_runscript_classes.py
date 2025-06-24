@@ -292,7 +292,6 @@ class TestSeqRun(TestRun):
         self.assertEqual(self.r.runspec, self.runspec)
         self.assertEqual(self.r.instance, self.instance)
         self.assertEqual(self.r.file, os.path.relpath(self.instance.path(), self.path))
-        print(self.r.encodings)
         self.assertEqual(self.r.encodings, '"../def.lp" "../encoding.lp" "../test.lp"')
         self.assertEqual(self.r.args, self.runspec.setting.cmdline)
         self.assertEqual(self.r.solver, self.runspec.system.name + "-" + self.runspec.system.version)
@@ -389,8 +388,8 @@ class TestScriptGen(TestCase):
         self.assertTrue(
             x
             in [
-                '$CAT ../../inst_path ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"',
-                '$CAT ..\..\inst_path ..\.. 10 ..\../programs/sys_name-sys_version cmdline "..\..\encoding"',
+                '$CAT ../../inst_path ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
+                '$CAT ..\..\inst_path ..\.. 10 ..\../programs/sys_name-sys_version cmdline "..\..\encoding"\n',
             ]
         )
         os.remove("./tests/ref/start.sh")
@@ -498,7 +497,7 @@ class TestDistScript(TestCase):
         with open("./tests/ref/start0000.dist", "r", encoding="utf8") as f:
             x = f.read()
         self.assertEqual(
-            x, '#SBATCH --time=00:01:40\n#SBATCH --cpus-per-task=1\n#SBATCH --partition=all\n\njobs="job.sh"'
+            x, '#SBATCH --time=00:01:40\n#SBATCH --cpus-per-task=1\n#SBATCH --partition=all\n\njobs="job.sh"\n'
         )
         os.remove("./tests/ref/start0000.dist")
 

@@ -37,7 +37,7 @@ The folder third in the hierarchy corresponds to the name of the machine the ben
     Any number of machines can be defined.
 
 
-In this folder you will find the start scripts to start the benchmark and the results afterwards.  
+In this folder you will find the start scripts to start the benchmark and the results afterwards.
 The results are structured as follows:
 ```
 ./results/<benchmark-name>/<system-name>-<system-version>-<setting>/<benchclass>/<instance>/<run>
@@ -80,8 +80,8 @@ Settings are identified by their name and define additional arguments and encodi
     <encoding file="extra.lp" tag="extra"/>
 </setting>
 ```
- The  value of the *cmdline* attribute can be any valid string, which will be passed to the system via the run template when this setting is selected. 
- 
+ The  value of the *cmdline* attribute can be any valid string, which will be passed to the system via the run template when this setting is selected.
+
  The *tag* attribute is another identifier, which is only valid inside this runscript and is used to select multiple setting at once.
 
  Each setting can also contain any number of encoding elements. The *file* attribute is a relative path from the directory, where `bgen` is run, to the encoding. If no *tag* is defined the encoding is passed to the system via the run template for all instances when this setting is selected. A *tag* can be provided to make the encoding usage instance dependant. Multiple encodings can be selected by using the same tag.
@@ -100,14 +100,14 @@ A seqjob is identified by its name and sets the *timeout* in seconds for a singl
 ```xml
 <distjob name="dist-gen" timeout="900" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
 ```
-A distjob is also identified by its name and defines a *timeout* and the number of *runs*. *walltime* sets an overall time limit for all runs in the HH:MM:SS format. 
+A distjob is also identified by its name and defines a *timeout* and the number of *runs*. *walltime* sets an overall time limit for all runs in the HH:MM:SS format.
 
 The *script_mode* attribute, defines how runs are grouped and dispatched to the cluster. 'multi' dispatches all runs individually to the cluster for maximum possible parallelization.
 'timeout' dispatches groups of runs depending on the set *timeout* and *walltime*. If it is not possible to execute all runs sequentially inside the *walltime* specified, they will be split into as many groups as necessary so that the *walltime* is never surpassed. For example, if the *walltime* is 25 hours and you have 100 instances with a *timeout* of 1 hour each and 1 run each, there will be 4 groups, each with 25 runs, which will be dispatched.
 
 !!! info
         If you have a lot of runs *script_mode* 'multi' can cause issues with the cluster scheduler. Either use 'timeout' or dispatch the generated `.dist` jobs using the `./dispatcher.py`.
-    
+
 A last optional attribute for distjobs is *partition*, which is the name of the partition used on the cluster. The default value is 'kr'. Other values for this argument can be "short" and "long". If short is used the walltime can not exceed 24 hours.
 
 ## Benchmark/Instances
@@ -152,7 +152,7 @@ Projects are used to combine all of the previous elements to define a complete b
 </project>
 ```
 
-Each project is identified by its *name*. The value of *name* is also what gives the name of the seconds folder in the overall folder structure. *job* references a previously defined job to be used as a template for the benchmark. 
+Each project is identified by its *name*. The value of *name* is also what gives the name of the seconds folder in the overall folder structure. *job* references a previously defined job to be used as a template for the benchmark.
 
 The *runtag* element specifies a machine and benchmark (group of instances) to be run. One or multiple settings to be used can be selected by the *tag*. The special tag *all* can be used to select all settings. The system to be used is inferred through the setting.
 
@@ -165,5 +165,3 @@ In the above example all instances defined in the 'no-pigeons' benchmark are run
 ```
 
 Similar to the *runtag* element, the *runspec* element can be used to specify a machine and a benchmark. But in contrast to before, only a single *system* *version* with a single *setting* can be referenced.
-
-

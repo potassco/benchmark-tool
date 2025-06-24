@@ -1,13 +1,13 @@
 <runscript output="output">
 
 	<machine name="houat" cpu="8xE5520@2.27GHz" memory="24GB"/>
-	
+
 	<config name="seq-generic" template="templates/seq-generic.sh"/>
 	<system name="clasp" version="3.4.0" measures="clasp" config="seq-generic">
 		<setting name="default"  cmdline="--stats 1" tag="basic"/>
 		<setting name="vsids"    cmdline="--stats --heu=vsids 1"/>
 	</system>
-	
+
 	<seqjob name="seq-generic" timeout="120" runs="1" parallel="4"/>
 
 	<benchmark name="seq-suite">
@@ -25,4 +25,3 @@
 	</project>
 
 </runscript>
-

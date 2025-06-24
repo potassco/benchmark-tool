@@ -1,9 +1,9 @@
 <runscript output="output-folder">
 
 	<machine name="hpc" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
-	
+
   	<config name="seq-generic" template="templates/seq-generic.sh"/>
-  
+
 	<system name="clasp" version="3.4.0" measures="clasp" config="seq-generic">
 
     		<setting name="setting-1" cmdline="--stats --quiet=1,0" tag="basic" />
@@ -19,7 +19,7 @@
 			<ignore prefix="pigeons"/>
 		</folder>
 	</benchmark>
-	
+
 	<project name="clasp-seq-job" job="seq-gen">
 		<runtag machine="hpc" benchmark="no-pigeons" tag="basic"/>
 	</project>
@@ -29,4 +29,3 @@
 	</project>
 
 </runscript>
-

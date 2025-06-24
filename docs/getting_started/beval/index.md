@@ -20,4 +20,3 @@ How the results are evaluated is decided by the the value of the *measures* attr
 This file has to contain a `parse()` function, which parses relevant statistics from the result files.
 
 More information regarding the result parser can be found [here](../../reference/resultparser.md).
-
