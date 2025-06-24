@@ -2,14 +2,15 @@
 
 ## How to get help or discuss possible contributions
 
-To avoid duplicating issues, please search our [issue tracker][issues] before filing a new issue.
+To avoid duplicating issues, please search our [issue tracker][issues] before
+filing a new issue.
 
 - Open an [issue][new_issue] describing your problem.
 
 ## How to make a contribution
 
-- Fork the [benchmark-tool][project_url] repository and create a branch for your
-  changes.
+- Fork the [benchmark-tool][project_url] repository and create a branch for
+  your changes.
 - Submit a pull request to the master branch with your changes.
 - Respond to feedback on your pull request.
 - If everything is fine your pull request is merged. 🥳

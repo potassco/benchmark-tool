@@ -38,9 +38,9 @@ As an example lets look at the following benchmark element:
 Here we have to differentiate three cases:
 
 - All instances inside the default folder are run as above
-- All instances inside the 'with-encoding' directory are executed as  
+- All instances inside the 'with-encoding' directory are executed as
  `$ <system> <instance> folder-encoding.lp helper.lp <arguments>`
-- Instance 'other-folder/some-file.lp' is executed as  
+- Instance 'other-folder/some-file.lp' is executed as
  `$ <system> <instance> file-encoding.lp <arguments>`
 
 !!! info
@@ -86,21 +86,19 @@ This results in the following runs:
 
 - When using setting 's0' nothing changes compared to the encoding dependent example
 - When setting 's1' is used:
-    - For all instances inside the default folder:  
+    - For all instances inside the default folder:
     `$ clingo-1.0.0 <instance> def.lp <arguments>`
-    - For all instances inside the 'with-encoding' directory (tag: 'tag'):  
+    - For all instances inside the 'with-encoding' directory (tag: 'tag'):
     `$ clingo-1.0.0 <instance> folder-encoding.lp helper.lp def.lp enc11a.lp enc11b.lp <arguments>`
-    - For instance 'other-folder/some-file.lp' (tag: 'tag2'):   
+    - For instance 'other-folder/some-file.lp' (tag: 'tag2'):
     `$ clingo-1.0.0 <instance> file-encoding.lp def.lp enc21.lp <arguments>`
 - When setting 's2' is used:
-    - For all instances inside the default folder:  
+    - For all instances inside the default folder:
     `$ clingo-1.0.0 <instance> <arguments>`
-    - For all instances inside the 'with-encoding' directory (tag: 'tag'):  
+    - For all instances inside the 'with-encoding' directory (tag: 'tag'):
     `$ clingo-1.0.0 <instance> folder-encoding.lp helper.lp enc11a.lp enc11b.lp <arguments>`
-    - For instance 'other-folder/some-file.lp' (tag: 'tag2'):   
+    - For instance 'other-folder/some-file.lp' (tag: 'tag2'):
     `$ clingo-1.0.0 <instance> file-encoding.lp enc22.lp <arguments>`
 
 !!! info
     The examples above include simplified paths for readability purposes.
-
-

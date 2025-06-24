@@ -11,7 +11,7 @@ NUMA information:
   node distances:
      10
 
-command line: ../../../../../../../../../programs/runsolver-3.4.1 -M 20000 -w runsolver.watcher -o runsolver.solver -W 10 ../../../../../../../../../programs/clingo-4.5.4 --stats --quiet=1,0 
+command line: ../../../../../../../../../programs/runsolver-3.4.1 -M 20000 -w runsolver.watcher -o runsolver.solver -W 10 ../../../../../../../../../programs/clingo-4.5.4 --stats --quiet=1,0
 
 running on 12 cores: 0-11
 

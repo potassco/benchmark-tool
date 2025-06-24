@@ -14,8 +14,8 @@ from benchmarktool import tools
 from benchmarktool.runscript.runscript import (
     Benchmark,
     Config,
-    Machine,
     DistJob,
+    Machine,
     Project,
     Runscript,
     SeqJob,
@@ -75,7 +75,7 @@ class Parser:
         </xs:choice>
         <xs:attribute name="output" type="xs:string" use="required"/>
     </xs:complexType>
-    
+
     <!-- a project -->
     <xs:complexType name="projectType">
         <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -85,7 +85,7 @@ class Parser:
         <xs:attribute name="name" type="nameType" use="required"/>
         <xs:attribute name="job" type="nameType" use="required"/>
     </xs:complexType>
-    
+
     <!-- a machine -->
     <xs:complexType name="machineType">
         <xs:attribute name="name" type="nameType" use="required"/>
@@ -141,13 +141,13 @@ class Parser:
         <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
         <xs:anyAttribute processContents="lax"/>
     </xs:attributeGroup>
-    
+
     <!-- a seqjob -->
     <xs:complexType name="seqjobType">
         <xs:attributeGroup ref="jobAttr"/>
         <xs:attribute name="parallel" type="xs:positiveInteger" use="required"/>
     </xs:complexType>
-    
+
     <!-- a distjob -->
     <xs:complexType name="distjobType">
         <xs:attributeGroup ref="jobAttr"/>
@@ -163,13 +163,13 @@ class Parser:
         <xs:attribute name="cpt" type="xs:positiveInteger" use="required"/>
         <xs:attribute name="partition" type="xs:string"/>
     </xs:complexType>
-    
+
     <!-- a config -->
     <xs:complexType name="configType">
         <xs:attribute name="name" type="nameType" use="required"/>
         <xs:attribute name="template" type="xs:string" use="required"/>
     </xs:complexType>
-    
+
     <!-- a benchmark -->
     <xs:complexType name="benchmarkType">
         <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -220,13 +220,13 @@ class Parser:
         </xs:choice>
         <xs:attribute name="name" type="nameType" use="required"/>
     </xs:complexType>
-    
+
     <!-- common attributes for runspec/runtag -->
     <xs:attributeGroup name="runAttr">
         <xs:attribute name="machine" type="nameType" use="required"/>
         <xs:attribute name="benchmark" type="nameType" use="required"/>
     </xs:attributeGroup>
-    
+
     <!-- a runspec -->
     <xs:complexType name="runspecType">
         <xs:attribute name="system" type="nameType" use="required"/>
@@ -234,13 +234,13 @@ class Parser:
         <xs:attribute name="setting" type="nameType" use="required"/>
         <xs:attributeGroup ref="runAttr"/>
     </xs:complexType>
-    
+
     <!-- a runtag -->
     <xs:complexType name="runtagType">
         <xs:attributeGroup ref="runAttr"/>
         <xs:attribute name="tag" type="tagrefType" use="required"/>
     </xs:complexType>
-    
+
     <!-- simple types used througout the above definitions -->
     <xs:simpleType name="versionType">
         <xs:restriction base="xs:string">
@@ -253,19 +253,19 @@ class Parser:
             <xs:pattern value="[0-9]+(:[0-9]+(:[0-9]+)?)?"/>
         </xs:restriction>
     </xs:simpleType>
-    
+
     <xs:simpleType name="tagrefType">
         <xs:restriction base="xs:string">
             <xs:pattern value="(\*all\*)|([A-Za-z_\-0-9]+([ ]*[A-Za-z_\-0-9]+)*)([ ]*\|[ ]*([A-Za-z_\-0-9]+([ ]*[A-Za-z_\-0-9]+)*))*"/>
         </xs:restriction>
     </xs:simpleType>
-    
+
     <xs:simpleType name="nameType">
         <xs:restriction base="xs:string">
             <xs:pattern value="[A-Za-z_\-0-9]*"/>
         </xs:restriction>
     </xs:simpleType>
-    
+
     <!-- the root element -->
     <xs:element name="runscript" type="runscriptType">
         <!-- machine keys -->
@@ -425,9 +425,7 @@ class Parser:
                         if num is not None:
                             name += "-n{0}".format(num)
                         compound_settings[child.get("name")].append(name)
-                        setting = Setting(
-                            name, cmdline, tag, setting_order, num, ppn, disttemplate, attr, encodings
-                        )
+                        setting = Setting(name, cmdline, tag, setting_order, num, ppn, disttemplate, attr, encodings)
                         system.add_setting(setting)
                         setting_order += 1
 

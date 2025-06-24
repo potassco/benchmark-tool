@@ -15,6 +15,7 @@ FILES_TO_BE_CHECKED = [
     "src",
 ]
 
+
 @nox.session
 def doc(session):
     """
@@ -39,6 +40,7 @@ def doc(session):
     else:
         session.run("mkdocs", "build", *options)
 
+
 @nox.session
 def format(session):
     """
@@ -61,19 +63,13 @@ def format(session):
         autoflake_args.remove("--in-place")
     session.run("autoflake", *autoflake_args)
 
-    isort_args = [
-        "--profile", 
-        "black",
-        "tests"
-    ] + FILES_TO_BE_CHECKED
+    isort_args = ["--profile", "black", "tests"] + FILES_TO_BE_CHECKED
     if check:
         isort_args.insert(0, "--check")
         isort_args.insert(1, "--diff")
     session.run("isort", *isort_args)
 
-    black_args = [
-        "tests"
-    ] + FILES_TO_BE_CHECKED
+    black_args = ["tests"] + FILES_TO_BE_CHECKED
     if check:
         black_args.insert(0, "--check")
         black_args.insert(1, "--diff")
@@ -108,9 +104,7 @@ def typecheck(session):
     Typecheck the code using mypy.
     """
     session.install("-e", ".[typecheck]")
-    args = [
-        "--strict"
-    ] + FILES_TO_BE_CHECKED
+    args = ["--strict"] + FILES_TO_BE_CHECKED
     session.run("mypy", *args)
 
 

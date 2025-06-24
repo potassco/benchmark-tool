@@ -19,14 +19,14 @@ The provided default templates make use of [runlim](https://github.com/arminbier
 
 ## Structure
 
-The repository is structures as follows:  
-`./benchmarks/`: example benchmarks  
-`./docs/`: documentation  
-`./output/`: default output folder for the examples  
-`./programs/`: place solver/tool executables here  
-`./runscripts/`: contains example run-scripts, see [here](./bgen/runscript.md)  
-`./src/`: Python source files  
-`./templates/`: contains example script templates, see [here](./bgen/templates.md)  
+The repository is structures as follows:
+`./benchmarks/`: example benchmarks
+`./docs/`: documentation
+`./output/`: default output folder for the examples
+`./programs/`: place solver/tool executables here
+`./runscripts/`: contains example run-scripts, see [here](./bgen/runscript.md)
+`./src/`: Python source files
+`./templates/`: contains example script templates, see [here](./bgen/templates.md)
 
 
 ## Usage
@@ -37,9 +37,9 @@ You can check a successful installation by running
 $ bgen -h
 ```
 
-Supported entry points:  
-`bgen`  - creates start scripts  
-`beval` - evaluates solver runs  
-`bconv` - transforms output of beval into spreadsheets  
+Supported entry points:
+`bgen`  - creates start scripts
+`beval` - evaluates solver runs
+`bconv` - transforms output of beval into spreadsheets
 
 A detailed description on how to use each component can be accessed via the sidebar.

@@ -116,7 +116,7 @@ plugins:
 
 nav:
   - Home: index.md
-  - Getting Started: 
+  - Getting Started:
      - getting_started/index.md
      - bgen:
        - getting_started/bgen/index.md
@@ -131,7 +131,7 @@ nav:
     - reference/index.md
     - Encoding Support: reference/encoding_support.md
     - Modifying the Resultparser: reference/resultparser.md
-    - API: 
+    - API:
       - reference/api/index.md
       - Runscript Components:
         - reference/api/runscript/index.md

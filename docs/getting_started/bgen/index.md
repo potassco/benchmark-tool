@@ -15,11 +15,3 @@ Afterwards the benchmarks can be started by executing the `start.sh` or `start.p
 
 !!! info
     It is not necessary to use an sbatch command for these start files. The file itself will call a number of `.dist` files using sbatch in order to add your benchmark jobs to the cluster.
-
-
-
-
-
-
-
-
