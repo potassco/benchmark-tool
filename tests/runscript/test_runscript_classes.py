@@ -292,7 +292,6 @@ class TestSeqRun(TestRun):
         self.assertEqual(self.r.runspec, self.runspec)
         self.assertEqual(self.r.instance, self.instance)
         self.assertEqual(self.r.file, os.path.relpath(self.instance.path(), self.path))
-        print(self.r.encodings)
         self.assertEqual(self.r.encodings, '"../def.lp" "../encoding.lp" "../test.lp"')
         self.assertEqual(self.r.args, self.runspec.setting.cmdline)
         self.assertEqual(self.r.solver, self.runspec.system.name + "-" + self.runspec.system.version)
@@ -386,7 +385,6 @@ class TestScriptGen(TestCase):
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
             x = f.read()
-        print(x)
         self.assertTrue(
             x
             in [
