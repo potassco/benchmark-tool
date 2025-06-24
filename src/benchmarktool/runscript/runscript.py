@@ -406,7 +406,7 @@ class Main:
         while len(self.cores) < {1}:
             self.cores.add(c)
             c += 1
-    
+
     def finish(self, thread):
         self.finished.acquire()
         self.running.remove(thread)
@@ -414,7 +414,7 @@ class Main:
             self.cores.add(thread.core)
         self.finished.notify()
         self.finished.release()
-   
+
     def start(self, cmd):
         core     = 0
         with self.coreLock:
@@ -424,7 +424,7 @@ class Main:
         self.running.add(thread)
         print("({{0}}/{{1}}/{{2}}/{{4}}) {{3}}".format(len(self.running), self.started, self.total, cmd, core))
         thread.start()
-    
+
     def run(self, queue):
         signal.signal(signal.SIGTERM, self.exit)
         signal.signal(signal.SIGINT, self.exit)
@@ -457,7 +457,7 @@ class Run(threading.Thread):
         self.main = main
         self.core = core
         self.proc = None
-    
+
     def run(self):
         path, script = os.path.split(self.cmd)
         openArgs = dict(cwd=path)
@@ -478,29 +478,29 @@ def gui():
             scrollx = Tkinter.Scrollbar(frame, orient=Tkinter.HORIZONTAL)
             scrolly = Tkinter.Scrollbar(frame)
             list    = Tkinter.Listbox(frame, selectmode=Tkinter.MULTIPLE)
-            
+
             for script in queue:
                 list.insert(Tkinter.END, script)
-            
+
             scrolly.config(command=list.yview)
             scrollx.config(command=list.xview)
             list.config(yscrollcommand=scrolly.set)
             list.config(xscrollcommand=scrollx.set)
-                
+
             scrolly.pack(side=Tkinter.RIGHT, fill=Tkinter.Y)
             scrollx.pack(side=Tkinter.BOTTOM, fill=Tkinter.X)
             list.pack(fill=Tkinter.BOTH, expand=1)
-            
+
             button = Tkinter.Button(root, text='Run', command=self.pressed)
-            
+
             frame.pack(fill=Tkinter.BOTH, expand=1)
             button.pack(side=Tkinter.BOTTOM, fill=Tkinter.X)
 
             self.root  = root
             self.list  = list
             self.run   = False
-            self.queue = [] 
-        
+            self.queue = []
+
         def pressed(self):
             sel = self.list.curselection()
             for index in sel:
@@ -519,11 +519,11 @@ def gui():
 if __name__ == '__main__':
     usage  = "usage: %prog [options] <runscript>"
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-g", "--gui", action="store_true", dest="gui", default=False, help="start gui to selectively start benchmarks") 
+    parser.add_option("-g", "--gui", action="store_true", dest="gui", default=False, help="start gui to selectively start benchmarks")
 
     opts, args = parser.parse_args(sys.argv[1:])
     if len(args) > 0: parser.error("no arguments expected")
-    
+
     os.chdir(os.path.dirname(sys.argv[0]))
     if opts.gui: gui()
 

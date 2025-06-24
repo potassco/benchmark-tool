@@ -386,11 +386,12 @@ class TestScriptGen(TestCase):
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
             x = f.read()
+        print(x)
         self.assertTrue(
             x
             in [
-                '$CAT ../../inst_path ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"',
-                '$CAT ..\..\inst_path ..\.. 10 ..\../programs/sys_name-sys_version cmdline "..\..\encoding"',
+                '$CAT ../../inst_path ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
+                '$CAT ..\..\inst_path ..\.. 10 ..\../programs/sys_name-sys_version cmdline "..\..\encoding"\n',
             ]
         )
         os.remove("./tests/ref/start.sh")
@@ -498,7 +499,7 @@ class TestDistScript(TestCase):
         with open("./tests/ref/start0000.dist", "r", encoding="utf8") as f:
             x = f.read()
         self.assertEqual(
-            x, '#SBATCH --time=00:01:40\n#SBATCH --cpus-per-task=1\n#SBATCH --partition=all\n\njobs="job.sh"'
+            x, '#SBATCH --time=00:01:40\n#SBATCH --cpus-per-task=1\n#SBATCH --partition=all\n\njobs="job.sh"\n'
         )
         os.remove("./tests/ref/start0000.dist")
 

@@ -11,7 +11,7 @@ We will now take a look at how the scripts work, how to change them to fit your 
 
 Lets look at [clasp.py](https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp.py) as an example. All resultparser **must** define a `parse()`function, which takes 3 arguments. The first argument is the path to the root directory of the benchmark and where the results are saved. The second argument, runspec, gives us access to the data that we defined in the runscript file. The third argument is an instance class that includes information such as the location and the name of the instance.
 
-The function is applied to every benchmark 'run' individually. It gathers the data for a particular run in basically three steps: 
+The function is applied to every benchmark 'run' individually. It gathers the data for a particular run in basically three steps:
 
 - Read the relevant input files
 - Extract the data using regular expressions
@@ -40,5 +40,3 @@ Afterwards, we have to delete the 'function_time' entry from *res* so that it is
 ```python
 del res["function_time"]
 ```
-
-

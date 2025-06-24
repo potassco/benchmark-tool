@@ -2,12 +2,12 @@
 
 	<machine name="houat" cpu="8xE5520@2.27GHz" memory="24GB"/>
 	<machine name="zuse" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
-	
+
 	<config name="seq-generic" template="templates/seq-generic.sh"/>
 	<system name="clasp" version="1.3.2" measures="clasp" config="seq-generic">
 		<!-- optionally allows for tagging settings -->
 		<setting name="default"  tag="seq" cmdline="--stats 1"/>
-		<setting name="vsids"    tag="seq" cmdline="--stats --heu=vsids 1"/>	
+		<setting name="vsids"    tag="seq" cmdline="--stats --heu=vsids 1"/>
 		<setting name="progress" tag="seq" cmdline="--stats --save-progress 1"/>
 		<setting name="estimate" tag="seq" cmdline="--stats --estimate 1"/>
 		<setting name="recstr"   tag="seq" cmdline="--stats --recursive-str 1"/>
@@ -28,7 +28,7 @@
 			<encoding file="test22.lp" enctag="test2"/>
 		</setting>
 	</system>
-	
+
 	<seqjob name="seq-generic" timeout="120" runs="1" parallel="8"/>
 	<distjob name="dist-generic" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59" cpt="1"/>
 	<distjob name="dist-part" timeout="120" runs="1" script_mode="timeout" walltime="23:59:59" cpt="1" partition="test"/>

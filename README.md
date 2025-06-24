@@ -4,19 +4,17 @@ A tool to easier generate, run and evaluate benchmarks.
 
 ## Structure
 
-This repository is structures as follows:  
-`./benchmarks/`: example benchmarks  
-`./docs/`: documentation  
-`./output/`: default output folder for the examples  
-`./programs/`: place solver/tool executables here  
-`./runscripts/`: contains example run-scripts  
-`./src/`: Python source files  
-`./templates/`: contains example script templates  
+This repository is structures as follows: `./benchmarks/`: example benchmarks
+`./docs/`: documentation `./output/`: default output folder for the examples
+`./programs/`: place solver/tool executables here `./runscripts/`: contains
+example run-scripts `./src/`: Python source files `./templates/`: contains
+example script templates
 
 ## Installation
 
-The `setuptools` package is required to run the commands below.
-We recommend the usage of conda, which already includes `setuptools` in its default python installation.
+The `setuptools` package is required to run the commands below. We recommend
+the usage of conda, which already includes `setuptools` in its default python
+installation.
 
 ```bash
 $ git clone https://github.com/potassco/benchmark-tool
@@ -27,10 +25,12 @@ $ pip install .
 ```
 
 A documentation can be build and hosted using:
+
 ```bash
 $ pip install .[doc]
 $ mkdocs serve
 ```
+
 And afterwards accessed at `http://localhost:8000/systems/benchmark-tool/`.
 
 ## Usage
@@ -41,13 +41,10 @@ You can check a successful installation by running
 $ bgen -h
 ```
 
-Supported entry points:  
-`bgen`  - creates start scripts  
-`beval` - evaluates solver runs  
-`bconv` - transforms output of eval into spreadsheets  
+Supported entry points: `bgen` - creates start scripts `beval` - evaluates
+solver runs `bconv` - transforms output of eval into spreadsheets
 
 For more information and examples check the documentation.
 
-> **_NOTE:_**  
-This project is still in active development. 
-If you encounter any bugs, have ideas for improvement or feature requests, please open an issue.
+> **_NOTE:_** This project is still in active development. If you encounter any
+> bugs, have ideas for improvement or feature requests, please open an issue.
