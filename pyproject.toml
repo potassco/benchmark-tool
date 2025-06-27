@@ -13,6 +13,8 @@ dependencies = [
     "pandas",
     "odswriter"
 ]
+license = { file = "LICENSE" }
+readme = "README.md"
 
 [project.optional-dependencies]
 format = ["black", "isort", "autoflake"]
