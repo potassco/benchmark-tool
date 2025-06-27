@@ -34,7 +34,7 @@ Finally, open the file:
 ## Runscripts
 This tool comes with a [collection](https://github.com/potassco/benchmark-tool/blob/master/runscripts) of example runscripts to help you get started.
 
-While [runscript-example.xml](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-example.xml) gives a small example on how basic sequential and cluster benchmarks can be defined. [runscript-seq.xml`](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-seq.xml) and [runscript-dist.xml](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-dist.xml) show more possibilities. `runscript-all`tries to be a most complete example runscript.
+While [runscript-example.xml](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-example.xml) gives a small example on how basic sequential and cluster benchmarks can be defined. [runscript-seq.xml](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-seq.xml) and [runscript-dist.xml](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-dist.xml) show more possibilities. [runscript-all](https://github.com/potassco/benchmark-tool/blob/master/runscripts/runscript-all.xml) tries to be a most complete example runscript.
 
 Examples for the encoding support feature can be found [here](../reference/encoding_support.md).
 
