@@ -24,7 +24,8 @@ $ conda activate <env-name>
 $ pip install .
 ```
 
-A documentation can be build and hosted using:
+The documentation can be accessed [here](https://potassco.org/benchmark-tool/)
+or build and hosted using:
 
 ```bash
 $ pip install .[doc]
