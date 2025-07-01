@@ -4,11 +4,18 @@ A tool to easier generate, run and evaluate benchmarks.
 
 ## Structure
 
-This repository is structures as follows: `./benchmarks/`: example benchmarks
-`./docs/`: documentation `./output/`: default output folder for the examples
-`./programs/`: place solver/tool executables here `./runscripts/`: contains
-example run-scripts `./src/`: Python source files `./templates/`: contains
-example script templates
+This repository is structured as follows:\
+`./benchmarks/`: example
+benchmarks\
+`./docs/`: documentation\
+`./output/`: default output folder for
+the examples\
+`./programs/`: place solver/tool executables
+here\
+`./runscripts/`: contains example run-scripts\
+`./src/`: Python source
+files\
+`./templates/`: contains example script templates
 
 ## Installation
 
@@ -42,8 +49,11 @@ You can check a successful installation by running
 $ bgen -h
 ```
 
-Supported entry points: `bgen` - creates start scripts `beval` - evaluates
-solver runs `bconv` - transforms output of eval into spreadsheets
+Supported entry points:\
+`bgen` - creates start scripts\
+`beval` - evaluates
+solver runs\
+`bconv` - transforms output of eval into spreadsheets
 
 For more information and examples check the documentation.
 
