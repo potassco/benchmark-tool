@@ -11,6 +11,7 @@ import importlib.util
 import os
 import sys
 from dataclasses import dataclass, field
+from types import ModuleType
 from typing import Any, Optional
 
 from benchmarktool import tools
@@ -338,10 +339,19 @@ class ScriptGen:
             instance (Benchmark.Instance): The benchmark instance.
         """
 
-        def import_from_path(module_name, file_path):  # nocoverage
+        def import_from_path(module_name: str, file_path: str) -> ModuleType:  # nocoverage
+            """
+            Helper function to import modules from path.
+
+            Attributes:
+                module_name (str):  Name of the module.
+                file_path (str):    Path to the module.
+            """
             spec = importlib.util.spec_from_file_location(module_name, file_path)
+            assert spec is not None
             module = importlib.util.module_from_spec(spec)
             sys.modules[module_name] = module
+            assert spec.loader is not None
             spec.loader.exec_module(module)
             return module
 
