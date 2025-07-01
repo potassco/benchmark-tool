@@ -7,7 +7,9 @@ specified by the run script.
 __author__ = "Roland Kaminski"
 
 import importlib
+import importlib.util
 import os
+import sys
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -335,7 +337,27 @@ class ScriptGen:
             runspec (Runspec):             The run specification of the benchmark.
             instance (Benchmark.Instance): The benchmark instance.
         """
-        result_parser = importlib.import_module("benchmarktool.resultparser.{0}".format(runspec.system.measures))
+
+        def import_from_path(module_name, file_path):  # nocoverage
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            spec.loader.exec_module(module)
+            return module
+
+        # dynamicly import result parser
+        rp_name = "benchmarktool.resultparser.{0}".format(runspec.system.measures)
+        try:
+            result_parser = importlib.import_module(rp_name)
+        except ModuleNotFoundError:  # nocoverage
+            try:
+                result_parser = import_from_path(
+                    rp_name, os.path.join("src/benchmarktool/resultparser", "{0}.py".format(runspec.system.measures))
+                )
+            except FileNotFoundError:
+                print("ERROR: Resultparser '{0}' referenced in runscript does not exist.".format(rp_name))
+                sys.exit(1)
+
         for run in range(1, self.job.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
             # result parser call
