@@ -132,6 +132,7 @@ class Parser:
         <xs:attribute name="version" type="versionType" use="required"/>
         <xs:attribute name="measures" type="nameType" use="required"/>
         <xs:attribute name="config" type="nameType" use="required"/>
+        <xs:attribute name="cmdline" type="xs:string"/>
     </xs:complexType>
 
     <!-- generic attributes for jobs-->
@@ -383,6 +384,7 @@ class Parser:
                 config = run.configs[node.get("config")]
                 system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
                 setting_order = 0
+                sys_cmdline = node.get("cmdline")
                 for child in node.xpath("setting"):
                     attr = self._filter_attr(child, ["name", "cmdline", "tag"])
                     compound_settings[child.get("name")] = []
@@ -417,11 +419,9 @@ class Parser:
                                     encodings[t] = set()
                                 encodings[t].add(os.path.normpath(grandchild.get("file")))
 
+                    cmdline = " ".join(filter(None, [sys_cmdline, child.get("cmdline")]))
                     for num in procs:
                         name = child.get("name")
-                        cmdline = child.get("cmdline")
-                        if cmdline is None:
-                            cmdline = ""
                         if num is not None:
                             name += "-n{0}".format(num)
                         compound_settings[child.get("name")].append(name)

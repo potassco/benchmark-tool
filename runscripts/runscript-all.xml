@@ -4,14 +4,14 @@
 	<machine name="hpc" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
 
 	<config name="seq-generic" template="templates/seq-generic.sh"/>
-	<system name="clasp" version="3.4.0" measures="clasp" config="seq-generic">
-		<setting name="default"  tag="seq" cmdline="--stats 1"/>
-		<setting name="vsids"    tag="seq" cmdline="--stats --heu=vsids 1"/>
-		<setting name="progress" tag="seq" cmdline="--stats --save-progress 1"/>
-		<setting name="estimate" tag="seq" cmdline="--stats --estimate 1"/>
-		<setting name="recstr"   tag="seq" cmdline="--stats --recursive-str 1"/>
-		<setting name="nodel"    tag="seq" cmdline="--stats --del=no 1"/>
-		<setting name="norest"   tag="seq" cmdline="--stats --restarts=no 1"/>
+	<system name="clasp" version="3.4.0" measures="clasp" config="seq-generic" cmdline="--stats">
+		<setting name="default"  tag="seq" cmdline="1"/>
+		<setting name="vsids"    tag="seq" cmdline="--heu=vsids 1"/>
+		<setting name="progress" tag="seq" cmdline="--save-progress 1"/>
+		<setting name="estimate" tag="seq" cmdline="--estimate 1"/>
+		<setting name="recstr"   tag="seq" cmdline="--recursive-str 1"/>
+		<setting name="nodel"    tag="seq" cmdline="--del=no 1"/>
+		<setting name="norest"   tag="seq" cmdline="--restarts=no 1"/>
 	</system>
 
 	<config name="dist-generic" template="templates/seq-generic.sh"/>

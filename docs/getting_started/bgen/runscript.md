@@ -57,7 +57,7 @@ For more information regarding run templates check [here](templates.md#run-templ
 
 The following line shows, how a system is defined.
 ```xml
-<system name="clingo" version="5.8.0" measures="clingo" config="seq-generic">
+<system name="clingo" version="5.8.0" measures="clingo" config="seq-generic" cmdline="--stats">
     ...
 </system>
 ```
@@ -68,6 +68,8 @@ The *measure* attribute describes a name of a [result parser](../beval/index.md#
 
 The *config* attribute refers to the name of a configuration, which should be used to run this system.
 
+The *cmdline* attribute is optional and can be any string, which will be passed to the system regardless of the setting.
+
 A runscript can contain any number of systems, which in turn can contain any number of settings.
 
 ### Setting
@@ -75,7 +77,7 @@ A runscript can contain any number of systems, which in turn can contain any num
 Settings are identified by their name and define additional arguments and encodings used by the system.
 
 ```xml
-<setting name="setting-1" cmdline="'--stats --quiet=1,0'" tag="basic">
+<setting name="setting-1" cmdline="--quiet=1,0" tag="basic">
     <encoding file="encodings/default.lp"/>
     <encoding file="extra.lp" tag="extra"/>
 </setting>

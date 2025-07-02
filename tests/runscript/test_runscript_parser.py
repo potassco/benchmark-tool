@@ -94,6 +94,7 @@ class TestParser(TestCase):
         self.assertEqual(len(system.settings), 7)
         self.assertIsInstance(system.config, runscript.Config)
         self.assertEqual(system.config.name, "seq-generic")
+        self.assertEqual(system.settings["default"].cmdline, "--stats 1")
         system = run.systems[("claspar", "2.1.0")]
         self.assertIsInstance(system, runscript.System)
         self.assertEqual(system.name, "claspar")
@@ -130,7 +131,7 @@ class TestParser(TestCase):
         setting = system.settings["min"]
         self.assertIsInstance(setting, runscript.Setting)
         self.assertEqual(setting.name, "min")
-        self.assertEqual(setting.cmdline, "")
+        self.assertEqual(setting.cmdline, "--stats")
         self.assertSetEqual(setting.tag, set())
         self.assertEqual(setting.order, 8)
         self.assertIsNone(setting.procs)
