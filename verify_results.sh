@@ -3,7 +3,7 @@
 # usage
 help() {
     echo "This script can be used to check benchmark results for runlim errors and re-run such instances."
-    echo "Make sure, the environment where the benchmark-tool is installed is active."
+    echo "Make sure the environment where the benchmark-tool is installed is active."
     echo "Check the benchmark-tool documentation for more information"
     echo
     echo "Syntax: ${0##*/} [-h] <runscript.xml>"

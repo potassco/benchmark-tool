@@ -45,7 +45,7 @@ Supported entry points:
 A detailed description on how to use each component can be accessed via the sidebar.
 
 !!! info
-    When running benchmarks on a cluster it can happen, that jobs fail due to the following error:
+    When running benchmarks on a cluster, it can happen that jobs fail due to the following error:
     ```
     runlim error: group pid <X> larger than child pid <Y>
     ```
