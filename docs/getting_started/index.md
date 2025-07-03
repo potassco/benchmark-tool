@@ -43,3 +43,14 @@ Supported entry points:
 `bconv` - transforms output of beval into spreadsheets  
 
 A detailed description on how to use each component can be accessed via the sidebar.
+
+!!! info
+    When running benchmarks on a cluster it can happen, that jobs fail due to the following error:
+    ```
+    runlim error: group pid <X> larger than child pid <Y>
+    ```
+    This is a known issue, see <https://github.com/arminbiere/runlim/issues/8>.
+
+    For single-process systems under test (SUT) this issue can be avoided by using the `runlim` option `--single` in the corresponding template script (e.g. `templates/seq-generic.sh`). In that case, `{run.solver}` should either be the SUT executable or `exec` should be used if `{run.solver}` refers to a shell script.
+
+    If you can't or don't want to use `--single`, the [verify_results.sh](https://github.com/potassco/benchmark-tool/blob/master/verify_results.sh) script can be used to find jobs, which failed due to a `runlim error`, delete the corresponding `.finished` files and create a new start script excluding jobs already run.
