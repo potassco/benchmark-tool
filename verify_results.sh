@@ -34,7 +34,7 @@ fi
 
 # search runlim erros
 echo "Look for runlim errors..."
-DIR=$(cat $1 | sed -nr 's/^.*runscript\s*output="([ A-Za-z0-9\-]+)".*$/\1/p')
+DIR=$(cat $1 | sed -nr 's/^.*runscript\s*output="(.+)".*\/?>$/\1/p')
 
 # exit if output folder does not exist
 if ! [ -d $DIR ]; then
