@@ -34,7 +34,7 @@ fi
 
 # search runlim erros
 echo "Look for runlim errors..."
-DIR=$(cat $1 | sed -nr 's/^.*output="(\S+)".*$/\1/p')
+DIR=$(cat $1 | sed -nr 's/^.*runscript\s*output="([ A-Za-z0-9\-]+)".*$/\1/p')
 readarray -d '' < <(find $DIR -name "runsolver.watcher" -exec grep -q "runlim error" {} \; -print0)
 
 # exit if nothing found
