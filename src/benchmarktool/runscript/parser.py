@@ -257,13 +257,13 @@ class Parser:
 
     <xs:simpleType name="tagrefType">
         <xs:restriction base="xs:string">
-            <xs:pattern value="(\*all\*)|([A-Za-z_\-0-9]+([ ]*[A-Za-z_\-0-9]+)*)([ ]*\|[ ]*([A-Za-z_\-0-9]+([ ]*[A-Za-z_\-0-9]+)*))*"/>
+            <xs:pattern value="(\\*all\\*)|([A-Za-z_\\-0-9]+([ ]*[A-Za-z_\\-0-9]+)*)([ ]*\\|[ ]*([A-Za-z_\\-0-9]+([ ]*[A-Za-z_\\-0-9]+)*))*"/>
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="nameType">
         <xs:restriction base="xs:string">
-            <xs:pattern value="[A-Za-z_\-0-9]*"/>
+            <xs:pattern value="[A-Za-z_\\-0-9]*"/>
         </xs:restriction>
     </xs:simpleType>
 

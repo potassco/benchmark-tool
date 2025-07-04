@@ -389,7 +389,7 @@ class TestScriptGen(TestCase):
             x
             in [
                 '$CAT ../../inst_path ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
-                '$CAT ..\..\inst_path ..\.. 10 ..\../programs/sys_name-sys_version cmdline "..\..\encoding"\n',
+                '$CAT ..\\..\\inst_path ..\\.. 10 ..\\../programs/sys_name-sys_version cmdline "..\\..\\encoding"\n',
             ]
         )
         os.remove("./tests/ref/start.sh")
