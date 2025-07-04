@@ -46,7 +46,7 @@ readarray -d '' < <(find $DIR -name "runsolver.watcher" -exec grep -q "runlim er
 
 # exit if nothing found
 if [ -z ${MAPFILE[@]} ]; then
-    echo "No runlim erros found"
+    echo "No runlim errors found"
     exit 0
 fi
 
