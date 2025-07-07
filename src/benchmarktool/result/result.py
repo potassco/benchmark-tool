@@ -426,3 +426,5 @@ class Run:
             for name, _ in measures:
                 if name in self.measures:
                     yield name, self.measures[name][0], self.measures[name][1]
+                else:
+                    yield name, "None", "NaN"
