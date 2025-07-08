@@ -110,9 +110,9 @@ class Formula(ods.Formula):  # type: ignore[misc]
         if s.startswith("="):
             s = s[1:]
         # wrap references
-        s = re.sub(r"([\w\.]*[$A-Z]+[$0-9]+(:[\w\.]*[$A-Z]+[$0-9]+)?)", r"[\1]", s)
+        s = re.sub(r"([\w\.]*\$?[A-Z]+\$?[0-9]+(:[\w\.]*\$?[A-Z]+\$?[0-9]+)?)", r"[\1]", s)
         # add '.' before references if necessary
-        s = re.sub(r"(?<!\.)([$A-Z]+[$0-9]+)(?!\()", r".\1", s)
+        s = re.sub(r"(?<=[^$A-Z0-9\.])(\$?[A-Z]+\$?[0-9]+)(?![\(\.])", r".\1", s)
         return f"of:={s}"
 
 
@@ -562,9 +562,6 @@ class Sheet:
         """
         # remove header
         results = self.values.loc[2:, 1:]
-
-        x = Formula("MIN(Instances.AA2:Instances.B27)")
-        print(x)
 
         for measure in self.measures:
             if measure[0] in float_occur:
