@@ -437,3 +437,5 @@ class TestRun(TestCase):
         self.assertListEqual(list(res), [("a", "string", "b"), ("c", "int", "5")])
         res = r.iter([("c", "to")])
         self.assertListEqual(list(res), [("c", "int", "5")])
+        res = r.iter([("d", "t")])
+        self.assertListEqual(list(res), [("d", "None", "NaN")])

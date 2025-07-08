@@ -31,7 +31,7 @@
 						<measure name="memout" type="float" val="0"/>
 						<measure name="steps" type="int" val="40"/>
 						<measure name="time" type="float" val="10"/>
-						<measure name="timeout" type="float" val="1"/>
+						<!--Missing value: <measure name="timeout" type="float" val="1"/>-->
 						<measure name="status" type="string" val="test12"/>
 					</run>
 				</instance>
