@@ -19,3 +19,5 @@ This documentation includes:
     The *benchmark-tool* is part of the [Potassco](https://potassco.org) suite.
 
     This project is still in active development.
+
+    Functionality is only verified on Linux. There may be issues on other platforms.
