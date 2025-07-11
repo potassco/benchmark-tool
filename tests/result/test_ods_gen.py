@@ -29,10 +29,10 @@ class TestFormula(TestCase):
         """
         Test __str__ method.
         """
-        f = ods_gen.Formula("=SUM(A2:A4)")
-        self.assertEqual(str(f), "of:=SUM([.A2:.A4])")
-        f = ods_gen.Formula("SUM(test.A2:test.A4)")
-        self.assertEqual(str(f), "of:=SUM([test.A2:test.A4])")
+        f = ods_gen.Formula("=SUM($A23:AA$4)")
+        self.assertEqual(str(f), "of:=SUM([.$A23:.AA$4])")
+        f = ods_gen.Formula("SUM(test.A2:.A4)")
+        self.assertEqual(str(f), "of:=SUM([test.A2:.A4])")
 
 
 class TestUtils(TestCase):
@@ -124,7 +124,7 @@ class TestInstSheet(TestCase):
         # system block
         self.ref_block = pd.DataFrame()
         self.ref_block["time"] = ["time", 7.0, 10.0]
-        self.ref_block["timeout"] = ["timeout", 0.0, 1.0]
+        self.ref_block["timeout"] = ["timeout", 0.0, np.nan]
         self.ref_block["status"] = ["status", "test11", "test12"]
         self.ref_block["steps"] = ["steps", 50, 40]
         self.ref_block.index = [1, 2, 3]
@@ -376,7 +376,7 @@ class TestClassSheet(TestInstSheet):
         # system block
         bench_cl = self.run_spec[0].classresults[0].benchclass
         self.ref_block["time"] = ["time", (bench_cl, 8.5)]
-        self.ref_block["timeout"] = ["timeout", (bench_cl, 1.0)]
+        self.ref_block["timeout"] = ["timeout", (bench_cl, 0)]
         self.ref_block["status"] = ["status", np.nan]
         self.ref_block["steps"] = ["steps", (bench_cl, 45)]
         self.ref_block.index = [1, 2]
@@ -436,15 +436,15 @@ class TestClassSheet(TestInstSheet):
         self.ref_val = pd.DataFrame()
         self.ref_val[0] = [np.nan, np.nan, "test_class"]
         self.ref_val[1] = ["test_sys-1.0.0/test_setting", "time", 8.5]
-        self.ref_val[2] = [np.nan, "timeout", 1]
+        self.ref_val[2] = [np.nan, "timeout", 0]
         self.ref_val[3] = [np.nan, "status", np.nan]
         self.ref_val[4] = [np.nan, "steps", 45]
         # values ro summary
         self.ref_val[9] = ["min", "time", 8.5]
-        self.ref_val[10] = [np.nan, "timeout", 1]
+        self.ref_val[10] = [np.nan, "timeout", 0]
         self.ref_val[11] = [np.nan, "steps", 29.5]
         self.ref_val[12] = ["median", "time", 9.25]
-        self.ref_val[13] = [np.nan, "timeout", 1.5]
+        self.ref_val[13] = [np.nan, "timeout", 1]
         self.ref_val[14] = [np.nan, "steps", 37.25]
         self.ref_val[15] = ["max", "time", 10]
         self.ref_val[16] = [np.nan, "timeout", 2]

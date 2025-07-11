@@ -110,9 +110,9 @@ class Formula(ods.Formula):  # type: ignore[misc]
         if s.startswith("="):
             s = s[1:]
         # wrap references
-        s = re.sub(r"([\w\.]*[$A-Z]+[$0-9]+(:[\w\.]*[$A-Z]+[$0-9]+)?)", r"[\1]", s)
+        s = re.sub(r"([\w\.]*\$?[A-Z]+\$?[0-9]+(:[\w\.]*\$?[A-Z]+\$?[0-9]+)?)", r"[\1]", s)
         # add '.' before references if necessary
-        s = re.sub(r"(?<!\.)([$A-Z]+[$0-9]+)(?!\()", r".\1", s)
+        s = re.sub(r"(?<=[^$A-Z0-9\.])(\$?[A-Z]+\$?[0-9]+)(?![\(\.])", r".\1", s)
         return f"of:={s}"
 
 
@@ -313,17 +313,21 @@ class Sheet:
             for name, value_type, value in run.iter(self.measures):
                 if value_type == "int":
                     value_type = "float"
-                elif value_type != "float":
+                elif value_type != "float" and value_type != "None":
                     value_type = "string"
                 if self.ref_sheet is None:
                     if value_type == "float":
                         block.add_cell(
                             instance_result.instance.values["row"] + run.number - 1, name, value_type, float(value)
                         )
+                    elif value_type == "None":
+                        block.add_cell(
+                            instance_result.instance.values["row"] + run.number - 1, name, value_type, np.nan
+                        )
                     else:
                         block.add_cell(instance_result.instance.values["row"] + run.number - 1, name, value_type, value)
                 elif value_type == "float":
-                    if not name in benchclass_summary:
+                    if benchclass_summary.get(name, None) is None:
                         benchclass_summary[name] = (0.0, 0)
                     benchclass_summary[name] = (
                         float(value) + benchclass_summary[name][0],
@@ -463,10 +467,13 @@ class Sheet:
                 if ref_range != "":
                     ref_range += ";"
                 ref_range += get_cell_index(col_ref, row + 2, True)
-            block.add_cell(row, measure, "formular", Formula("{1}({0})".format(ref_range, operator.upper())))
-            self.values.at[2 + row, col] = getattr(np, "nan" + operator)(
-                self.values.loc[2 + row, sorted(float_occur[measure])]
-            )
+            values = np.array(self.values.loc[2 + row, sorted(float_occur[measure])], float)
+            if np.isnan(values).all():
+                self.values.at[2 + row, col] = np.nan
+            else:
+                # don't write formula if full row is nan
+                block.add_cell(row, measure, "formular", Formula("{1}({0})".format(ref_range, operator.upper())))
+                self.values.at[2 + row, col] = getattr(np, "nan" + operator)(values)
 
     def add_col_summary(self) -> None:
         """
@@ -492,54 +499,59 @@ class Sheet:
                 else:
                     self.values.at[self.result_offset + 3, col] = np.nan
                 if col < self.summary_refs["min"]["col"]:
-                    # DST
-                    self.content.at[self.result_offset + 4, col] = Formula(
-                        "SUMPRODUCT(--({0}-{1})^2)^0.5".format(ref_value, self.summary_refs["min"][name][1])
-                    )
-                    self.values.at[self.result_offset + 4, col] = (
-                        np.nansum(
-                            (
-                                values
-                                - np.array(
-                                    self.values.loc[2 : self.result_offset - 1, self.summary_refs["min"][name][0]]
-                                )
-                            )
-                            ** 2
+                    with np.errstate(invalid="ignore"):
+                        # DST
+                        self.content.at[self.result_offset + 4, col] = Formula(
+                            "SUMPRODUCT(--({0}-{1})^2)^0.5".format(ref_value, self.summary_refs["min"][name][1])
                         )
-                        ** 0.5
-                    )
-                    # BEST (values * -1, since higher better)
-                    self.content.at[self.result_offset + 5, col] = Formula(
-                        "SUMPRODUCT(--({0}={1}))".format(ref_value, self.summary_refs["min"][name][1])
-                    )
-                    self.values.at[self.result_offset + 5, col] = -1 * np.nansum(
-                        values
-                        == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["min"][name][0]])
-                    )
-                    # BETTER (values * -1, since higher better)
-                    self.content.at[self.result_offset + 6, col] = Formula(
-                        "SUMPRODUCT(--({0}<{1}))".format(ref_value, self.summary_refs["median"][name][1])
-                    )
-                    self.values.at[self.result_offset + 6, col] = -1 * np.nansum(
-                        values
-                        < np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["median"][name][0]])
-                    )
-                    # WORSE
-                    self.content.at[self.result_offset + 7, col] = Formula(
-                        "SUMPRODUCT(--({0}>{1}))".format(ref_value, self.summary_refs["median"][name][1])
-                    )
-                    self.values.at[self.result_offset + 7, col] = np.nansum(
-                        values
-                        > np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["median"][name][0]])
-                    )
-                    # WORST
-                    self.content.at[self.result_offset + 8, col] = Formula(
-                        "SUMPRODUCT(--({0}={1}))".format(ref_value, self.summary_refs["max"][name][1])
-                    )
-                    self.values.at[self.result_offset + 8, col] = np.nansum(
-                        values
-                        == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["max"][name][0]])
-                    )
+                        self.values.at[self.result_offset + 4, col] = (
+                            np.nansum(
+                                (
+                                    values
+                                    - np.array(
+                                        self.values.loc[2 : self.result_offset - 1, self.summary_refs["min"][name][0]]
+                                    )
+                                )
+                                ** 2
+                            )
+                            ** 0.5
+                        )
+                        # BEST (values * -1, since higher better)
+                        self.content.at[self.result_offset + 5, col] = Formula(
+                            "SUMPRODUCT(--({0}={1}))".format(ref_value, self.summary_refs["min"][name][1])
+                        )
+                        self.values.at[self.result_offset + 5, col] = -1 * np.nansum(
+                            values
+                            == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["min"][name][0]])
+                        )
+                        # BETTER (values * -1, since higher better)
+                        self.content.at[self.result_offset + 6, col] = Formula(
+                            "SUMPRODUCT(--({0}<{1}))".format(ref_value, self.summary_refs["median"][name][1])
+                        )
+                        self.values.at[self.result_offset + 6, col] = -1 * np.nansum(
+                            values
+                            < np.array(
+                                self.values.loc[2 : self.result_offset - 1, self.summary_refs["median"][name][0]]
+                            )
+                        )
+                        # WORSE
+                        self.content.at[self.result_offset + 7, col] = Formula(
+                            "SUMPRODUCT(--({0}>{1}))".format(ref_value, self.summary_refs["median"][name][1])
+                        )
+                        self.values.at[self.result_offset + 7, col] = np.nansum(
+                            values
+                            > np.array(
+                                self.values.loc[2 : self.result_offset - 1, self.summary_refs["median"][name][0]]
+                            )
+                        )
+                        # WORST
+                        self.content.at[self.result_offset + 8, col] = Formula(
+                            "SUMPRODUCT(--({0}={1}))".format(ref_value, self.summary_refs["max"][name][1])
+                        )
+                        self.values.at[self.result_offset + 8, col] = np.nansum(
+                            values
+                            == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["max"][name][0]])
+                        )
 
     def add_styles(self, float_occur: dict[str, Any]) -> None:
         """
@@ -548,8 +560,8 @@ class Sheet:
         Attributes:
             float_occur (dict[str, Any]): Dict containing column references of float columns.
         """
-        # filter empty rows and remove header
-        results = self.values[~self.values[1].isna()].loc[2:]
+        # remove header
+        results = self.values.loc[2:, 1:]
 
         for measure in self.measures:
             if measure[0] in float_occur:
@@ -561,13 +573,15 @@ class Sheet:
                 else:
                     return
 
-                rows = results.index
                 cols = sorted(float_occur[measure[0]])
+                # filter empty rows
+                values_df = results.loc[:, cols].dropna(how="all")
+                rows = values_df.index
 
-                values = np.nan_to_num(np.array(results.loc[:, cols].values, dtype=float))
-                min_values = np.reshape(np.min(values, axis=1), (-1, 1))
-                median_values = np.reshape(np.median(values, axis=1), (-1, 1))
-                max_values = np.reshape(np.max(values, axis=1), (-1, 1))
+                values = np.array(values_df.values, dtype=float)
+                min_values = np.reshape(np.nanmin(values, axis=1), (-1, 1))
+                median_values = np.reshape(np.nanmedian(values, axis=1), (-1, 1))
+                max_values = np.reshape(np.nanmax(values, axis=1), (-1, 1))
                 max_min_diff = (max_values - min_values) > diff
                 max_med_diff = (max_values - median_values) > diff
 

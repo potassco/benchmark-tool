@@ -292,7 +292,10 @@ class TestSeqRun(TestRun):
         self.assertEqual(self.r.runspec, self.runspec)
         self.assertEqual(self.r.instance, self.instance)
         self.assertEqual(self.r.file, os.path.relpath(self.instance.path(), self.path))
-        self.assertEqual(self.r.encodings, '"../def.lp" "../encoding.lp" "../test.lp"')
+        self.assertTrue(
+            self.r.encodings
+            in ['"../def.lp" "../encoding.lp" "../test.lp"', '"..\\def.lp" "..\\encoding.lp" "..\\test.lp"']
+        )
         self.assertEqual(self.r.args, self.runspec.setting.cmdline)
         self.assertEqual(self.r.solver, self.runspec.system.name + "-" + self.runspec.system.version)
         self.assertEqual(self.r.timeout, self.job.timeout)
