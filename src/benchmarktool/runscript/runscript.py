@@ -960,8 +960,8 @@ class Benchmark:
                     if base not in instances:
                         instances[base] = set()
                     instances[base].add(filename)
-                for base in instances.keys():
-                    benchmark.add_instance(self.path, relroot, (base, instances[base]), self.encodings, self.enctags)
+                for base, files in instances.items():
+                    benchmark.add_instance(self.path, relroot, (base, files), self.encodings, self.enctags)
 
     class Files:
         """
@@ -1022,13 +1022,13 @@ class Benchmark:
             Attributes:
                 benchmark (Benchmark): The benchmark to be populated.
             """
-            for group in self.files.keys():
-                for file in self.files[group]:
+            for group, files in self.files.items():
+                for file in files:
                     if not os.path.exists(os.path.join(self.path, file)):
-                        raise Exception("Specified instance file does not exist.")
-                paths = list(map(lambda x: os.path.split(x), sorted(self.files[group])))
+                        raise FileNotFoundError("Specified instance file does not exist.")
+                paths = list(map(os.path.split, sorted(files)))
                 if len(set(map(lambda x: x[0], paths))) != 1:
-                    raise Exception("Instances of the same group must be in the same directory.")
+                    raise RuntimeError("Instances of the same group must be in the same directory.")
                 relroot = paths[0][0]
                 benchmark.add_instance(
                     self.path, relroot, (group, set(map(lambda x: x[1], paths))), self.encodings, self.enctags
