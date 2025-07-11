@@ -12,7 +12,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 from types import ModuleType
-from typing import Any, Optional
+from typing import Any, Iterator, Optional
 
 from benchmarktool import tools
 
@@ -254,7 +254,7 @@ class SeqRun(Run):
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self.file = os.path.relpath(self.instance.path(), self.path)
+        self.file = " ".join([f'"{os.path.relpath(i, self.path)}"' for i in sorted(self.instance.paths())])
 
         encodings = self.instance.encodings
         encodings = encodings.union(self.runspec.setting.encodings.get("_default_", set()))
@@ -841,6 +841,7 @@ class Benchmark:
             location (str):       The location of the benchmark instance.
             benchclass (Benchmark.Class): The class name of the instance.
             name (str):           The name of the instance.
+            files set(str):       Instance files associated with the instance.
             encodings (set[str]): Encoding associated with the instance.
             enctags (set[str]):   Encoding tags associated with the instance.
             id (int):             A numeric identifier.
@@ -849,6 +850,7 @@ class Benchmark:
         location: str = field(compare=False)
         benchclass: "Benchmark.Class" = field(compare=False)
         name: str
+        files: set[str] = field(compare=False)
         encodings: set[str] = field(compare=False)
         enctags: set[str] = field(compare=False)
         id: Optional[int] = field(default=None, compare=False)
@@ -861,14 +863,18 @@ class Benchmark:
                 out (Any):    Output stream to write to
                 indent (str): Amount of indentation
             """
-            out.write('{1}<instance name="{0.name}" id="{0.id}"/>\n'.format(self, indent))
+            out.write('{1}<instance name="{0.name}" id="{0.id}">\n'.format(self, indent))
+            for instance in sorted(self.files):
+                out.write('{1}<file name="{0}"/>\n'.format(instance, indent + "\t"))
+            out.write("{0}</instance>\n".format(indent))
 
-        def path(self) -> str:
+        def paths(self) -> Iterator[str]:
             """
-            Returns the location of the instance by concatenating
+            Returns the location of the instance files by concatenating
             location, class name and instance name.
             """
-            return os.path.join(self.location, self.benchclass.name, self.name)
+            for file in self.files:
+                yield os.path.join(self.location, self.benchclass.name, file)
 
     class Folder:
         """
@@ -941,6 +947,7 @@ class Benchmark:
             for root, dirs, files in os.walk(self.path):
                 relroot = os.path.relpath(root, self.path)
                 sub = []
+                instances: dict[str, set[str]] = {}
                 for dirname in dirs:
                     if self._skip(relroot, dirname):
                         continue
@@ -949,7 +956,12 @@ class Benchmark:
                 for filename in files:
                     if self._skip(relroot, filename):
                         continue
-                    benchmark.add_instance(self.path, relroot, filename, self.encodings, self.enctags)
+                    base = filename.split(".")[0]
+                    if base not in instances:
+                        instances[base] = set()
+                    instances[base].add(filename)
+                for base in instances.keys():
+                    benchmark.add_instance(self.path, relroot, (base, instances[base]), self.encodings, self.enctags)
 
     class Files:
         """
@@ -964,18 +976,23 @@ class Benchmark:
                 path (str): Root path, all file paths are relative to this path.
             """
             self.path = path
-            self.files: set[str] = set()
+            self.files: dict[str, set[str]] = {}
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
 
-        def add_file(self, path: str) -> None:
+        def add_file(self, path: str, group: Optional[str] = None) -> None:
             """
             Adds a file to the set of files.
 
             Attributes:
-                path (str): Location of the file.
+                path (str):            Location of the file.
+                group (Optional[str]): Instance group.
             """
-            self.files.add(os.path.normpath(path))
+            if group is None:
+                group = os.path.basename(path).split(".")[0]
+            if group not in self.files:
+                self.files[group] = set()
+            self.files[group].add(os.path.normpath(path))
 
         def add_encoding(self, file: str) -> None:
             """
@@ -1005,10 +1022,17 @@ class Benchmark:
             Attributes:
                 benchmark (Benchmark): The benchmark to be populated.
             """
-            for path in self.files:
-                if os.path.exists(os.path.join(self.path, path)):
-                    relroot, filename = os.path.split(path)
-                    benchmark.add_instance(self.path, relroot, filename, self.encodings, self.enctags)
+            for group in self.files.keys():
+                for file in self.files[group]:
+                    if not os.path.exists(os.path.join(self.path, file)):
+                        raise Exception("Specified instance file does not exist.")
+                paths = list(map(lambda x: os.path.split(x), sorted(self.files[group])))
+                if len(set(map(lambda x: x[0], paths))) != 1:
+                    raise Exception("Instances of the same group must be in the same directory.")
+                relroot = paths[0][0]
+                benchmark.add_instance(
+                    self.path, relroot, (group, set(map(lambda x: x[1], paths))), self.encodings, self.enctags
+                )
 
     def add_element(self, element: Any) -> None:
         """
@@ -1019,22 +1043,24 @@ class Benchmark:
         """
         self.elements.append(element)
 
-    def add_instance(self, root: str, relroot: str, filename: str, encodings: set[str], enctags: set[str]) -> None:
+    def add_instance(
+        self, root: str, relroot: str, files: tuple[str, set[str]], encodings: set[str], enctags: set[str]
+    ) -> None:
         """
         Adds an instance to the benchmark set. (This function
         is called during initialization by the benchmark elements)
 
         Attributes:
-            root (str):           The root folder of the instance.
-            relroot (str):        The folder relative to the root folder.
-            filename (str):       The filename of the instance.
-            encodings (set[str]): The encodings associated to the instance.
-            enctags (set[str]):   The encoding tags associated to the instance.
+            root (str):                  The root folder of the instance.
+            relroot (str):               The folder relative to the root folder.
+            files (tuple[str,set[str]]): The name and files of the instance.
+            encodings (set[str]):        The encodings associated to the instance.
+            enctags (set[str]):          The encoding tags associated to the instance.
         """
         classname = Benchmark.Class(relroot)
         if classname not in self.instances:
             self.instances[classname] = set()
-        self.instances[classname].add(Benchmark.Instance(root, classname, filename, encodings, enctags))
+        self.instances[classname].add(Benchmark.Instance(root, classname, files[0], files[1], encodings, enctags))
 
     def init(self) -> None:
         """
@@ -1054,7 +1080,13 @@ class Benchmark:
                 for instance in sorted(self.instances[classname]):
                     id_instances[id_class].add(
                         Benchmark.Instance(
-                            instance.location, id_class, instance.name, instance.encodings, instance.enctags, instanceid
+                            instance.location,
+                            id_class,
+                            instance.name,
+                            instance.files,
+                            instance.encodings,
+                            instance.enctags,
+                            instanceid,
                         )
                     )
                     instanceid += 1
