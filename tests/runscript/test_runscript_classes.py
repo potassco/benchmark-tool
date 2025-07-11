@@ -4,6 +4,7 @@ Test cases for runscript classes.
 
 import io
 import os
+import platform
 from unittest import TestCase, mock
 
 from benchmarktool.runscript import runscript
@@ -277,7 +278,7 @@ class TestSeqRun(TestRun):
         self.runspec.system.name = "sys_name"
         self.runspec.system.version = "sys_version"
         self.instance = mock.Mock(spec=runscript.Benchmark.Instance)
-        self.instance.path.return_value = "inst_path"
+        self.instance.paths.return_value = ["inst_path"]
         self.instance.encodings = {"encoding.lp"}
         self.instance.enctags = {"test", "none"}
         self.r = runscript.SeqRun(self.path, self.run_var, self.job, self.runspec, self.instance)
@@ -291,11 +292,11 @@ class TestSeqRun(TestRun):
         self.assertEqual(self.r.job, self.job)
         self.assertEqual(self.r.runspec, self.runspec)
         self.assertEqual(self.r.instance, self.instance)
-        self.assertEqual(self.r.file, os.path.relpath(self.instance.path(), self.path))
-        self.assertTrue(
-            self.r.encodings
-            in ['"../def.lp" "../encoding.lp" "../test.lp"', '"..\\def.lp" "..\\encoding.lp" "..\\test.lp"']
+        self.assertEqual(
+            self.r.file, " ".join([f'"{os.path.relpath(i, self.path)}"' for i in sorted(self.instance.paths())])
         )
+        if platform.system() == "Linux":
+            self.assertEqual(self.r.encodings, '"../def.lp" "../encoding.lp" "../test.lp"')
         self.assertEqual(self.r.args, self.runspec.setting.cmdline)
         self.assertEqual(self.r.solver, self.runspec.system.name + "-" + self.runspec.system.version)
         self.assertEqual(self.r.timeout, self.job.timeout)
@@ -338,7 +339,7 @@ class TestScriptGen(TestCase):
         self.instance.name = "inst_name"
         self.instance.encodings = {"encoding"}
         self.instance.enctags = {}
-        self.instance.path.return_value = "inst_path"
+        self.instance.paths.return_value = ["inst_path"]
         self.instance.benchclass = mock.Mock(sepc=runscript.Benchmark.Class)
         self.instance.benchclass.name = "class_name"
 
@@ -388,13 +389,11 @@ class TestScriptGen(TestCase):
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
             x = f.read()
-        self.assertTrue(
-            x
-            in [
+        if platform.system() == "Linux":
+            self.assertEqual(
+                x,
                 '$CAT ../../inst_path ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
-                '$CAT ..\\..\\inst_path ..\\.. 10 ..\\../programs/sys_name-sys_version cmdline "..\\..\\encoding"\n',
-            ]
-        )
+            )
         os.remove("./tests/ref/start.sh")
 
         self.sg.skip = True
@@ -495,7 +494,8 @@ class TestDistScript(TestCase):
         ps.runspec.project.job.partition = "all"
         ps.write()
 
-        self.assertTrue(ps.queue[0] in ["tests/ref/start0000.dist", "tests/ref\\start0000.dist"])
+        if platform.system() == "Linux":
+            self.assertEqual(ps.queue[0], "tests/ref/start0000.dist")
         self.assertTrue(os.path.isfile("./tests/ref/start0000.dist"))
         with open("./tests/ref/start0000.dist", "r", encoding="utf8") as f:
             x = f.read()
@@ -645,27 +645,33 @@ class TestInstance(TestCase):
         self.benchclass = mock.Mock(spec=runscript.Benchmark.Class)
         self.benchclass.name = "bench_name"
         self.name = "inst_name"
+        self.files = {"file.lp"}
         self.encodings = {"encoding"}
         self.enctags = set()
-        self.ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings, self.enctags)
+        self.ins = runscript.Benchmark.Instance(
+            self.location, self.benchclass, self.name, self.files, self.encodings, self.enctags
+        )
 
     def test_to_xml(self):
         """
         Test to_xml method.
         """
         o = io.StringIO()
-        ins = runscript.Benchmark.Instance(self.location, self.benchclass, self.name, self.encodings, self.enctags, 2)
+        ins = runscript.Benchmark.Instance(
+            self.location, self.benchclass, self.name, self.files, self.encodings, self.enctags, 2
+        )
         ins.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<instance name="inst_name" id="2"/>\n',
+            '\t<instance name="inst_name" id="2">\n\t\t<file name="file.lp"/>\n\t</instance>\n',
         )
 
     def test_path(self):
         """
         Test path method.
         """
-        self.assertTrue(self.ins.path() in ["loc/ation/bench_name/inst_name", "loc/ation\\bench_name\\inst_name"])
+        if platform.system() == "Linux":
+            self.assertListEqual(self.ins.paths(), ["loc/ation/bench_name/inst_name"])
 
 
 class TestFolder(TestCase):
@@ -733,10 +739,20 @@ class TestFolder(TestCase):
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 2)
 
+        self.f.add_ignore("test_f1.2.lp")
+        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 2)
+
         self.f.add_ignore("test_f2.lp")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 1)
+
+        self.f.add_ignore("test_f1.1.lp")
+        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 0)
 
 
 class TestFiles(TestCase):
@@ -753,7 +769,7 @@ class TestFiles(TestCase):
         Test class initialization.
         """
         self.assertEqual(self.f.path, self.path)
-        self.assertSetEqual(self.f.files, set())
+        self.assertDictEqual(self.f.files, {})
         self.assertSetEqual(self.f.encodings, set())
         self.assertSetEqual(self.f.enctags, set())
 
@@ -761,9 +777,15 @@ class TestFiles(TestCase):
         """
         Test add_file method.
         """
-        file = "file.txt"
-        self.f.add_file(file)
-        self.assertSetEqual(self.f.files, {file})
+        file1 = "file1.txt"
+        file2 = "file2.lp"
+        group = "group"
+        self.f.add_file(file1)
+        self.assertDictEqual(self.f.files, {"file1": {file1}})
+        self.f.add_file(file1, group)
+        self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1}})
+        self.f.add_file(file2, group)
+        self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1, file2}})
 
     def test_add_encoding(self):
         """
@@ -787,14 +809,22 @@ class TestFiles(TestCase):
         """
         benchmark = runscript.Benchmark("bench")
         self.f.add_file("doesnt.exist")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+        with self.assertRaises(FileNotFoundError):
             self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 0)
 
-        self.f.add_file("test_bench/test_f1.lp")
+        self.setUp()
+        self.f.add_file("test_bench/test_f1.1.lp", "group")
+        self.f.add_file("test_bench/test_folder/test_foldered.lp", "group")
+        with self.assertRaises(RuntimeError):
+            self.f.init(benchmark)
+
+        self.setUp()
+        self.f.add_file("test_bench/test_f1.1.lp")
+        self.f.add_file("test_bench/test_f1.2.lp")
+        self.f.add_file("test_bench/test_f2.lp")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 1)
+            self.assertEqual(add_inst.call_count, 2)
 
 
 class TestBenchmark(TestCase):
@@ -823,9 +853,9 @@ class TestBenchmark(TestCase):
         root = "root"
         encodings = set()
         enctags = set()
-        self.b.add_instance(root, "class1", "inst1", encodings, enctags)
-        self.b.add_instance(root, "class1", "inst2", encodings, enctags)
-        self.b.add_instance(root, "class2", "inst1", encodings, enctags)
+        self.b.add_instance(root, "class1", ("inst1", {"file1.lp"}), encodings, enctags)
+        self.b.add_instance(root, "class1", ("inst2", {"file2.lp"}), encodings, enctags)
+        self.b.add_instance(root, "class2", ("inst1", {"file1.lp"}), encodings, enctags)
         for key, val in self.b.instances.items():
             self.assertIsInstance(key, runscript.Benchmark.Class)
             self.assertIsInstance(val, set)
@@ -840,9 +870,9 @@ class TestBenchmark(TestCase):
         self.b.add_element(runscript.Benchmark.Folder("path"))
         class1 = runscript.Benchmark.Class("class1")
         class2 = runscript.Benchmark.Class("class2")
-        inst1 = runscript.Benchmark.Instance("loc", class1, "inst1", set(), set())
-        inst2 = runscript.Benchmark.Instance("loc", class1, "inst2", set(), set())
-        inst3 = runscript.Benchmark.Instance("loc", class2, "inst3", set(), set())
+        inst1 = runscript.Benchmark.Instance("loc", class1, "inst1", {"file1.lp"}, set(), set())
+        inst2 = runscript.Benchmark.Instance("loc", class1, "inst2", {"file2.lp"}, set(), set())
+        inst3 = runscript.Benchmark.Instance("loc", class2, "inst3", {"file3.lp"}, set(), set())
         self.b.instances = {class1: {inst1, inst2}, class2: {inst3}}
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.Folder.init") as folder_init:
             self.b.init()
@@ -870,7 +900,7 @@ class TestBenchmark(TestCase):
         """
         o = io.StringIO()
         bclass = runscript.Benchmark.Class("class", 0)
-        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set(), set())
+        inst = runscript.Benchmark.Instance("loc", bclass, "inst", {"file.lp"}, set(), set())
         self.b = runscript.Benchmark(self.name, [], {bclass: {inst}})
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.Instance.to_xml"):
             self.b.to_xml(o, "\t")
@@ -904,20 +934,15 @@ class TestRunspec(TestCase):
         Test path method.
         """
         self.rs.project.path = mock.Mock(return_value="project_path")
-        self.assertTrue(
-            self.rs.path()
-            in [
-                "project_path/machine/results/bench/sys-version-setting",
-                "project_path\\machine\\results\\bench\\sys-version-setting",
-            ]
-        )
+        if platform.system() == "Linux":
+            self.assertEqual(self.rs.path(), "project_path/machine/results/bench/sys-version-setting")
 
     def test_gen_script(self):
         """
         Test gen_script method.
         """
         bclass = runscript.Benchmark.Class("class")
-        inst = runscript.Benchmark.Instance("loc", bclass, "inst", set(), set())
+        inst = runscript.Benchmark.Instance("loc", bclass, "inst", {"file.lp"}, set(), set())
         self.rs.benchmark.instances = {bclass: {inst}}
         self.rs.benchmark.init = mock.Mock()
         script_gen = mock.Mock(spec=runscript.ScriptGen)
@@ -989,7 +1014,8 @@ class TestProject(TestCase):
         rs = mock.Mock(spec=runscript.Runscript)
         rs.path = mock.Mock(return_value="rs_path")
         prj = runscript.Project(self.name, rs, self.job)
-        self.assertTrue(prj.path() in ["rs_path/name", "rs_path\\name"])
+        if platform.system() == "Linux":
+            self.assertEqual(prj.path(), "rs_path/name")
 
     def test_gen_script(self):
         """

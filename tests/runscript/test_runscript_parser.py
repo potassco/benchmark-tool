@@ -2,6 +2,7 @@
 Test cases for runscript parser
 """
 
+import platform
 from unittest import TestCase
 
 from lxml import etree  # type: ignore[import-untyped]
@@ -162,7 +163,8 @@ class TestParser(TestCase):
         self.assertEqual(folder.path, "benchmarks/clasp")
         self.assertSetEqual(folder.prefixes, {"pigeons"})
         self.assertEqual(len(folder.encodings), 1)
-        self.assertTrue(all(e in ["benchmarks/no_pigeons.lp", "benchmarks\\no_pigeons.lp"] for e in folder.encodings))
+        if platform.system() == "Linux":
+            self.assertSetEqual(folder.encodings, {"benchmarks/no_pigeons.lp"})
         self.assertSetEqual(folder.enctags, {"test", "test-no", "test2"})
         folder = bench.elements[1]
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
@@ -174,18 +176,14 @@ class TestParser(TestCase):
         self.assertIsInstance(files, runscript.Benchmark.Files)
         self.assertEqual(files.path, "benchmarks/clasp")
         self.assertEqual(len(files.files), 2)
-        self.assertTrue(
-            all(
-                e
-                in [
-                    "pigeons/pigeonhole10-unsat.lp",
-                    "pigeons/pigeonhole11-unsat.lp",
-                    "pigeons\\pigeonhole10-unsat.lp",
-                    "pigeons\\pigeonhole11-unsat.lp",
-                ]
-                for e in files.files
+        if platform.system() == "Linux":
+            self.assertDictEqual(
+                files.files,
+                {
+                    "pigeonhole10-unsat": "pigeons/pigeonhole10-unsat.lp",
+                    "pigeonhole11-unsat": "pigeons/pigeonhole11-unsat.lp",
+                },
             )
-        )
         self.assertEqual(len(files.encodings), 2)
         self.assertSetEqual(files.enctags, {"test2"})
 

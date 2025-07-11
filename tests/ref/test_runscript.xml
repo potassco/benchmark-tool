@@ -49,7 +49,10 @@
 
 	<benchmark name="dist-suite">
 		<folder path="benchmarks/clasp"/>
-		<files path="benchmarks/clasp"/>
+		<files path="benchmarks/clasp">
+			<add file="pigeons/pigeonhole10-unsat.lp" group="pigeon1"/>
+			<add file="pigeons/pigeonhole11-unsat.lp" group="pigeon1"/>
+		</files>
 	</benchmark>
 
 	<project name="clasp-big" job="seq-generic">
