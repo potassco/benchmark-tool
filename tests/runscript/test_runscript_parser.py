@@ -180,8 +180,8 @@ class TestParser(TestCase):
             self.assertDictEqual(
                 files.files,
                 {
-                    "pigeonhole10-unsat": "pigeons/pigeonhole10-unsat.lp",
-                    "pigeonhole11-unsat": "pigeons/pigeonhole11-unsat.lp",
+                    "pigeonhole10-unsat": {"pigeons/pigeonhole10-unsat.lp"},
+                    "pigeonhole11-unsat": {"pigeons/pigeonhole11-unsat.lp"},
                 },
             )
         self.assertEqual(len(files.encodings), 2)

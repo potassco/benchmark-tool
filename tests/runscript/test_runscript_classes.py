@@ -392,7 +392,7 @@ class TestScriptGen(TestCase):
         if platform.system() == "Linux":
             self.assertEqual(
                 x,
-                '$CAT ../../inst_path ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
+                '$CAT "../../inst_path" ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
             )
         os.remove("./tests/ref/start.sh")
 
@@ -671,7 +671,7 @@ class TestInstance(TestCase):
         Test path method.
         """
         if platform.system() == "Linux":
-            self.assertListEqual(self.ins.paths(), ["loc/ation/bench_name/inst_name"])
+            self.assertListEqual(list(self.ins.paths()), ["loc/ation/bench_name/file.lp"])
 
 
 class TestFolder(TestCase):
