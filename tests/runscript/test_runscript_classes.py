@@ -293,7 +293,7 @@ class TestSeqRun(TestRun):
         self.assertEqual(self.r.runspec, self.runspec)
         self.assertEqual(self.r.instance, self.instance)
         self.assertEqual(
-            self.r.file, " ".join([f'"{os.path.relpath(i, self.path)}"' for i in sorted(self.instance.paths())])
+            self.r.files, " ".join([f'"{os.path.relpath(i, self.path)}"' for i in sorted(self.instance.paths())])
         )
         if platform.system() == "Linux":
             self.assertEqual(self.r.encodings, '"../def.lp" "../encoding.lp" "../test.lp"')
@@ -339,7 +339,7 @@ class TestScriptGen(TestCase):
         self.instance.name = "inst_name"
         self.instance.encodings = {"encoding"}
         self.instance.enctags = {}
-        self.instance.paths.return_value = ["inst_path"]
+        self.instance.paths.return_value = ["inst_path.lp"]
         self.instance.benchclass = mock.Mock(sepc=runscript.Benchmark.Class)
         self.instance.benchclass.name = "class_name"
 
@@ -392,7 +392,7 @@ class TestScriptGen(TestCase):
         if platform.system() == "Linux":
             self.assertEqual(
                 x,
-                '$CAT "../../inst_path" ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
+                '$CAT "../../inst_path.lp" ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
             )
         os.remove("./tests/ref/start.sh")
 

@@ -228,17 +228,17 @@ class SeqRun(Run):
     Describes a sequential run.
 
     Attributes:
-        path (str): Path that holds the target location for start scripts.
-        run (int):     - The number of the run.
-        job (Job):    - A reference to the job description.
-        runspec (Runspec):  - A reference to the run description.
-        instance (Benchmark.Instance): - A reference to the instance to benchmark.
-        root (str): directory relative to the location of the run's path.
-        file (str):    - A relative path to the instance.
-        encodings (str): Relative paths to all encodings.
-        args (str):    - The command line arguments for this run.
-        solver (str):  - The solver for this run.
-        timeout (int): - The timeout of this run.
+        path (str):        Path that holds the target location for start scripts.
+        run (int):         The number of the run.
+        job (Job):         A reference to the job description.
+        runspec (Runspec): A reference to the run description.
+        instance (Benchmark.Instance): A reference to the instance to benchmark.
+        root (str):        Directory relative to the location of the run's path.
+        files (str):       Relative paths to all instances.
+        encodings (str):   Relative paths to all encodings.
+        args (str):        The command line arguments for this run.
+        solver (str):      The solver for this run.
+        timeout (int):     The timeout of this run.
     """
 
     run: int
@@ -246,7 +246,7 @@ class SeqRun(Run):
     runspec: "Runspec"
     instance: "Benchmark.Instance"
 
-    file: str = field(init=False)
+    files: str = field(init=False)
     encodings: str = field(init=False)
     args: str = field(init=False)
     sovler: str = field(init=False)
@@ -254,7 +254,7 @@ class SeqRun(Run):
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self.file = " ".join([f'"{os.path.relpath(i, self.path)}"' for i in sorted(self.instance.paths())])
+        self.files = " ".join([f'"{os.path.relpath(i, self.path)}"' for i in sorted(self.instance.paths())])
 
         encodings = self.instance.encodings
         encodings = encodings.union(self.runspec.setting.encodings.get("_default_", set()))
