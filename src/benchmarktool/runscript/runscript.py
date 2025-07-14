@@ -960,8 +960,8 @@ class Benchmark:
                     if base not in instances:
                         instances[base] = set()
                     instances[base].add(filename)
-                for base, files in instances.items():
-                    benchmark.add_instance(self.path, relroot, (base, files), self.encodings, self.enctags)
+                for base, instfiles in instances.items():
+                    benchmark.add_instance(self.path, relroot, (base, instfiles), self.encodings, self.enctags)
 
     class Files:
         """
