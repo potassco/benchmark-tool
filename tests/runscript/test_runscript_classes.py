@@ -730,6 +730,12 @@ class TestFolder(TestCase):
         Test init method.
         """
         benchmark = runscript.Benchmark("bench")
+
+        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            with self.assertRaises(RuntimeError):
+                self.f.init(benchmark)
+
+        self.f.add_ignore(".invalid.file")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 3)
@@ -786,6 +792,8 @@ class TestFiles(TestCase):
         self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1}})
         self.f.add_file(file2, group)
         self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1, file2}})
+        with self.assertRaises(RuntimeError):
+            self.f.add_file("test")
 
     def test_add_encoding(self):
         """

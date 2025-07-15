@@ -9,6 +9,7 @@ __author__ = "Roland Kaminski"
 import importlib
 import importlib.util
 import os
+import re
 import sys
 from dataclasses import dataclass, field
 from types import ModuleType
@@ -956,12 +957,15 @@ class Benchmark:
                 for filename in files:
                     if self._skip(relroot, filename):
                         continue
-                    base = filename.split(".")[0]
-                    if base not in instances:
-                        instances[base] = set()
-                    instances[base].add(filename)
-                for base, instfiles in instances.items():
-                    benchmark.add_instance(self.path, relroot, (base, instfiles), self.encodings, self.enctags)
+                    m = re.match(r"([^.]+)\..+", filename)
+                    if m is None:
+                        raise RuntimeError("Invalid file name.")
+                    group = m.group(1)
+                    if group not in instances:
+                        instances[group] = set()
+                    instances[group].add(filename)
+                for group, instfiles in instances.items():
+                    benchmark.add_instance(self.path, relroot, (group, instfiles), self.encodings, self.enctags)
 
     class Files:
         """
@@ -989,7 +993,10 @@ class Benchmark:
                 group (Optional[str]): Instance group.
             """
             if group is None:
-                group = os.path.basename(path).split(".")[0]
+                m = re.match(r"([^.]+)\..+", os.path.basename(path))
+                if m is None:
+                    raise RuntimeError("Invalid file name.")
+                group = m.group(1)
             if group not in self.files:
                 self.files[group] = set()
             self.files[group].add(os.path.normpath(path))
