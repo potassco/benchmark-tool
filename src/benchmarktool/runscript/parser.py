@@ -180,6 +180,7 @@ class Parser:
                         <xs:element name="add">
                             <xs:complexType>
                                 <xs:attribute name="file" type="xs:string" use="required"/>
+                                <xs:attribute name="group" type="xs:string"/>
                             </xs:complexType>
                         </xs:element>
                         <xs:element name="encoding">
@@ -457,7 +458,7 @@ class Parser:
                     for grandchild in child.xpath("./encoding"):
                         element.add_encoding(grandchild.get("file"))
                     for grandchild in child.xpath("./add"):
-                        element.add_file(grandchild.get("file"))
+                        element.add_file(grandchild.get("file"), grandchild.get("group"))
                     benchmark.add_element(element)
                 run.add_benchmark(benchmark)
 

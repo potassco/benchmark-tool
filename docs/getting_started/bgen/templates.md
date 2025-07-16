@@ -10,13 +10,14 @@ A collection of templates can be found [here](https://github.com/potassco/benchm
 
 ## Run Templates
 A run template dictates how each benchmark instance should be run. During generation the references inside the template, e.g. `run.file`, are replaced by the corresponding values.
-The following references can currently be used:
-`run.file`: the instance file
-`run.encodings`: encoding files to be used for this instance
-`run.root`: the path to the benchmark-tool folder
-`run.timeout`: the walltime for this run
-`run.solver`: the solver/program to be used for this run
-`run.args`: additional arguments to be used by the solver/program
+
+The following references can currently be used:  
+`run.files`: the instance files  
+`run.encodings`: encoding files to be used for this instance  
+`run.root`: the path to the benchmark-tool folder  
+`run.timeout`: the walltime for this run  
+`run.solver`: the solver/program to be used for this run  
+`run.args`: additional arguments to be used by the solver/program  
 
 
 Most templates make use of the [runlim](https://github.com/arminbiere/runlim) program to supervise the benchmark runs.
