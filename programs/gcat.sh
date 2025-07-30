@@ -11,6 +11,9 @@ function bat()
 	application/*gzip*)
             zcat "${x}"
             ;;
+	application/*xz*)
+	    xzcat "${x}"
+	    ;;
         *)
             cat "${x}"
             ;;
