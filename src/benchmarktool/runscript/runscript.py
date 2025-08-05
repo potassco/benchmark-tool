@@ -880,14 +880,16 @@ class Benchmark:
         Describes a folder that should recursively be scanned for benchmarks.
         """
 
-        def __init__(self, path: str):
+        def __init__(self, path: str, group: bool = False):
             """
             Initializes a benchmark folder.
 
             Attributes:
-                path (str): The location of the folder.
+                path (str):   The location of the folder.
+                group (bool): Whether to group instances by their file name prefix.
             """
             self.path = path
+            self.group = group
             self.prefixes: set[str] = set()
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
@@ -955,13 +957,19 @@ class Benchmark:
                 for filename in files:
                     if self._skip(relroot, filename):
                         continue
-                    m = re.match(r"([^.]+)\..+", filename)
+                    m = re.match(r"^(([^\.]+).*)\.[^.]+$", filename)
                     if m is None:
                         raise RuntimeError("Invalid file name.")
-                    group = m.group(1)
+                    if self.group:
+                        # remove file extension, file.1.txt -> file
+                        group = m.group(2)
+                    else:
+                        # remove last file extension, file.1.txt -> file.1
+                        group = m.group(1)
                     if group not in instances:
                         instances[group] = set()
                     instances[group].add(filename)
+                print(instances)
                 for group, instfiles in instances.items():
                     benchmark.add_instance(self.path, relroot, (group, instfiles), self.encodings, self.enctags)
 
@@ -991,9 +999,10 @@ class Benchmark:
                 group (Optional[str]): Instance group.
             """
             if group is None:
-                m = re.match(r"([^.]+)\..+", os.path.basename(path))
+                m = re.match(r"^(([^\.]+).*)\.[^.]+$", os.path.basename(path))
                 if m is None:
                     raise RuntimeError("Invalid file name.")
+                # remove file extension, file.1.txt -> file.1
                 group = m.group(1)
             if group not in self.files:
                 self.files[group] = set()

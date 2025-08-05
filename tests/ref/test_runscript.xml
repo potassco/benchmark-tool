@@ -38,7 +38,7 @@
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<ignore prefix="pigeons"/>
 		</folder>
-		<folder path="test-folder"/>
+		<folder path="test-folder" group="true"/>
 		<files path="benchmarks/clasp" enctag="test2">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<encoding file="benchmarks/no_pigeons2.lp"/>

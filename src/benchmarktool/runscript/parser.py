@@ -207,6 +207,7 @@ class Parser:
                         </xs:element>
                     </xs:choice>
                     <xs:attribute name="path" type="xs:string" use="required"/>
+                    <xs:attribute name="group" type="xs:boolean"/>
                     <xs:attribute name="enctag">
                         <xs:simpleType>
                             <xs:list itemType="nameType"/>
@@ -418,7 +419,11 @@ class Parser:
             for node in root.xpath("./benchmark"):
                 benchmark = Benchmark(node.get("name"))
                 for child in node.xpath("./folder"):
-                    element = Benchmark.Folder(child.get("path"))
+                    if child.get("group") is not None:
+                        group = child.get("group").lower() == "true"
+                    else:
+                        group = False
+                    element = Benchmark.Folder(child.get("path"), group)
                     if child.get("enctag") is None:
                         tag = set()
                     else:

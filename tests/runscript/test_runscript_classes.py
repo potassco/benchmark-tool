@@ -690,6 +690,7 @@ class TestFolder(TestCase):
         Test class initialization.
         """
         self.assertEqual(self.f.path, self.path)
+        self.assertFalse(self.f.group)
         self.assertSetEqual(self.f.prefixes, set())
         self.assertSetEqual(self.f.encodings, set())
         self.assertSetEqual(self.f.enctags, set())
@@ -727,6 +728,7 @@ class TestFolder(TestCase):
         self.f.add_ignore("root/test")
         self.assertTrue(self.f._skip("root", "test"))
 
+    # pylint: disable=too-many-statements
     def test_init_m(self):
         """
         Test init method.
@@ -737,28 +739,62 @@ class TestFolder(TestCase):
             with self.assertRaises(RuntimeError):
                 self.f.init(benchmark)
 
-        self.f.add_ignore(".invalid.file")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            self.f.add_ignore(".invalid.file")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 4)
+
+            self.f.add_ignore("test_folder")
+            add_inst.reset_mock()
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 3)
 
-        self.f.add_ignore("test_folder")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            self.f.add_ignore("test_f1.2.1.lp")
+            add_inst.reset_mock()
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 2)
 
-        self.f.add_ignore("test_f1.2.lp")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
-            self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 2)
-
-        self.f.add_ignore("test_f2.lp")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            self.f.add_ignore("test_f2.lp")
+            add_inst.reset_mock()
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 1)
 
-        self.f.add_ignore("test_f1.1.lp")
+            self.f.add_ignore("test_f1.1.lp")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 0)
+
+        # with grouping
+        self.setUp()
+        self.f.group = True
+        benchmark = runscript.Benchmark("bench")
+
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            with self.assertRaises(RuntimeError):
+                self.f.init(benchmark)
+
+            self.f.add_ignore(".invalid.file")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 3)
+
+            self.f.add_ignore("test_folder")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 2)
+
+            self.f.add_ignore("test_f1.2.1.lp")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 2)
+
+            self.f.add_ignore("test_f2.lp")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 1)
+
+            self.f.add_ignore("test_f1.1.lp")
+            add_inst.reset_mock()
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 0)
 
@@ -786,7 +822,7 @@ class TestFiles(TestCase):
         Test add_file method.
         """
         file1 = "file1.txt"
-        file2 = "file2.lp"
+        file2 = "file1.2.lp"
         group = "group"
         self.f.add_file(file1)
         self.assertDictEqual(self.f.files, {"file1": {file1}})
@@ -794,6 +830,8 @@ class TestFiles(TestCase):
         self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1}})
         self.f.add_file(file2, group)
         self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1, file2}})
+        self.f.add_file(file2)
+        self.assertDictEqual(self.f.files, {"file1": {file1}, "file1.2": {file2}, group: {file1, file2}})
         with self.assertRaises(RuntimeError):
             self.f.add_file("test")
 
@@ -830,11 +868,12 @@ class TestFiles(TestCase):
 
         self.setUp()
         self.f.add_file("test_bench/test_f1.1.lp")
-        self.f.add_file("test_bench/test_f1.2.lp")
-        self.f.add_file("test_bench/test_f2.lp")
+        self.f.add_file("test_bench/test_f1.2.1.lp")
+        self.f.add_file("test_bench/test_f2.lp", "group")
+        self.f.add_file("test_bench/test_f1.1.lp", "group")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 2)
+            self.assertEqual(add_inst.call_count, 3)
 
 
 class TestBenchmark(TestCase):

@@ -148,6 +148,7 @@ class TestParser(TestCase):
         folder = bench.elements[0]
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
         self.assertEqual(folder.path, "benchmarks/clasp")
+        self.assertFalse(folder.group)
         self.assertSetEqual(folder.prefixes, {"pigeons"})
         self.assertEqual(len(folder.encodings), 1)
         if platform.system() == "Linux":
@@ -156,6 +157,7 @@ class TestParser(TestCase):
         folder = bench.elements[1]
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
         self.assertEqual(folder.path, "test-folder")
+        self.assertTrue(folder.group)
         self.assertSetEqual(folder.prefixes, set())
         self.assertSetEqual(folder.encodings, set())
         self.assertSetEqual(folder.enctags, set())

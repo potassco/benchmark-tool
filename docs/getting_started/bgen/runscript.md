@@ -133,7 +133,7 @@ The benchmark element is mainly used to indicate the location of the instances. 
 
 A benchmark is identified by its *name* and can contain any number of *folder* or *files* elements.
 ```xml
-<folder path="benchmarks/clasp" enctag="tag1">
+<folder path="benchmarks/clasp" enctag="tag1" group="true">
     <ignore prefix="pigeons"/>
     <encoding file="encodings/no-pigeons.lp"/>
 <folder/>
@@ -141,7 +141,7 @@ A benchmark is identified by its *name* and can contain any number of *folder* o
 Folder elements define a *path* to a folder containing instances. The folder is recursively searched. If there are several folders with instances, the folder where the instances are located is taken as a "domain" and there will be an additional separation of the results using these "domains".
 If there are folders that should not be included in the benchmark instances, the *ignore* element can be used to define a *prefix* which will be ignored.
 
-Instance files in the form `<instance>.<extension>` with the same 'instance' located in the same folder are grouped together. For example, if there where files `inst1.1.lp` and `inst1.2.lp` in the same folder, they would be grouped together to 'inst1' and the corresponding job would reference both files using `{run.files}` in the template.
+Instances can be grouped using the the optional boolean *group* attribute of the *folder* element. By default this value is set to `false`. If enbaled, instance files in the form `<instance>.<extension>` with the same 'instance' located in the same folder are grouped together. For example, if there where files `inst1.1.lp` and `inst1.2.1.lp` in the same folder, they would be grouped together to 'inst1' and the corresponding job would reference both files using `{run.files}` in the template.
 
 It is also possible to specify any amount of encodings which should be called together with all instances in this folder by using the *encoding* element. Setting-depended encodings can be added by using the optional *enctag* attribute. A more detailed explanation with examples for encoding support can be found [here](../../reference/encoding_support.md).
 
@@ -162,7 +162,7 @@ Specified instance files can optionally be grouped together using the *group* at
 </files>
 ```
 
-Grouped instances have to be located in the same directory. If no groups are specified, instance files are grouped together similar to the *folder* element above, i.e. when in the form `<instance>.<extension>`.
+Grouped instances have to be located in the same directory. If no groups are specified, instance files are not grouped.
 
 The *files* element does also support instance- and setting-depended encodings. More information can be found [here](../../reference/encoding_support.md).
 
