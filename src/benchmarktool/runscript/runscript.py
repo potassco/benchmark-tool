@@ -116,8 +116,9 @@ class Setting:
         order (int):    An integer specifying the order of settings.
                         (This should denote the occurrence in the job specification.
                         Again in the scope of a system.)
-        disttemplate (str):     Path to dist-template file. (dist only, related to mpi-version)
-        attr (dict[str, Any]): A dictionary of additional optional attributes.
+        disttemplate (str):              Path to dist-template file. (dist only, related to mpi-version)
+        attr (dict[str, Any]):           A dictionary of additional optional attributes.
+        slurm_options (Optional[str]):   Additional SLURM options for this setting.
         encodings (dict[str, set[str]]): Encodings used with this setting, keyed with tags.
     """
 
@@ -128,6 +129,7 @@ class Setting:
     disttemplate: str = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
 
+    slurm_options: str = field(default="", compare=False)
     encodings: dict[str, set[str]] = field(compare=False, default_factory=dict)
 
     def to_xml(self, out: Any, indent: str) -> None:
@@ -144,6 +146,8 @@ class Setting:
             out.write(' {0}="{1}"'.format("disttemplate", self.disttemplate))
         for key, val in self.attr.items():
             out.write(' {0}="{1}"'.format(key, val))
+        if self.slurm_options != "":
+            out.write(' {0}="{1}"'.format("slurmopts", self.slurm_options))
         out.write(">\n")
         for enctag, encodings in self.encodings.items():
             for enc in sorted(encodings):
@@ -600,6 +604,10 @@ class DistScriptGen(ScriptGen):
                 with open(self.runspec.setting.disttemplate, "r", encoding="utf8") as f:
                     template = f.read()
                 script = os.path.join(self.path, "start{0:04}.dist".format(len(self.queue)))
+                if self.runspec.setting.slurm_options != "":
+                    slurmopts = "#SBATCH " + "\n#SBATCH ".join(self.runspec.setting.slurm_options.split()) + "\n"
+                else:
+                    slurmopts = ""
                 with open(script, "w", encoding="utf8") as f:
                     f.write(
                         template.format(
@@ -607,6 +615,7 @@ class DistScriptGen(ScriptGen):
                             jobs=self.startscripts,
                             cpt=self.runspec.project.job.cpt,
                             partition=self.runspec.project.job.partition,
+                            slurm_options=slurmopts,
                         )
                     )
                 self.queue.append(script)
@@ -650,7 +659,7 @@ class DistScriptGen(ScriptGen):
         assert isinstance(self.job, DistJob)
         tools.mkdir_p(path)
         queue: list[str] = []
-        dist_scripts: dict[tuple[Optional[int], Optional[int], str, int, int, str], DistScriptGen.DistScript] = {}
+        dist_scripts: dict[tuple[str, Optional[str], int, int, str], DistScriptGen.DistScript] = {}
         for runspec, instpath, instname in self.startfiles:
             assert isinstance(runspec.project, Project)
             assert isinstance(runspec.project.job, DistJob)
@@ -658,6 +667,7 @@ class DistScriptGen(ScriptGen):
             job_script = os.path.join(relpath, instname)
             dist_key = (
                 runspec.setting.disttemplate,
+                runspec.setting.slurm_options,
                 runspec.project.job.walltime,
                 runspec.project.job.cpt,
                 runspec.project.job.partition,

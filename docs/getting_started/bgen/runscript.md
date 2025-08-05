@@ -82,13 +82,22 @@ Settings are identified by their name and define additional arguments and encodi
     <encoding file="extra.lp" tag="extra"/>
 </setting>
 ```
- The  value of the *cmdline* attribute can be any valid string, which will be passed to the system via the run template when this setting is selected.
+ The value of the *cmdline* attribute can be any valid string, which will be passed to the system via the run template when this setting is selected.
 
  The *tag* attribute is another identifier, which is only valid inside this runscript and is used to select multiple setting at once.
 
  Each setting can also contain any number of encoding elements. The *file* attribute is a relative path from the directory, where `bgen` is run, to the encoding. If no *tag* is defined the encoding is passed to the system via the run template for all instances when this setting is selected. A *tag* can be provided to make the encoding usage instance dependant. Multiple encodings can be selected by using the same tag.
 
  The setting element additionaly supports an optional attribute *disttemplate*. The default value is `"templates/single.dist"` which is a reference to [single.dist](https://github.com/potassco/benchmark-tool/blob/master/templates/single.dist). This attribute is only relevant for distjobs. More information to dist templates can be found [here](templates.md#dist-templates).
+
+ Another optional attribute only used for distjobs is *slurmopts*, which allows the user to add additional slurm options. *slurmopts* expects a string of space separated options. For example `slurmopts="--hint=compute_bound --job-name="my_benchmark_run"` results in the following lines being added to the script:
+
+ ```
+ #SBATCH --hint=compute_bound
+ #SBATCH --job-name="my_benchmark_run"
+ ```
+
+For a list of available SLURM options check [here](https://slurm.schedmd.com/sbatch.html).
 
 ## Job
 

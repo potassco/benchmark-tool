@@ -114,6 +114,7 @@ class TestParser(TestCase):
         self.assertSetEqual(setting.tag, {"par", "one-as"})
         self.assertEqual(setting.order, 0)
         self.assertEqual(setting.disttemplate, "templates/impi.dist")
+        self.assertEqual(setting.slurm_options, "--test=1 --opt=test")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
         setting = system.settings["min"]
@@ -123,6 +124,7 @@ class TestParser(TestCase):
         self.assertSetEqual(setting.tag, set())
         self.assertEqual(setting.order, 2)
         self.assertEqual(setting.disttemplate, "templates/single.dist")
+        self.assertEqual(setting.slurm_options, "")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": set(), "test": {"test21.lp"}, "test2": {"test22.lp"}})
 

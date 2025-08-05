@@ -6,7 +6,7 @@ representation in form of python classes.
 
 __author__ = "Roland Kaminski"
 import os
-from typing import Any, Optional
+from typing import Any
 
 from lxml import etree  # type: ignore[import-untyped]
 
@@ -118,6 +118,7 @@ class Parser:
                         </xs:simpleType>
                     </xs:attribute>
                     <xs:attribute name="disttemplate" type="xs:string"/>
+                    <xs:attribute name="slurmopts" type="xs:string"/>
                     <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
             </xs:element>
@@ -374,25 +375,24 @@ class Parser:
 
             compound_settings: dict[str, list[str]] = {}
             system_order = 0
-            procs: list[Optional[int]]
             for node in root.xpath("./system"):
                 config = run.configs[node.get("config")]
                 system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
                 setting_order = 0
                 sys_cmdline = node.get("cmdline")
                 for child in node.xpath("setting"):
-                    attr = self._filter_attr(child, ["name", "cmdline", "tag"])
+                    attr = self._filter_attr(child, ["name", "cmdline", "tag", "slurmopts", "disttemplate"])
                     compound_settings[child.get("name")] = []
-                    if "disttemplate" in attr:
-                        disttemplate = attr["disttemplate"]
-                        del attr["disttemplate"]
-                    else:
+                    disttemplate = child.get("disttemplate")
+                    if disttemplate is None:
                         disttemplate = "templates/single.dist"
                     if child.get("tag") is None:
                         tag = set()
                     else:
                         tag = set(child.get("tag").split(None))
-
+                    slurm_options = child.get("slurmopts")
+                    if slurm_options is None:
+                        slurm_options = ""
                     encodings: dict[str, set[str]] = {"_default_": set()}
                     for grandchild in child.xpath("./encoding"):
                         if grandchild.get("enctag") is None:
@@ -407,7 +407,7 @@ class Parser:
                     cmdline = " ".join(filter(None, [sys_cmdline, child.get("cmdline")]))
                     name = child.get("name")
                     compound_settings[child.get("name")].append(name)
-                    setting = Setting(name, cmdline, tag, setting_order, disttemplate, attr, encodings)
+                    setting = Setting(name, cmdline, tag, setting_order, disttemplate, attr, slurm_options, encodings)
                     system.add_setting(setting)
                     setting_order += 1
 

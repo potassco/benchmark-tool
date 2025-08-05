@@ -16,7 +16,7 @@
 
 	<config name="dist-generic" template="templates/seq-generic.sh"/>
 	<system name="clingo" version="5.8.0" measures="clasp" config="dist-generic">
-		<setting name="one-as" tag="one-as" cmdline="--stats 1" disttemplate="templates/single.dist"/>
+		<setting name="one-as" tag="one-as" cmdline="--stats 1" disttemplate="templates/single.dist" slurmopts="--hint=compute_bound"/>
 		<setting name="all-as" tag="all-as" cmdline="--stats -q 0"/>
 	</system>
 

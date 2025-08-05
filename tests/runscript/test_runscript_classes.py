@@ -103,9 +103,7 @@ class TestSetting(TestCase):
         """
         Test to_xml method.
         """
-        s = runscript.Setting(
-            self.name, self.cmdline, self.tag, self.order, self.template, self.attr
-        )
+        s = runscript.Setting(self.name, self.cmdline, self.tag, self.order, self.template, self.attr)
         o = io.StringIO()
         s.to_xml(o, "\t")
         self.assertEqual(
@@ -122,13 +120,15 @@ class TestSetting(TestCase):
             self.order,
             self.template,
             {},
+            "--test=1 --opt=test",
             {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}},
         )
         o = io.StringIO()
         s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" disttemplate="template">\n'
+            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
+            'disttemplate="template" slurmopts="--test=1 --opt=test">\n'
             '\t\t<encoding file="def.lp"/>\n'
             '\t\t<encoding file="test1.lp" tag="test"/>\n'
             '\t\t<encoding file="test2.lp" tag="test"/>\n'
@@ -480,8 +480,7 @@ class TestDistScript(TestCase):
         ps.num = 1
         ps.runspec.setting = mock.Mock(spec=runscript.Setting)
         ps.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
-        ps.runspec.setting.procs = 4
-        ps.runspec.setting.ppn = 2
+        ps.runspec.setting.slurm_options = "--test=1 --opt=test"
 
         ps.runspec.project = mock.Mock(spec=runscript.Project)
         ps.runspec.project.job = mock.Mock(spec=runscript.DistJob)
@@ -496,7 +495,15 @@ class TestDistScript(TestCase):
         with open("./tests/ref/start0000.dist", "r", encoding="utf8") as f:
             x = f.read()
         self.assertEqual(
-            x, '#SBATCH --time=00:01:40\n#SBATCH --cpus-per-task=1\n#SBATCH --partition=all\n\njobs="job.sh"\n'
+            x,
+            "#SBATCH --time=00:01:40\n"
+            "#SBATCH --cpus-per-task=1\n"
+            "#SBATCH --partition=all\n"
+            "#SBATCH --test=1\n"
+            "#SBATCH --opt=test\n"
+            "\n"
+            "\n"
+            'jobs="job.sh"\n',
         )
         os.remove("./tests/ref/start0000.dist")
 
@@ -543,8 +550,7 @@ class TestDistScriptGen(TestScriptGen):
         Test gen_start_script method.
         """
         self.setup_obj()
-        self.runspec.setting.ppn = 1
-        self.runspec.setting.procs = 2
+        self.runspec.setting.slurm_options = ""
         self.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
         self.runspec.project.job.walltime = 20
         self.runspec.project.job.cpt = 4
