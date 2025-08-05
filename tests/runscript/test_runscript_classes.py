@@ -96,8 +96,6 @@ class TestSetting(TestCase):
         self.cmdline = "cmdline"
         self.tag = {"tag1", "tag2"}
         self.order = 0
-        self.procs = 1
-        self.ppn = 2
         self.template = "template"
         self.attr = {"key": "val"}
 
@@ -106,14 +104,14 @@ class TestSetting(TestCase):
         Test to_xml method.
         """
         s = runscript.Setting(
-            self.name, self.cmdline, self.tag, self.order, self.procs, self.ppn, self.template, self.attr
+            self.name, self.cmdline, self.tag, self.order, self.template, self.attr
         )
         o = io.StringIO()
         s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
             '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
-            'procs="1" ppn="2" disttemplate="template" key="val">\n'
+            'disttemplate="template" key="val">\n'
             "\t</setting>\n",
         )
 
@@ -122,8 +120,6 @@ class TestSetting(TestCase):
             self.cmdline,
             self.tag,
             self.order,
-            None,
-            None,
             self.template,
             {},
             {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}},

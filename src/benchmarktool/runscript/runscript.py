@@ -116,8 +116,6 @@ class Setting:
         order (int):    An integer specifying the order of settings.
                         (This should denote the occurrence in the job specification.
                         Again in the scope of a system.)
-        procs (Optional[int]): Number of processes used by the solver. (dist only)
-        ppn (Optional[int]):   Processes per node. (dist only)
         disttemplate (str):     Path to dist-template file. (dist only, related to mpi-version)
         attr (dict[str, Any]): A dictionary of additional optional attributes.
         encodings (dict[str, set[str]]): Encodings used with this setting, keyed with tags.
@@ -127,8 +125,6 @@ class Setting:
     cmdline: str = field(compare=False)
     tag: set[str] = field(compare=False)
     order: int = field(compare=False)
-    procs: Optional[int] = field(compare=False)
-    ppn: Optional[int] = field(compare=False)
     disttemplate: str = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
 
@@ -144,10 +140,6 @@ class Setting:
         """
         tag = " ".join(sorted(self.tag))
         out.write('{1}<setting name="{0.name}" cmdline="{0.cmdline}" tag="{2}"'.format(self, indent, tag))
-        if self.procs is not None:
-            out.write(' {0}="{1}"'.format("procs", self.procs))
-        if self.ppn is not None:
-            out.write(' {0}="{1}"'.format("ppn", self.ppn))
         if self.disttemplate is not None:
             out.write(' {0}="{1}"'.format("disttemplate", self.disttemplate))
         for key, val in self.attr.items():
@@ -612,8 +604,6 @@ class DistScriptGen(ScriptGen):
                     f.write(
                         template.format(
                             walltime=tools.dist_time(self.runspec.project.job.walltime),
-                            nodes=self.runspec.setting.procs,
-                            ppn=self.runspec.setting.ppn,
                             jobs=self.startscripts,
                             cpt=self.runspec.project.job.cpt,
                             partition=self.runspec.project.job.partition,
@@ -667,8 +657,6 @@ class DistScriptGen(ScriptGen):
             relpath = os.path.relpath(instpath, path)
             job_script = os.path.join(relpath, instname)
             dist_key = (
-                runspec.setting.ppn,
-                runspec.setting.procs,
                 runspec.setting.disttemplate,
                 runspec.project.job.walltime,
                 runspec.project.job.cpt,

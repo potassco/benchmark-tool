@@ -117,12 +117,6 @@ class Parser:
                             <xs:list itemType="nameType"/>
                         </xs:simpleType>
                     </xs:attribute>
-                    <xs:attribute name="ppn" type="xs:positiveInteger"/>
-                    <xs:attribute name="procs">
-                        <xs:simpleType>
-                            <xs:list itemType="xs:integer"/>
-                         </xs:simpleType>
-                    </xs:attribute>
                     <xs:attribute name="disttemplate" type="xs:string"/>
                     <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
@@ -389,16 +383,6 @@ class Parser:
                 for child in node.xpath("setting"):
                     attr = self._filter_attr(child, ["name", "cmdline", "tag"])
                     compound_settings[child.get("name")] = []
-                    if "procs" in attr:
-                        procs = [int(proc) for proc in attr["procs"].split(None)]
-                        del attr["procs"]
-                    else:
-                        procs = [None]
-                    if "ppn" in attr:
-                        ppn = int(attr["ppn"])
-                        del attr["ppn"]
-                    else:
-                        ppn = None
                     if "disttemplate" in attr:
                         disttemplate = attr["disttemplate"]
                         del attr["disttemplate"]
@@ -421,14 +405,11 @@ class Parser:
                                 encodings[t].add(os.path.normpath(grandchild.get("file")))
 
                     cmdline = " ".join(filter(None, [sys_cmdline, child.get("cmdline")]))
-                    for num in procs:
-                        name = child.get("name")
-                        if num is not None:
-                            name += "-n{0}".format(num)
-                        compound_settings[child.get("name")].append(name)
-                        setting = Setting(name, cmdline, tag, setting_order, num, ppn, disttemplate, attr, encodings)
-                        system.add_setting(setting)
-                        setting_order += 1
+                    name = child.get("name")
+                    compound_settings[child.get("name")].append(name)
+                    setting = Setting(name, cmdline, tag, setting_order, disttemplate, attr, encodings)
+                    system.add_setting(setting)
+                    setting_order += 1
 
                 run.systems[(system.name, system.version)] = system
                 system_order += 1
