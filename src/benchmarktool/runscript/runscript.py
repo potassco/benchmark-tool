@@ -969,7 +969,6 @@ class Benchmark:
                     if group not in instances:
                         instances[group] = set()
                     instances[group].add(filename)
-                print(instances)
                 for group, instfiles in instances.items():
                     benchmark.add_instance(self.path, relroot, (group, instfiles), self.encodings, self.enctags)
 
