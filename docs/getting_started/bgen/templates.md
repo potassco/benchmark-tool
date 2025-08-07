@@ -31,10 +31,16 @@ Dist templates describes how a single new job will look like, when grouping mult
 
 While parameters can be set using the default `#SBATCH` syntax of SLURM, environments can be loaded explicitly in this file or by sourcing a `.bashrc`file.
 
-To be able to load modules installed on the cluster, e.g. anaconda, use:
+For example to activate a locally installed miniconda environment on the cluster add:
 ```bash
-source /etc/profile.d/modules.sh
-
-module load lang/Anaconda3/2024.02-1
+source ~/.bashrc
+source ~/miniconda3/bin/activate
 source activate <env-name>
 ```
+
+The following references can currently be used:  
+`walltime`: the overall time limit  
+`cpt`: the number of cpus per tasks  
+`partition`: the cluster partition to be used  
+`slurm_options`: additional slurm options  
+`jobs`: a list of jobs to be run  

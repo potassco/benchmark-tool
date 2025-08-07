@@ -17,12 +17,12 @@
 
 	<config name="dist-generic" template="templates/dist-generic.sh"/>
 	<system name="claspar" version="2.1.0" measures="claspar" config="dist-generic" cmdline="--stats">
-		<setting name="one-as" tag="par one-as" cmdline="1" ppn="2" procs="1 2 4 8" disttemplate="templates/impi.dist">
+		<setting name="one-as" tag="par one-as" cmdline="1" slurmopts="--test=1 --opt=test" disttemplate="templates/impi.dist">
 			<encoding file="def.lp"/>
 			<encoding file="test1.lp" enctag="test"/>
 			<encoding file="test2.lp" enctag="test"/>
 		</setting>
-		<setting name="all-as" tag="par all-as" cmdline="-q 0" ppn="2" procs="1 2 4 8" disttemplate="templates/impi.dist"/>
+		<setting name="all-as" tag="par all-as" cmdline="-q 0" disttemplate="templates/impi.dist"/>
 		<setting name="min">
 			<encoding file="test21.lp" enctag="test"/>
 			<encoding file="test22.lp" enctag="test2"/>
@@ -38,7 +38,7 @@
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<ignore prefix="pigeons"/>
 		</folder>
-		<folder path="test-folder"/>
+		<folder path="test-folder" group="true"/>
 		<files path="benchmarks/clasp" enctag="test2">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<encoding file="benchmarks/no_pigeons2.lp"/>

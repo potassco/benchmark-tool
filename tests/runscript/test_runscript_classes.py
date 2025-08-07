@@ -96,8 +96,6 @@ class TestSetting(TestCase):
         self.cmdline = "cmdline"
         self.tag = {"tag1", "tag2"}
         self.order = 0
-        self.procs = 1
-        self.ppn = 2
         self.template = "template"
         self.attr = {"key": "val"}
 
@@ -105,15 +103,13 @@ class TestSetting(TestCase):
         """
         Test to_xml method.
         """
-        s = runscript.Setting(
-            self.name, self.cmdline, self.tag, self.order, self.procs, self.ppn, self.template, self.attr
-        )
+        s = runscript.Setting(self.name, self.cmdline, self.tag, self.order, self.template, self.attr)
         o = io.StringIO()
         s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
             '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
-            'procs="1" ppn="2" disttemplate="template" key="val">\n'
+            'disttemplate="template" key="val">\n'
             "\t</setting>\n",
         )
 
@@ -122,17 +118,17 @@ class TestSetting(TestCase):
             self.cmdline,
             self.tag,
             self.order,
-            None,
-            None,
             self.template,
             {},
+            "--test=1 --opt=test",
             {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}},
         )
         o = io.StringIO()
         s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" disttemplate="template">\n'
+            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
+            'disttemplate="template" slurmopts="--test=1 --opt=test">\n'
             '\t\t<encoding file="def.lp"/>\n'
             '\t\t<encoding file="test1.lp" tag="test"/>\n'
             '\t\t<encoding file="test2.lp" tag="test"/>\n'
@@ -484,8 +480,7 @@ class TestDistScript(TestCase):
         ps.num = 1
         ps.runspec.setting = mock.Mock(spec=runscript.Setting)
         ps.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
-        ps.runspec.setting.procs = 4
-        ps.runspec.setting.ppn = 2
+        ps.runspec.setting.slurm_options = "--test=1 --opt=test"
 
         ps.runspec.project = mock.Mock(spec=runscript.Project)
         ps.runspec.project.job = mock.Mock(spec=runscript.DistJob)
@@ -500,7 +495,15 @@ class TestDistScript(TestCase):
         with open("./tests/ref/start0000.dist", "r", encoding="utf8") as f:
             x = f.read()
         self.assertEqual(
-            x, '#SBATCH --time=00:01:40\n#SBATCH --cpus-per-task=1\n#SBATCH --partition=all\n\njobs="job.sh"\n'
+            x,
+            "#SBATCH --time=00:01:40\n"
+            "#SBATCH --cpus-per-task=1\n"
+            "#SBATCH --partition=all\n"
+            "#SBATCH --test=1\n"
+            "#SBATCH --opt=test\n"
+            "\n"
+            "\n"
+            'jobs="job.sh"\n',
         )
         os.remove("./tests/ref/start0000.dist")
 
@@ -547,8 +550,7 @@ class TestDistScriptGen(TestScriptGen):
         Test gen_start_script method.
         """
         self.setup_obj()
-        self.runspec.setting.ppn = 1
-        self.runspec.setting.procs = 2
+        self.runspec.setting.slurm_options = ""
         self.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
         self.runspec.project.job.walltime = 20
         self.runspec.project.job.cpt = 4
@@ -688,6 +690,7 @@ class TestFolder(TestCase):
         Test class initialization.
         """
         self.assertEqual(self.f.path, self.path)
+        self.assertFalse(self.f.group)
         self.assertSetEqual(self.f.prefixes, set())
         self.assertSetEqual(self.f.encodings, set())
         self.assertSetEqual(self.f.enctags, set())
@@ -725,6 +728,7 @@ class TestFolder(TestCase):
         self.f.add_ignore("root/test")
         self.assertTrue(self.f._skip("root", "test"))
 
+    # pylint: disable=too-many-statements
     def test_init_m(self):
         """
         Test init method.
@@ -735,28 +739,62 @@ class TestFolder(TestCase):
             with self.assertRaises(RuntimeError):
                 self.f.init(benchmark)
 
-        self.f.add_ignore(".invalid.file")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            self.f.add_ignore(".invalid.file")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 4)
+
+            self.f.add_ignore("test_folder")
+            add_inst.reset_mock()
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 3)
 
-        self.f.add_ignore("test_folder")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            self.f.add_ignore("test_f1.2.1.lp")
+            add_inst.reset_mock()
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 2)
 
-        self.f.add_ignore("test_f1.2.lp")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
-            self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 2)
-
-        self.f.add_ignore("test_f2.lp")
-        with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            self.f.add_ignore("test_f2.lp")
+            add_inst.reset_mock()
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 1)
 
-        self.f.add_ignore("test_f1.1.lp")
+            self.f.add_ignore("test_f1.1.lp")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 0)
+
+        # with grouping
+        self.setUp()
+        self.f.group = True
+        benchmark = runscript.Benchmark("bench")
+
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
+            with self.assertRaises(RuntimeError):
+                self.f.init(benchmark)
+
+            self.f.add_ignore(".invalid.file")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 3)
+
+            self.f.add_ignore("test_folder")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 2)
+
+            self.f.add_ignore("test_f1.2.1.lp")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 2)
+
+            self.f.add_ignore("test_f2.lp")
+            add_inst.reset_mock()
+            self.f.init(benchmark)
+            self.assertEqual(add_inst.call_count, 1)
+
+            self.f.add_ignore("test_f1.1.lp")
+            add_inst.reset_mock()
             self.f.init(benchmark)
             self.assertEqual(add_inst.call_count, 0)
 
@@ -784,7 +822,7 @@ class TestFiles(TestCase):
         Test add_file method.
         """
         file1 = "file1.txt"
-        file2 = "file2.lp"
+        file2 = "file1.2.lp"
         group = "group"
         self.f.add_file(file1)
         self.assertDictEqual(self.f.files, {"file1": {file1}})
@@ -792,6 +830,8 @@ class TestFiles(TestCase):
         self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1}})
         self.f.add_file(file2, group)
         self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1, file2}})
+        self.f.add_file(file2)
+        self.assertDictEqual(self.f.files, {"file1": {file1}, "file1.2": {file2}, group: {file1, file2}})
         with self.assertRaises(RuntimeError):
             self.f.add_file("test")
 
@@ -828,11 +868,12 @@ class TestFiles(TestCase):
 
         self.setUp()
         self.f.add_file("test_bench/test_f1.1.lp")
-        self.f.add_file("test_bench/test_f1.2.lp")
-        self.f.add_file("test_bench/test_f2.lp")
+        self.f.add_file("test_bench/test_f1.2.1.lp")
+        self.f.add_file("test_bench/test_f2.lp", "group")
+        self.f.add_file("test_bench/test_f1.1.lp", "group")
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.add_instance") as add_inst:
             self.f.init(benchmark)
-            self.assertEqual(add_inst.call_count, 2)
+            self.assertEqual(add_inst.call_count, 3)
 
 
 class TestBenchmark(TestCase):

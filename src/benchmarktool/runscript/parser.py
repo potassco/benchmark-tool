@@ -6,7 +6,7 @@ representation in form of python classes.
 
 __author__ = "Roland Kaminski"
 import os
-from typing import Any, Optional
+from typing import Any
 
 from lxml import etree  # type: ignore[import-untyped]
 
@@ -117,13 +117,8 @@ class Parser:
                             <xs:list itemType="nameType"/>
                         </xs:simpleType>
                     </xs:attribute>
-                    <xs:attribute name="ppn" type="xs:positiveInteger"/>
-                    <xs:attribute name="procs">
-                        <xs:simpleType>
-                            <xs:list itemType="xs:integer"/>
-                         </xs:simpleType>
-                    </xs:attribute>
                     <xs:attribute name="disttemplate" type="xs:string"/>
+                    <xs:attribute name="slurmopts" type="xs:string"/>
                     <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
             </xs:element>
@@ -212,6 +207,7 @@ class Parser:
                         </xs:element>
                     </xs:choice>
                     <xs:attribute name="path" type="xs:string" use="required"/>
+                    <xs:attribute name="group" type="xs:boolean"/>
                     <xs:attribute name="enctag">
                         <xs:simpleType>
                             <xs:list itemType="nameType"/>
@@ -380,35 +376,24 @@ class Parser:
 
             compound_settings: dict[str, list[str]] = {}
             system_order = 0
-            procs: list[Optional[int]]
             for node in root.xpath("./system"):
                 config = run.configs[node.get("config")]
                 system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
                 setting_order = 0
                 sys_cmdline = node.get("cmdline")
                 for child in node.xpath("setting"):
-                    attr = self._filter_attr(child, ["name", "cmdline", "tag"])
+                    attr = self._filter_attr(child, ["name", "cmdline", "tag", "slurmopts", "disttemplate"])
                     compound_settings[child.get("name")] = []
-                    if "procs" in attr:
-                        procs = [int(proc) for proc in attr["procs"].split(None)]
-                        del attr["procs"]
-                    else:
-                        procs = [None]
-                    if "ppn" in attr:
-                        ppn = int(attr["ppn"])
-                        del attr["ppn"]
-                    else:
-                        ppn = None
-                    if "disttemplate" in attr:
-                        disttemplate = attr["disttemplate"]
-                        del attr["disttemplate"]
-                    else:
+                    disttemplate = child.get("disttemplate")
+                    if disttemplate is None:
                         disttemplate = "templates/single.dist"
                     if child.get("tag") is None:
                         tag = set()
                     else:
                         tag = set(child.get("tag").split(None))
-
+                    slurm_options = child.get("slurmopts")
+                    if slurm_options is None:
+                        slurm_options = ""
                     encodings: dict[str, set[str]] = {"_default_": set()}
                     for grandchild in child.xpath("./encoding"):
                         if grandchild.get("enctag") is None:
@@ -421,14 +406,11 @@ class Parser:
                                 encodings[t].add(os.path.normpath(grandchild.get("file")))
 
                     cmdline = " ".join(filter(None, [sys_cmdline, child.get("cmdline")]))
-                    for num in procs:
-                        name = child.get("name")
-                        if num is not None:
-                            name += "-n{0}".format(num)
-                        compound_settings[child.get("name")].append(name)
-                        setting = Setting(name, cmdline, tag, setting_order, num, ppn, disttemplate, attr, encodings)
-                        system.add_setting(setting)
-                        setting_order += 1
+                    name = child.get("name")
+                    compound_settings[child.get("name")].append(name)
+                    setting = Setting(name, cmdline, tag, setting_order, disttemplate, attr, slurm_options, encodings)
+                    system.add_setting(setting)
+                    setting_order += 1
 
                 run.systems[(system.name, system.version)] = system
                 system_order += 1
@@ -437,7 +419,11 @@ class Parser:
             for node in root.xpath("./benchmark"):
                 benchmark = Benchmark(node.get("name"))
                 for child in node.xpath("./folder"):
-                    element = Benchmark.Folder(child.get("path"))
+                    if child.get("group") is not None:
+                        group = child.get("group").lower() == "true"
+                    else:
+                        group = False
+                    element = Benchmark.Folder(child.get("path"), group)
                     if child.get("enctag") is None:
                         tag = set()
                     else:

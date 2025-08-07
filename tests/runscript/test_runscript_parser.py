@@ -102,31 +102,19 @@ class TestParser(TestCase):
         self.assertEqual(system.version, "2.1.0")
         self.assertEqual(system.measures, "claspar")
         self.assertEqual(system.order, 1)
-        self.assertEqual(len(system.settings), 2 * 4 + 1)  # 2 settings * 4 procs + 1 extra
+        self.assertEqual(len(system.settings), 3)
         self.assertIsInstance(system.config, runscript.Config)
         self.assertEqual(system.config.name, "dist-generic")
 
         # settings
-        setting = system.settings["one-as-n1"]
+        setting = system.settings["one-as"]
         self.assertIsInstance(setting, runscript.Setting)
-        self.assertEqual(setting.name, "one-as-n1")
+        self.assertEqual(setting.name, "one-as")
         self.assertEqual(setting.cmdline, "--stats 1")
         self.assertSetEqual(setting.tag, {"par", "one-as"})
         self.assertEqual(setting.order, 0)
-        self.assertEqual(setting.procs, 1)
-        self.assertEqual(setting.ppn, 2)
         self.assertEqual(setting.disttemplate, "templates/impi.dist")
-        self.assertDictEqual(setting.attr, {})
-        self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
-        setting = system.settings["one-as-n8"]
-        self.assertIsInstance(setting, runscript.Setting)
-        self.assertEqual(setting.name, "one-as-n8")
-        self.assertEqual(setting.cmdline, "--stats 1")
-        self.assertSetEqual(setting.tag, {"par", "one-as"})
-        self.assertEqual(setting.order, 3)
-        self.assertEqual(setting.procs, 8)
-        self.assertEqual(setting.ppn, 2)
-        self.assertEqual(setting.disttemplate, "templates/impi.dist")
+        self.assertEqual(setting.slurm_options, "--test=1 --opt=test")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
         setting = system.settings["min"]
@@ -134,10 +122,9 @@ class TestParser(TestCase):
         self.assertEqual(setting.name, "min")
         self.assertEqual(setting.cmdline, "--stats")
         self.assertSetEqual(setting.tag, set())
-        self.assertEqual(setting.order, 8)
-        self.assertIsNone(setting.procs)
-        self.assertIsNone(setting.ppn)
+        self.assertEqual(setting.order, 2)
         self.assertEqual(setting.disttemplate, "templates/single.dist")
+        self.assertEqual(setting.slurm_options, "")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": set(), "test": {"test21.lp"}, "test2": {"test22.lp"}})
 
@@ -161,6 +148,7 @@ class TestParser(TestCase):
         folder = bench.elements[0]
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
         self.assertEqual(folder.path, "benchmarks/clasp")
+        self.assertFalse(folder.group)
         self.assertSetEqual(folder.prefixes, {"pigeons"})
         self.assertEqual(len(folder.encodings), 1)
         if platform.system() == "Linux":
@@ -169,6 +157,7 @@ class TestParser(TestCase):
         folder = bench.elements[1]
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
         self.assertEqual(folder.path, "test-folder")
+        self.assertTrue(folder.group)
         self.assertSetEqual(folder.prefixes, set())
         self.assertSetEqual(folder.encodings, set())
         self.assertSetEqual(folder.enctags, set())

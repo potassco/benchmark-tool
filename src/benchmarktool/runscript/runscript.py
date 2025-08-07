@@ -116,10 +116,9 @@ class Setting:
         order (int):    An integer specifying the order of settings.
                         (This should denote the occurrence in the job specification.
                         Again in the scope of a system.)
-        procs (Optional[int]): Number of processes used by the solver. (dist only)
-        ppn (Optional[int]):   Processes per node. (dist only)
-        disttemplate (str):     Path to dist-template file. (dist only, related to mpi-version)
-        attr (dict[str, Any]): A dictionary of additional optional attributes.
+        disttemplate (str):              Path to dist-template file. (dist only, related to mpi-version)
+        attr (dict[str, Any]):           A dictionary of additional optional attributes.
+        slurm_options (Optional[str]):   Additional SLURM options for this setting.
         encodings (dict[str, set[str]]): Encodings used with this setting, keyed with tags.
     """
 
@@ -127,11 +126,10 @@ class Setting:
     cmdline: str = field(compare=False)
     tag: set[str] = field(compare=False)
     order: int = field(compare=False)
-    procs: Optional[int] = field(compare=False)
-    ppn: Optional[int] = field(compare=False)
     disttemplate: str = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
 
+    slurm_options: str = field(default="", compare=False)
     encodings: dict[str, set[str]] = field(compare=False, default_factory=dict)
 
     def to_xml(self, out: Any, indent: str) -> None:
@@ -144,14 +142,12 @@ class Setting:
         """
         tag = " ".join(sorted(self.tag))
         out.write('{1}<setting name="{0.name}" cmdline="{0.cmdline}" tag="{2}"'.format(self, indent, tag))
-        if self.procs is not None:
-            out.write(' {0}="{1}"'.format("procs", self.procs))
-        if self.ppn is not None:
-            out.write(' {0}="{1}"'.format("ppn", self.ppn))
         if self.disttemplate is not None:
             out.write(' {0}="{1}"'.format("disttemplate", self.disttemplate))
         for key, val in self.attr.items():
             out.write(' {0}="{1}"'.format(key, val))
+        if self.slurm_options != "":
+            out.write(' {0}="{1}"'.format("slurmopts", self.slurm_options))
         out.write(">\n")
         for enctag, encodings in self.encodings.items():
             for enc in sorted(encodings):
@@ -608,15 +604,18 @@ class DistScriptGen(ScriptGen):
                 with open(self.runspec.setting.disttemplate, "r", encoding="utf8") as f:
                     template = f.read()
                 script = os.path.join(self.path, "start{0:04}.dist".format(len(self.queue)))
+                if self.runspec.setting.slurm_options != "":
+                    slurmopts = "#SBATCH " + "\n#SBATCH ".join(self.runspec.setting.slurm_options.split()) + "\n"
+                else:
+                    slurmopts = ""
                 with open(script, "w", encoding="utf8") as f:
                     f.write(
                         template.format(
                             walltime=tools.dist_time(self.runspec.project.job.walltime),
-                            nodes=self.runspec.setting.procs,
-                            ppn=self.runspec.setting.ppn,
                             jobs=self.startscripts,
                             cpt=self.runspec.project.job.cpt,
                             partition=self.runspec.project.job.partition,
+                            slurm_options=slurmopts,
                         )
                     )
                 self.queue.append(script)
@@ -660,16 +659,15 @@ class DistScriptGen(ScriptGen):
         assert isinstance(self.job, DistJob)
         tools.mkdir_p(path)
         queue: list[str] = []
-        dist_scripts: dict[tuple[Optional[int], Optional[int], str, int, int, str], DistScriptGen.DistScript] = {}
+        dist_scripts: dict[tuple[str, Optional[str], int, int, str], DistScriptGen.DistScript] = {}
         for runspec, instpath, instname in self.startfiles:
             assert isinstance(runspec.project, Project)
             assert isinstance(runspec.project.job, DistJob)
             relpath = os.path.relpath(instpath, path)
             job_script = os.path.join(relpath, instname)
             dist_key = (
-                runspec.setting.ppn,
-                runspec.setting.procs,
                 runspec.setting.disttemplate,
+                runspec.setting.slurm_options,
                 runspec.project.job.walltime,
                 runspec.project.job.cpt,
                 runspec.project.job.partition,
@@ -882,14 +880,16 @@ class Benchmark:
         Describes a folder that should recursively be scanned for benchmarks.
         """
 
-        def __init__(self, path: str):
+        def __init__(self, path: str, group: bool = False):
             """
             Initializes a benchmark folder.
 
             Attributes:
-                path (str): The location of the folder.
+                path (str):   The location of the folder.
+                group (bool): Whether to group instances by their file name prefix.
             """
             self.path = path
+            self.group = group
             self.prefixes: set[str] = set()
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
@@ -957,10 +957,15 @@ class Benchmark:
                 for filename in files:
                     if self._skip(relroot, filename):
                         continue
-                    m = re.match(r"([^.]+)\..+", filename)
+                    m = re.match(r"^(([^\.]+).*)\.[^.]+$", filename)
                     if m is None:
                         raise RuntimeError("Invalid file name.")
-                    group = m.group(1)
+                    if self.group:
+                        # remove file extension, file.1.txt -> file
+                        group = m.group(2)
+                    else:
+                        # remove last file extension, file.1.txt -> file.1
+                        group = m.group(1)
                     if group not in instances:
                         instances[group] = set()
                     instances[group].add(filename)
@@ -993,9 +998,10 @@ class Benchmark:
                 group (Optional[str]): Instance group.
             """
             if group is None:
-                m = re.match(r"([^.]+)\..+", os.path.basename(path))
+                m = re.match(r"^(([^\.]+).*)\.[^.]+$", os.path.basename(path))
                 if m is None:
                     raise RuntimeError("Invalid file name.")
+                # remove file extension, file.1.txt -> file.1
                 group = m.group(1)
             if group not in self.files:
                 self.files[group] = set()

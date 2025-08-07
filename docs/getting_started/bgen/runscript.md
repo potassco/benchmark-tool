@@ -82,13 +82,22 @@ Settings are identified by their name and define additional arguments and encodi
     <encoding file="extra.lp" tag="extra"/>
 </setting>
 ```
- The  value of the *cmdline* attribute can be any valid string, which will be passed to the system via the run template when this setting is selected.
+ The value of the *cmdline* attribute can be any valid string, which will be passed to the system via the run template when this setting is selected.
 
  The *tag* attribute is another identifier, which is only valid inside this runscript and is used to select multiple setting at once.
 
  Each setting can also contain any number of encoding elements. The *file* attribute is a relative path from the directory, where `bgen` is run, to the encoding. If no *tag* is defined the encoding is passed to the system via the run template for all instances when this setting is selected. A *tag* can be provided to make the encoding usage instance dependant. Multiple encodings can be selected by using the same tag.
 
  The setting element additionaly supports an optional attribute *disttemplate*. The default value is `"templates/single.dist"` which is a reference to [single.dist](https://github.com/potassco/benchmark-tool/blob/master/templates/single.dist). This attribute is only relevant for distjobs. More information to dist templates can be found [here](templates.md#dist-templates).
+
+ Another optional attribute only used for distjobs is *slurmopts*, which allows the user to add additional slurm options. *slurmopts* expects a string of space separated options. For example `slurmopts="--hint=compute_bound --job-name="my_benchmark_run"` results in the following lines being added to the script:
+
+ ```
+ #SBATCH --hint=compute_bound
+ #SBATCH --job-name="my_benchmark_run"
+ ```
+
+For a list of available SLURM options check [here](https://slurm.schedmd.com/sbatch.html).
 
 ## Job
 
@@ -124,7 +133,7 @@ The benchmark element is mainly used to indicate the location of the instances. 
 
 A benchmark is identified by its *name* and can contain any number of *folder* or *files* elements.
 ```xml
-<folder path="benchmarks/clasp" enctag="tag1">
+<folder path="benchmarks/clasp" enctag="tag1" group="true">
     <ignore prefix="pigeons"/>
     <encoding file="encodings/no-pigeons.lp"/>
 <folder/>
@@ -132,7 +141,7 @@ A benchmark is identified by its *name* and can contain any number of *folder* o
 Folder elements define a *path* to a folder containing instances. The folder is recursively searched. If there are several folders with instances, the folder where the instances are located is taken as a "domain" and there will be an additional separation of the results using these "domains".
 If there are folders that should not be included in the benchmark instances, the *ignore* element can be used to define a *prefix* which will be ignored.
 
-Instance files in the form `<instance>.<extension>` with the same 'instance' located in the same folder are grouped together. For example, if there where files `inst1.1.lp` and `inst1.2.lp` in the same folder, they would be grouped together to 'inst1' and the corresponding job would reference both files using `{run.files}` in the template.
+Instances can be grouped using the the optional boolean *group* attribute of the *folder* element. By default this value is set to `false`. If enbaled, instance files in the form `<instance>.<extension>` with the same 'instance' located in the same folder are grouped together. For example, if there where files `inst1.1.lp` and `inst1.2.1.lp` in the same folder, they would be grouped together to 'inst1' and the corresponding job would reference both files using `{run.files}` in the template.
 
 It is also possible to specify any amount of encodings which should be called together with all instances in this folder by using the *encoding* element. Setting-depended encodings can be added by using the optional *enctag* attribute. A more detailed explanation with examples for encoding support can be found [here](../../reference/encoding_support.md).
 
@@ -153,7 +162,7 @@ Specified instance files can optionally be grouped together using the *group* at
 </files>
 ```
 
-Grouped instances have to be located in the same directory. If no groups are specified, instance files are grouped together similar to the *folder* element above, i.e. when in the form `<instance>.<extension>`.
+Grouped instances have to be located in the same directory. If no groups are specified, instance files are not grouped.
 
 The *files* element does also support instance- and setting-depended encodings. More information can be found [here](../../reference/encoding_support.md).
 
