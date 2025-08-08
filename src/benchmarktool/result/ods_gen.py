@@ -391,8 +391,8 @@ class Sheet:
                         ""
                         + op
                         + "(Instances.{0}:Instances.{1})".format(
-                            get_cell_index(column, self.content.at[2, column][0].values["inst_start"] + 2),
-                            get_cell_index(column, self.content.at[2, column][0].values["inst_end"] + 2),
+                            get_cell_index(column, self.content.at[row, column][0].values["inst_start"] + 2),
+                            get_cell_index(column, self.content.at[row, column][0].values["inst_end"] + 2),
                         )
                     )
             if self.types.get(name, "") in ["float", "classresult"]:
@@ -400,9 +400,13 @@ class Sheet:
                     float_occur[name] = set()
                 float_occur[name].add(column)
 
-        self.values = (
-            self.content.iloc[2 : self.result_offset - 1, 1:].combine_first(self.values).combine_first(self.content)
-        )
+        if self.ref_sheet is not None:
+            self.values = self.values.reindex(index=self.content.index, columns=self.content.columns)
+            self.values = self.values.combine_first(self.content)
+        else:
+            self.values = (
+                self.content.iloc[2 : self.result_offset - 1, 1:].combine_first(self.values).combine_first(self.content)
+            )
 
         # add summaries
         self.add_row_summary(float_occur, col)
@@ -649,5 +653,7 @@ class SystemBlock:
         if name not in self.columns:
             self.content.at[1, name] = name
         self.columns[name] = value_type
-        # leave space for header
+        # leave space for header and add new row if necessary
+        if row + 2 not in self.content.index:
+            self.content = self.content.reindex(self.content.index.tolist() + [row + 2])
         self.content.at[row + 2, name] = value
