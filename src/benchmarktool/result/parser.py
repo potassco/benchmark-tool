@@ -112,7 +112,8 @@ class Parser:
                 runs = int(attrib.pop("runs"))
                 script_mode = attrib.pop("script_mode")
                 walltime = attrib.pop("walltime")
-                dist_job = DistJob(name, timeout, runs, attrib, script_mode, walltime)
+                partition = attrib.pop("partition")
+                dist_job = DistJob(name, timeout, runs, attrib, script_mode, walltime, partition)
                 self.result.jobs[dist_job.name] = dist_job
             case "benchmark":
                 self.benchscope = True
