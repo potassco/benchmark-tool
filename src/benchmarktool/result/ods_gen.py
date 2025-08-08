@@ -5,6 +5,7 @@ Created on Apr 14, 2025
 """
 
 import re
+import warnings
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 from unittest import mock
@@ -386,15 +387,18 @@ class Sheet:
                     op = "AVERAGE"
                     if name == "timeout":
                         op = "SUM"
-                    self.values.at[row, column] = self.content.at[row, column][1]
-                    self.content.at[row, column] = Formula(
-                        ""
-                        + op
-                        + "(Instances.{0}:Instances.{1})".format(
-                            get_cell_index(column, self.content.at[row, column][0].values["inst_start"] + 2),
-                            get_cell_index(column, self.content.at[row, column][0].values["inst_end"] + 2),
+
+                    # avoid missing measures
+                    if isinstance(self.content.at[row, column], tuple):
+                        self.values.at[row, column] = self.content.at[row, column][1]
+                        self.content.at[row, column] = Formula(
+                            ""
+                            + op
+                            + "(Instances.{0}:Instances.{1})".format(
+                                get_cell_index(column, self.content.at[row, column][0].values["inst_start"] + 2),
+                                get_cell_index(column, self.content.at[row, column][0].values["inst_end"] + 2),
+                            )
                         )
-                    )
             if self.types.get(name, "") in ["float", "classresult"]:
                 if not name in float_occur:
                     float_occur[name] = set()
@@ -498,10 +502,13 @@ class Sheet:
                 self.values.at[self.result_offset + 2, col] = np.nanmean(values)
                 # DEV
                 self.content.at[self.result_offset + 3, col] = Formula("STDEV({0})".format(ref_value))
-                if len(values) != 1:
-                    self.values.at[self.result_offset + 3, col] = np.nanstd(values, ddof=1)
-                else:
-                    self.values.at[self.result_offset + 3, col] = np.nan
+                # catch warnings caused by missing values (nan)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", "Degrees of freedom <= 0 for slice", RuntimeWarning)
+                    if len(values) != 1:
+                        self.values.at[self.result_offset + 3, col] = np.nanstd(values, ddof=1)
+                    else:  # only one value
+                        self.values.at[self.result_offset + 3, col] = np.nan  # nocoverage
                 if col < self.summary_refs["min"]["col"]:
                     with np.errstate(invalid="ignore"):
                         # DST
