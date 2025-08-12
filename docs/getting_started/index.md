@@ -5,7 +5,8 @@
 ## Installation
 
 The `setuptools` package is required to run the commands below.
-We recommend the usage of conda, which already includes `setuptools` in its default python installation.
+We recommend the usage of conda, which already includes `setuptools` in its default python installation.  
+To install the tool either clone the [repository](https://github.com/potassco/benchmark-tool) or download the latest release and run the following commands:
 
 ```bash
 $ git clone https://github.com/potassco/benchmark-tool
