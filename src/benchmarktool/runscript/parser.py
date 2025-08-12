@@ -336,7 +336,7 @@ class Parser:
 
             for node in root.xpath("./distjob"):
                 attr = self._filter_attr(
-                    node, ["name", "timeout", "runs", "ppn", "procs", "script_mode", "walltime", "cpt", "partition"]
+                    node, ["name", "timeout", "runs", "script_mode", "walltime", "cpt", "partition"]
                 )
 
                 partition = node.get("partition")

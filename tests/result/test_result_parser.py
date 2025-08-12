@@ -48,11 +48,11 @@ class TestParser(TestCase):
         self.assertEqual(system.order, 0)
 
         # settings
-        self.assertEqual(len(system.settings), 2)
-        setting = system.settings["test_setting"]
+        self.assertEqual(len(system.settings), 3)
+        setting = system.settings["test_setting0"]
         self.assertIsInstance(setting, result.Setting)
         self.assertEqual(setting.system.name, "test_sys")
-        self.assertEqual(setting.name, "test_setting")
+        self.assertEqual(setting.name, "test_setting0")
         self.assertEqual(setting.cmdline, "test_cmdline")
         self.assertEqual(setting.tag, "basic")
         self.assertEqual(setting.order, 0)
@@ -63,7 +63,7 @@ class TestParser(TestCase):
         self.assertEqual(setting.name, "test_setting2")
         self.assertEqual(setting.cmdline, "test_cmdline")
         self.assertEqual(setting.tag, "basic")
-        self.assertEqual(setting.order, 1)
+        self.assertEqual(setting.order, 2)
         self.assertDictEqual(setting.attr, {})
 
         # jobs
@@ -82,6 +82,7 @@ class TestParser(TestCase):
         self.assertEqual(dist_job.runs, 2)
         self.assertEqual(dist_job.script_mode, "timeout")
         self.assertEqual(dist_job.walltime, "23:59:59")
+        self.assertEqual(dist_job.partition, "test_partition")
         self.assertDictEqual(dist_job.attr, {})
 
         # benchmarks
@@ -91,27 +92,36 @@ class TestParser(TestCase):
         self.assertEqual(bench.name, "test_bench")
 
         # benchmark classes
-        self.assertEqual(len(bench.classes), 1)
+        self.assertEqual(len(bench.classes), 2)
         benchclass = bench.classes[0]
         self.assertIsInstance(benchclass, result.Class)
-        self.assertEqual(benchclass.name, "test_class")
+        self.assertEqual(benchclass.name, "test_class0")
         self.assertEqual(benchclass.id, 0)
+        self.assertDictEqual(benchclass.values, {"row": 0, "inst_start": 0, "inst_end": 0})
+        benchclass = bench.classes[1]
+        self.assertIsInstance(benchclass, result.Class)
+        self.assertEqual(benchclass.name, "test_class1")
+        self.assertEqual(benchclass.id, 1)
         self.assertDictEqual(benchclass.values, {"row": 0, "inst_start": 0, "inst_end": 0})
 
         # instances
-        self.assertEqual(len(benchclass.instances), 1)
+        self.assertEqual(len(benchclass.instances), 2)
         inst = benchclass.instances[0]
         self.assertIsInstance(inst, result.Instance)
         self.assertEqual(inst.benchclass, benchclass)
-        self.assertEqual(inst.name, "test_inst")
+        self.assertEqual(inst.name, "test_inst10")
         self.assertEqual(inst.id, 0)
         self.assertDictEqual(inst.values, {"row": 0, "max_runs": 0})
 
         # projects
-        self.assertEqual(len(res.projects), 1)
-        project = res.projects["test_proj"]
+        self.assertEqual(len(res.projects), 2)
+        project = res.projects["test_proj1"]
         self.assertIsInstance(project, result.Project)
-        self.assertEqual(project.name, "test_proj")
+        self.assertEqual(project.name, "test_proj1")
+        self.assertEqual(project.job, "test_dist")
+        project = res.projects["test_proj0"]
+        self.assertIsInstance(project, result.Project)
+        self.assertEqual(project.name, "test_proj0")
         self.assertEqual(project.job, "test_seq")
 
         # runspecs
@@ -121,19 +131,19 @@ class TestParser(TestCase):
         self.assertEqual(runspec.system.name, "test_sys")
         self.assertEqual(runspec.machine.name, "test_machine")
         self.assertEqual(runspec.benchmark.name, "test_bench")
-        self.assertEqual(runspec.setting.name, "test_setting")
+        self.assertEqual(runspec.setting.name, "test_setting0")
 
         # class results
-        self.assertEqual(len(runspec.classresults), 1)
+        self.assertEqual(len(runspec.classresults), 2)
         classres = runspec.classresults[0]
         self.assertIsInstance(classres, result.ClassResult)
-        self.assertEqual(classres.benchclass.name, "test_class")
+        self.assertEqual(classres.benchclass.name, "test_class0")
 
         # instance results
         self.assertEqual(len(classres.instresults), 1)
         instres = classres.instresults[0]
         self.assertIsInstance(instres, result.InstanceResult)
-        self.assertEqual(instres.instance.name, "test_inst")
+        self.assertEqual(instres.instance.name, "test_inst00")
 
         # runs
         self.assertEqual(len(instres.runs), 2)
@@ -143,5 +153,5 @@ class TestParser(TestCase):
         self.assertEqual(run.number, 1)
 
         # measures
-        self.assertEqual(len(run.measures), 7)
-        self.assertTupleEqual(run.measures["time"], ("float", "7"))
+        self.assertEqual(len(run.measures), 8)
+        self.assertTupleEqual(run.measures["time"], ("float", "7.0"))

@@ -229,7 +229,8 @@ class TestDistJob(TestJob):
         super().setUp()
         self.sm = "sm"
         self.wt = "wt"
-        self.j = result.DistJob(self.name, self.timeout, self.runs, self.attr, self.sm, self.wt)
+        self.pt = "pt"
+        self.j = result.DistJob(self.name, self.timeout, self.runs, self.attr, self.sm, self.wt, self.pt)
 
     def test_init(self):
         """
@@ -238,6 +239,7 @@ class TestDistJob(TestJob):
         super().test_init()
         self.assertEqual(self.j.script_mode, self.sm)
         self.assertEqual(self.j.walltime, self.wt)
+        self.assertEqual(self.j.partition, self.pt)
 
 
 class TestBenchmark(TestCase):

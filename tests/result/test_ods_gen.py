@@ -107,7 +107,7 @@ class TestODSDoc(TestCase):
         os.remove("./tests/ref/new_ods.ods")
 
 
-# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-instance-attributes, too-many-statements
 class TestInstSheet(TestCase):
     """
     Test cases for Sheet class without reference sheet (instSheet).
@@ -116,41 +116,61 @@ class TestInstSheet(TestCase):
     def setUp(self) -> None:
         self.res = parser.Parser().parse("./tests/ref/test_eval.xml")
         self.bench_merge = self.res.merge(self.res.projects.values())
-        self.run_spec = self.res.projects["test_proj"].runspecs
-        self.measures = [("time", "t"), ("timeout", "to"), ("status", None), ("steps", None)]
+        self.project = self.res.projects["test_proj0"]
+        self.run_specs = self.project.runspecs + self.res.projects["test_proj1"].runspecs
+        self.measures = [("time", "t"), ("timeout", "to"), ("status", None), ("models", None)]
         self.name = "Instances"
         self.ref_sheet = None
-        self.ref_row_n = ["test_class/test_inst", np.nan]
+        self.ref_row_n = [
+            "test_class0/test_inst00",
+            np.nan,
+            "test_class1/test_inst10",
+            np.nan,
+            "test_class1/test_inst11",
+            np.nan,
+        ]
         # system block
         self.ref_block = pd.DataFrame()
-        self.ref_block["time"] = ["time", 7.0, 10.0]
-        self.ref_block["timeout"] = ["timeout", 0.0, np.nan]
-        self.ref_block["status"] = ["status", "test11", "test12"]
-        self.ref_block["steps"] = ["steps", 50, 40]
-        self.ref_block.index = [1, 2, 3]
+        self.ref_block["time"] = ["time", 7.0, 10.0, 0.0, 3.0, 2.0, 0.1]
+        self.ref_block["timeout"] = ["timeout", 0.0, np.nan, 0.0, 0.0, 0.0, 0.0]
+        self.ref_block["status"] = [
+            "status",
+            "UNSATISFIABLE",
+            "UNSATISFIABLE",
+            "SATISFIABLE",
+            "SATISFIABLE",
+            "SATISFIABLE",
+            "SATISFIABLE",
+        ]
+        self.ref_block["models"] = ["models", 0, 0, 1, 1, 1, 1]
+        self.ref_block.index = [1, 2, 3, 4, 5, 6, 7]
         # results
         self.ref_res = pd.DataFrame()
-        self.ref_res[0] = [None, None, "test_class/test_inst"]
-        self.ref_res[1] = ["test_sys-1.0.0/test_setting", "time", 7.0]
+        self.ref_res[0] = [None, None, "test_class0/test_inst00"]
+        self.ref_res[1] = ["test_sys-1.0.0/test_setting0", "time", 7.0]
         self.ref_res[2] = [None, "timeout", 0.0]
-        self.ref_res[3] = [None, "status", "test11"]
-        self.ref_res[4] = [None, "steps", 50]
+        self.ref_res[3] = [None, "status", "UNSATISFIABLE"]
+        self.ref_res[4] = [None, "models", 0]
         # row summary
-        self.ref_res[9] = ["min", "time", ods_gen.Formula("=MIN($B3;$F3)")]
-        self.ref_res[10] = [None, "timeout", ods_gen.Formula("=MIN($C3;$G3)")]
-        self.ref_res[11] = [None, "steps", ods_gen.Formula("=MIN($E3;$I3)")]
-        self.ref_res[12] = ["median", "time", ods_gen.Formula("=MEDIAN($B3;$F3)")]
-        self.ref_res[13] = [None, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3)")]
-        self.ref_res[14] = [None, "steps", ods_gen.Formula("=MEDIAN($E3;$I3)")]
-        self.ref_res[15] = ["max", "time", ods_gen.Formula("=MAX($B3;$F3)")]
-        self.ref_res[16] = [None, "timeout", ods_gen.Formula("=MAX($C3;$G3)")]
-        self.ref_res[17] = [None, "steps", ods_gen.Formula("=MAX($E3;$I3)")]
+        self.ref_res[13] = ["min", "time", ods_gen.Formula("=MIN($B3;$F3;$J3)")]
+        self.ref_res[14] = [None, "timeout", ods_gen.Formula("=MIN($C3;$G3;$K3)")]
+        self.ref_res[15] = [None, "models", ods_gen.Formula("=MIN($E3;$I3;$M3)")]
+        self.ref_res[16] = ["median", "time", ods_gen.Formula("=MEDIAN($B3;$F3;$J3)")]
+        self.ref_res[17] = [None, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3;$K3)")]
+        self.ref_res[18] = [None, "models", ods_gen.Formula("=MEDIAN($E3;$I3;$M3)")]
+        self.ref_res[19] = ["max", "time", ods_gen.Formula("=MAX($B3;$F3;$J3)")]
+        self.ref_res[20] = [None, "timeout", ods_gen.Formula("=MAX($C3;$G3;$K3)")]
+        self.ref_res[21] = [None, "models", ods_gen.Formula("=MAX($E3;$I3;$M3)")]
         # col summary
         self.ref_sum = pd.DataFrame()
         self.ref_sum[0] = [
             None,
             None,
-            "test_class/test_inst",
+            "test_class0/test_inst00",
+            None,
+            "test_class1/test_inst10",
+            None,
+            "test_class1/test_inst11",
             None,
             None,
             "SUM",
@@ -163,43 +183,51 @@ class TestInstSheet(TestCase):
             "WORST",
         ]
         self.ref_sum[1] = [
-            "test_sys-1.0.0/test_setting",
+            "test_sys-1.0.0/test_setting0",
             "time",
             7.0,
             10.0,
+            0.0,
+            3.0,
+            2.0,
+            0.1,
             None,
-            ods_gen.Formula("=SUM($B3:$B4)"),
-            ods_gen.Formula("=AVERAGE($B3:$B4)"),
-            ods_gen.Formula("=STDEV($B3:$B4)"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4-$J3:$J4)^2)^0.5"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4=$J3:$J4))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4<$M3:$M4))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4>$M3:$M4))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4=$P3:$P4))"),
+            ods_gen.Formula("=SUM($B3:$B8)"),
+            ods_gen.Formula("=AVERAGE($B3:$B8)"),
+            ods_gen.Formula("=STDEV($B3:$B8)"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8-$N3:$N8)^2)^0.5"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8=$N3:$N8))"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8<$Q3:$Q8))"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8>$Q3:$Q8))"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8=$T3:$T8))"),
         ]
         # values
         self.ref_val = pd.DataFrame()
-        self.ref_val[0] = [np.nan, np.nan, "test_class/test_inst"]
-        self.ref_val[1] = ["test_sys-1.0.0/test_setting", "time", 7]
+        self.ref_val[0] = [np.nan, np.nan, "test_class0/test_inst00"]
+        self.ref_val[1] = ["test_sys-1.0.0/test_setting0", "time", 7]
         self.ref_val[2] = [np.nan, "timeout", 0]
-        self.ref_val[3] = [np.nan, "status", "test11"]
-        self.ref_val[4] = [np.nan, "steps", 50]
+        self.ref_val[3] = [np.nan, "status", "UNSATISFIABLE"]
+        self.ref_val[4] = [np.nan, "models", 0]
         # values row summary
-        self.ref_val[9] = ["min", "time", 7]
-        self.ref_val[10] = [np.nan, "timeout", 0]
-        self.ref_val[11] = [np.nan, "steps", 49]
-        self.ref_val[12] = ["median", "time", 8.5]
-        self.ref_val[13] = [np.nan, "timeout", 0.5]
-        self.ref_val[14] = [np.nan, "steps", 49.5]
-        self.ref_val[15] = ["max", "time", 10]
-        self.ref_val[16] = [np.nan, "timeout", 1]
-        self.ref_val[17] = [np.nan, "steps", 50]
+        self.ref_val[13] = ["min", "time", 0.1]
+        self.ref_val[14] = [np.nan, "timeout", 0]
+        self.ref_val[15] = [np.nan, "models", 0]
+        self.ref_val[16] = ["median", "time", 0.31]
+        self.ref_val[17] = [np.nan, "timeout", 0]
+        self.ref_val[18] = [np.nan, "models", 0]
+        self.ref_val[19] = ["max", "time", 7]
+        self.ref_val[20] = [np.nan, "timeout", 0]
+        self.ref_val[21] = [np.nan, "models", 0]
         # values col summary
         self.ref_val_sum = pd.DataFrame()
         self.ref_val_sum[0] = [
             np.nan,
             np.nan,
-            "test_class/test_inst",
+            "test_class0/test_inst00",
+            np.nan,
+            "test_class1/test_inst10",
+            np.nan,
+            "test_class1/test_inst11",
             np.nan,
             np.nan,
             "SUM",
@@ -212,19 +240,23 @@ class TestInstSheet(TestCase):
             "WORST",
         ]
         self.ref_val_sum[1] = [
-            "test_sys-1.0.0/test_setting",
+            "test_sys-1.0.0/test_setting0",
             "time",
-            7,
-            10,
+            7.0,
+            10.0,
+            0.0,
+            3.0,
+            2.0,
+            0.1,
             np.nan,
-            17,
-            8.5,
-            2.1213203435596424,
-            0,
+            22.1,
+            3.6833333333333336,
+            4.015179531062922,
+            12.367772636978739,
             -2,
-            -1,
-            0,
-            1,
+            -2,
+            4,
+            4,
         ]
 
     def test_init(self) -> None:
@@ -254,13 +286,13 @@ class TestInstSheet(TestCase):
         (add_instance_results, add_benchclass_summary)
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
+        sheet.add_runspec(self.run_specs[0])
         self.assertIsInstance(
-            sheet.system_blocks[(self.run_spec[0].setting, self.run_spec[0].machine)], ods_gen.SystemBlock
+            sheet.system_blocks[(self.run_specs[0].setting, self.run_specs[0].machine)], ods_gen.SystemBlock
         )
-        self.assertSetEqual(sheet.machines, set([self.run_spec[0].machine]))
+        self.assertSetEqual(sheet.machines, set([self.run_specs[0].machine]))
         pd.testing.assert_frame_equal(
-            sheet.system_blocks[(self.run_spec[0].setting, self.run_spec[0].machine)].content, self.ref_block
+            sheet.system_blocks[(self.run_specs[0].setting, self.run_specs[0].machine)].content, self.ref_block
         )
 
     def test_finish(self) -> None:
@@ -268,7 +300,7 @@ class TestInstSheet(TestCase):
         Test finish method.
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
+        sheet.add_runspec(self.run_specs[0])
         with (
             patch.object(ods_gen.Sheet, "add_row_summary") as add_row_sum,
             patch.object(ods_gen.Sheet, "add_col_summary") as add_col_sum,
@@ -297,12 +329,12 @@ class TestInstSheet(TestCase):
         Test add_row_summary method.
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
-        sheet.add_runspec(self.run_spec[1])
+        for run_spec in self.run_specs:
+            sheet.add_runspec(run_spec)
         with patch.object(ods_gen.Sheet, "add_styles"):
             sheet.finish()
         for row in range(3):
-            for col in range(9, 18):
+            for col in range(13, 22):
                 test, ref = sheet.content.at[row, col], self.ref_res.at[row, col]
                 test_val, ref_val = sheet.values.at[row, col], self.ref_val.at[row, col]
                 if isinstance(ref, ods_gen.Formula):
@@ -315,17 +347,17 @@ class TestInstSheet(TestCase):
                 else:
                     self.assertEqual(test_val, ref_val)
         sheet = ods_gen.Sheet(self.bench_merge, "", self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
+        sheet.add_runspec(self.run_specs[0])
         sheet.finish()
-        self.assertEqual(len(sheet.content.columns), 26)
+        self.assertEqual(len(sheet.content.columns), 34)
 
     def test_add_col_summary(self) -> None:
         """
         Test add_col_summary method.
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
-        sheet.add_runspec(self.run_spec[1])
+        for run_spec in self.run_specs:
+            sheet.add_runspec(run_spec)
         with patch.object(ods_gen.Sheet, "add_styles"):
             sheet.finish()
         for row in range(len(sheet.content.index)):
@@ -347,15 +379,15 @@ class TestInstSheet(TestCase):
         Test add_styles method.
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
-        sheet.add_runspec(self.run_spec[1])
+        sheet.add_runspec(self.run_specs[0])
+        sheet.add_runspec(self.run_specs[1])
         sheet.finish()
         # selective testing
-        self.assertEqual(sheet.content.at[2, 1][1], "cellBest")
-        self.assertNotIsInstance(sheet.content.at[3, 1], tuple)
-        self.assertEqual(sheet.content.at[2, 2][1], "cellBest")
-        self.assertEqual(sheet.content.at[2, 6][1], "cellWorst")
-        self.assertEqual(sheet.content.at[5, 1][1], "cellBest")
+        self.assertEqual(sheet.content.at[2, 1][1], "cellWorst")
+        self.assertNotIsInstance(sheet.content.at[2, 2], tuple)
+        self.assertEqual(sheet.content.at[2, 5][1], "cellBest")
+        self.assertEqual(sheet.content.at[9, 1][1], "cellWorst")
+        self.assertEqual(sheet.content.at[9, 5][1], "cellBest")
 
 
 # pylint: disable=too-many-instance-attributes,too-many-statements
@@ -367,47 +399,50 @@ class TestClassSheet(TestInstSheet):
     def setUp(self) -> None:
         self.res = parser.Parser().parse("./tests/ref/test_eval.xml")
         self.bench_merge = self.res.merge(self.res.projects.values())
-        self.run_spec = self.res.projects["test_proj"].runspecs
-        self.measures = [("time", "t"), ("timeout", "to"), ("status", None), ("steps", None)]
+        self.project = self.res.projects["test_proj0"]
+        self.run_specs = self.project.runspecs + self.res.projects["test_proj1"].runspecs
+        self.measures = [("time", "t"), ("timeout", "to"), ("status", None), ("models", None)]
         self.name = "Classes"
         self.ref_sheet = ods_gen.Sheet(self.bench_merge, self.measures, "Instances")
-        self.ref_row_n = ["test_class"]
+        self.ref_row_n = ["test_class0", "test_class1"]
         self.ref_block = pd.DataFrame()
         # system block
-        bench_cl = self.run_spec[0].classresults[0].benchclass
-        self.ref_block["time"] = ["time", (bench_cl, 8.5)]
-        self.ref_block["timeout"] = ["timeout", (bench_cl, 0)]
-        self.ref_block["status"] = ["status", np.nan]
-        self.ref_block["steps"] = ["steps", (bench_cl, 45)]
-        self.ref_block.index = [1, 2]
+        bench_cl0 = self.run_specs[0].classresults[0].benchclass
+        bench_cl1 = self.run_specs[0].classresults[1].benchclass
+        self.ref_block["time"] = ["time", (bench_cl0, 8.5), (bench_cl1, 1.275)]
+        self.ref_block["timeout"] = ["timeout", (bench_cl0, 0), (bench_cl1, 0)]
+        self.ref_block["status"] = ["status", np.nan, np.nan]
+        self.ref_block["models"] = ["models", (bench_cl0, 0), (bench_cl1, 1)]
+        self.ref_block.index = [1, 2, 3]
         # results
         self.ref_res = pd.DataFrame()
-        self.ref_res[0] = [None, None, "test_class"]
+        self.ref_res[0] = [None, None, "test_class0"]
         self.ref_res[1] = [
-            "test_sys-1.0.0/test_setting",
+            "test_sys-1.0.0/test_setting0",
             "time",
             ods_gen.Formula("=AVERAGE(Instances.B3:Instances.B4)"),
         ]
         self.ref_res[2] = [None, "timeout", ods_gen.Formula("=SUM(Instances.C3:Instances.C4)")]
         self.ref_res[3] = [None, "status", None]
-        self.ref_res[4] = [None, "steps", ods_gen.Formula("=AVERAGE(Instances.E3:Instances.E4)")]
+        self.ref_res[4] = [None, "models", ods_gen.Formula("=AVERAGE(Instances.E3:Instances.E4)")]
         # row summary
         self.ref_row_sum = pd.DataFrame()
-        self.ref_res[9] = ["min", "time", ods_gen.Formula("=MIN($B3;$F3)")]
-        self.ref_res[10] = [None, "timeout", ods_gen.Formula("=MIN($C3;$G3)")]
-        self.ref_res[11] = [None, "steps", ods_gen.Formula("=MIN($E3;$I3)")]
-        self.ref_res[12] = ["median", "time", ods_gen.Formula("=MEDIAN($B3;$F3)")]
-        self.ref_res[13] = [None, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3)")]
-        self.ref_res[14] = [None, "steps", ods_gen.Formula("=MEDIAN($E3;$I3)")]
-        self.ref_res[15] = ["max", "time", ods_gen.Formula("=MAX($B3;$F3)")]
-        self.ref_res[16] = [None, "timeout", ods_gen.Formula("=MAX($C3;$G3)")]
-        self.ref_res[17] = [None, "steps", ods_gen.Formula("=MAX($E3;$I3)")]
+        self.ref_res[13] = ["min", "time", ods_gen.Formula("=MIN($B3;$F3;$J3)")]
+        self.ref_res[14] = [None, "timeout", ods_gen.Formula("=MIN($C3;$G3;$K3)")]
+        self.ref_res[15] = [None, "models", ods_gen.Formula("=MIN($E3;$I3;$M3)")]
+        self.ref_res[16] = ["median", "time", ods_gen.Formula("=MEDIAN($B3;$F3;$J3)")]
+        self.ref_res[17] = [None, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3;$K3)")]
+        self.ref_res[18] = [None, "models", ods_gen.Formula("=MEDIAN($E3;$I3;$M3)")]
+        self.ref_res[19] = ["max", "time", ods_gen.Formula("=MAX($B3;$F3;$J3)")]
+        self.ref_res[20] = [None, "timeout", ods_gen.Formula("=MAX($C3;$G3;$K3)")]
+        self.ref_res[21] = [None, "models", ods_gen.Formula("=MAX($E3;$I3;$M3)")]
         # col summary
         self.ref_sum = pd.DataFrame()
         self.ref_sum[0] = [
             None,
             None,
-            "test_class",
+            "test_class0",
+            "test_class1",
             None,
             "SUM",
             "AVG",
@@ -419,42 +454,44 @@ class TestClassSheet(TestInstSheet):
             "WORST",
         ]
         self.ref_sum[1] = [
-            "test_sys-1.0.0/test_setting",
+            "test_sys-1.0.0/test_setting0",
             "time",
             ods_gen.Formula("=AVERAGE(Instances.B3:Instances.B4)"),
+            ods_gen.Formula("=AVERAGE(Instances.B5:Instances.B8)"),
             None,
-            ods_gen.Formula("=SUM($B3:$B3)"),
-            ods_gen.Formula("=AVERAGE($B3:$B3)"),
-            ods_gen.Formula("=STDEV($B3:$B3)"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B3-$J3:$J3)^2)^0.5"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B3=$J3:$J3))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B3<$M3:$M3))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B3>$M3:$M3))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B3=$P3:$P3))"),
+            ods_gen.Formula("=SUM($B3:$B4)"),
+            ods_gen.Formula("=AVERAGE($B3:$B4)"),
+            ods_gen.Formula("=STDEV($B3:$B4)"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4-$N3:$N4)^2)^0.5"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4=$N3:$N4))"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4<$Q3:$Q4))"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4>$Q3:$Q4))"),
+            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4=$T3:$T4))"),
         ]
         # values
         self.ref_val = pd.DataFrame()
-        self.ref_val[0] = [np.nan, np.nan, "test_class"]
-        self.ref_val[1] = ["test_sys-1.0.0/test_setting", "time", 8.5]
+        self.ref_val[0] = [np.nan, np.nan, "test_class0"]
+        self.ref_val[1] = ["test_sys-1.0.0/test_setting0", "time", 8.5]
         self.ref_val[2] = [np.nan, "timeout", 0]
         self.ref_val[3] = [np.nan, "status", np.nan]
-        self.ref_val[4] = [np.nan, "steps", 45]
+        self.ref_val[4] = [np.nan, "models", 0]
         # values ro summary
-        self.ref_val[9] = ["min", "time", 8.5]
-        self.ref_val[10] = [np.nan, "timeout", 0]
-        self.ref_val[11] = [np.nan, "steps", 29.5]
-        self.ref_val[12] = ["median", "time", 9.25]
-        self.ref_val[13] = [np.nan, "timeout", 1]
-        self.ref_val[14] = [np.nan, "steps", 37.25]
-        self.ref_val[15] = ["max", "time", 10]
-        self.ref_val[16] = [np.nan, "timeout", 2]
-        self.ref_val[17] = [np.nan, "steps", 45]
+        self.ref_val[13] = ["min", "time", 0.20500000000000002]
+        self.ref_val[14] = [np.nan, "timeout", 0]
+        self.ref_val[15] = [np.nan, "models", 0]
+        self.ref_val[16] = ["median", "time", 0.31]
+        self.ref_val[17] = [np.nan, "timeout", 0]
+        self.ref_val[18] = [np.nan, "models", 0]
+        self.ref_val[19] = ["max", "time", 8.5]
+        self.ref_val[20] = [np.nan, "timeout", 0]
+        self.ref_val[21] = [np.nan, "models", 0]
         # values col summary
         self.ref_val_sum = pd.DataFrame()
         self.ref_val_sum[0] = [
             np.nan,
             np.nan,
-            "test_class",
+            "test_class0",
+            "test_class1",
             np.nan,
             "SUM",
             "AVG",
@@ -466,18 +503,19 @@ class TestClassSheet(TestInstSheet):
             "WORST",
         ]
         self.ref_val_sum[1] = [
-            "test_sys-1.0.0/test_setting",
+            "test_sys-1.0.0/test_setting0",
             "time",
             8.5,
+            1.275,
             np.nan,
-            8.5,
-            8.5,
-            np.nan,
-            0,
-            -1,
-            -1,
+            9.775,
+            4.8875,
+            5.1088464940728056,
+            8.3689381046821,
             0,
             0,
+            2,
+            2,
         ]
 
     def test_add_styles(self) -> None:
@@ -485,14 +523,15 @@ class TestClassSheet(TestInstSheet):
         Test add_styles method.
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
-        sheet.add_runspec(self.run_spec[1])
+        for run_spec in self.run_specs:
+            sheet.add_runspec(run_spec)
         sheet.finish()
         # selective testing
-        self.assertEqual(sheet.content.at[2, 2][1], "cellBest")
-        self.assertNotIsInstance(sheet.content.at[2, 1], tuple)
-        self.assertEqual(sheet.content.at[2, 6][1], "cellWorst")
-        self.assertEqual(sheet.content.at[5, 2][1], "cellBest")
+        self.assertEqual(sheet.content.at[2, 1][1], "cellWorst")
+        self.assertNotIsInstance(sheet.content.at[2, 2], tuple)
+        self.assertEqual(sheet.content.at[2, 5][1], "cellBest")
+        self.assertEqual(sheet.content.at[5, 1][1], "cellWorst")
+        self.assertEqual(sheet.content.at[5, 5][1], "cellBest")
 
 
 class TestSystemBlock(TestCase):

@@ -223,6 +223,7 @@ class DistJob(Job):
 
     script_mode: str = field(compare=False)
     walltime: str = field(compare=False)
+    partition: str = field(compare=False)
 
 
 @dataclass(order=True, frozen=True)
