@@ -7,7 +7,7 @@ hide:
 
 ## Sequential Benchmark
 
-The example assumes that you want to run a benchmark that shall be started using simple bash scripts. All the following instruction assume that the current working directory is the root directory of the benchmark-tool project. To begin, the two executables [clasp-3.4.0][1] and [runlim-2.0.0rc12][2] have to be copied (or symlinked) into the `./programs` folder.  
+The example assumes that you want to run a benchmark that shall be started using simple bash scripts. All the following instruction assume that the current working directory is the root directory of the benchmark-tool project. To begin, the two executables [clasp-3.4.0][1] and [runlim][2] have to be copied (or symlinked) into the `./programs` folder.  
 Now, run:  
 `$ bgen ./runscripts/runscript-seq.xml`  
 This creates a set of start scripts in the `./output` folder.  
@@ -20,7 +20,7 @@ Finally, open the file:
 
 ## Cluster Benchmark
 
-This example assumes that you want to run a benchmark on a cluster, i.g. on the [HPC][3] cluster at the university of Potsdam. Again, all the following instruction assume that the current working directory is the root directory of the benchmark-tool project. Once again make sure, the two executables [clasp-3.4.0][1] and [runlim-2.0.0rc12][2] have been copied (or symlinked) into the `./programs` folder.  
+This example assumes that you want to run a benchmark on a cluster, i.g. on the [HPC][3] cluster at the university of Potsdam. Again, all the following instruction assume that the current working directory is the root directory of the benchmark-tool project. Once again make sure, the two executables [clasp-3.4.0][1] and [runlim][2] have been copied (or symlinked) into the `./programs` folder.  
 Now, run:  
 `$ bgen ./runscripts/runscript-dist.xml`  
 This creates a set of start scripts in the `./output` folder.  
@@ -38,7 +38,7 @@ While [runscript-example.xml](https://github.com/potassco/benchmark-tool/blob/ma
 
 Examples for the encoding support feature can be found [here](../reference/encoding_support.md).
 
-For a more detailed explanation of a runsript and its components check [here](../getting_started/bgen/runscript.md)
+For a more detailed explanation of a runscript and its components check [here](../getting_started/bgen/runscript.md)
 
 [1]: https://potassco.org/clasp/
 [2]: https://github.com/arminbiere/runlim
