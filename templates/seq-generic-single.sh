@@ -9,7 +9,7 @@ cd "$(dirname $0)"
 
 runner=( "{run.root}/programs/runlim" \
   --single \
-  --space-limit=20000 \
+  --space-limit={run.memout} \
   --output-file=runsolver.watcher \
   --real-time-limit={run.timeout} \
   "{run.root}/programs/{run.solver}" {run.args})

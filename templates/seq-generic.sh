@@ -8,7 +8,7 @@ cd "$(dirname $0)"
 #top -n 1 -b > top.txt
 
 [[ -e .finished ]] || "{run.root}/programs/runlim" \
-	--space-limit=20000 \
+	--space-limit={run.memout} \
 	--output-file=runsolver.watcher \
 	--real-time-limit={run.timeout} \
 	"{run.root}/programs/{run.solver}" {run.args} {run.files} {run.encodings} > runsolver.solver

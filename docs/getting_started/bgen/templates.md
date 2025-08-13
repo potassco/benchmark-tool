@@ -16,6 +16,7 @@ The following references can currently be used:
 `run.encodings`: encoding files to be used for this instance  
 `run.root`: the path to the benchmark-tool folder  
 `run.timeout`: the walltime for this run  
+`run.memout`: the memory limit for this run in MB (20000 by default)  
 `run.solver`: the solver/program to be used for this run  
 `run.args`: additional arguments to be used by the solver/program  
 
