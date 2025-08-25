@@ -236,6 +236,7 @@ class SeqRun(Run):
         args (str):        The command line arguments for this run.
         solver (str):      The solver for this run.
         timeout (int):     The timeout of this run.
+        memout (int):      The memory limit of this run.
     """
 
     run: int
@@ -248,6 +249,7 @@ class SeqRun(Run):
     args: str = field(init=False)
     sovler: str = field(init=False)
     timeout: int = field(init=False)
+    memout: int = field(init=False)
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -262,6 +264,7 @@ class SeqRun(Run):
         self.args = self.runspec.setting.cmdline
         self.solver = self.runspec.system.name + "-" + self.runspec.system.version
         self.timeout = self.job.timeout
+        self.memout = int(self.job.attr.get("memout", 20000))
 
 
 class ScriptGen:

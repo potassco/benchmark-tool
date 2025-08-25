@@ -266,6 +266,7 @@ class TestSeqRun(TestRun):
         self.run_var = 1
         self.job = mock.Mock(spec=runscript.Job)
         self.job.timeout = 10
+        self.job.attr = {"memout": "10000"}
         self.runspec = mock.Mock(spec=runscript.Runspec)
         self.runspec.setting = mock.Mock(spec=runscript.Setting)
         self.runspec.setting.cmdline = "cmdline"
@@ -330,6 +331,7 @@ class TestScriptGen(TestCase):
 
         self.sg.job.runs = 1
         self.sg.job.timeout = 10
+        self.sg.job.attr = {"memout": "20"}
 
         self.instance = mock.Mock(spec=runscript.Benchmark.Instance)
         self.instance.name = "inst_name"
@@ -388,7 +390,7 @@ class TestScriptGen(TestCase):
         if platform.system() == "Linux":
             self.assertEqual(
                 x,
-                '$CAT "../../inst_path.lp" ../.. 10 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
+                '$CAT "../../inst_path.lp" ../.. 10 20 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
             )
         os.remove("./tests/ref/start.sh")
 

@@ -135,6 +135,7 @@ class Parser:
         <xs:attribute name="name" type="nameType" use="required"/>
         <xs:attribute name="timeout" type="timeType" use="required"/>
         <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
+        <xs:attribute name="memout" type="xs:positiveInteger"/>
         <xs:anyAttribute processContents="lax"/>
     </xs:attributeGroup>
 
