@@ -350,7 +350,7 @@ class Sheet:
             benchclass_summary (dict[str, Any]): Summary of benchmark class.
         """
         for name, value in benchclass_summary.items():
-            if not value is None:
+            if value is not None:
                 temp_res = value[0] / value[1]
                 if name == "timeout":
                     temp_res = value[0]
@@ -374,7 +374,10 @@ class Sheet:
             self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, col] = block.gen_name(len(self.machines) > 1)
             for m in block.columns:
-                self.types[m] = block.columns[m]
+                if m not in self.types:
+                    self.types[m] = block.columns[m]
+                elif self.types[m] == "None" or self.types[m] == "empty":
+                    self.types[m] = block.columns[m]
             col += len(block.columns)
 
         # get columns used for summary calculations
@@ -493,7 +496,9 @@ class Sheet:
                 ref_value = "{0}:{1}".format(
                     get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
                 )
-                values = np.array(self.values.loc[2 : self.result_offset - 1, col])
+                values = np.array(self.values.loc[2 : self.result_offset - 1, col], dtype=float)
+                if np.isnan(values).all():
+                    continue
                 # SUM
                 self.content.at[self.result_offset + 1, col] = Formula("SUM({0})".format(ref_value))
                 self.values.at[self.result_offset + 1, col] = np.nansum(values)
