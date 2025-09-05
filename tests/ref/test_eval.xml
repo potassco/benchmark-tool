@@ -188,7 +188,6 @@
 						<measure name="memout" type="float" val="0"/>
 						<measure name="models" type="int" val="0"/>
 						<measure name="status" type="string" val="UNSATISFIABLE"/>
-						<measure name="time" type="float" val="0.31"/>
 						<measure name="timeout" type="float" val="0"/>
 					</run>
 					<run number="2">
@@ -198,7 +197,6 @@
 						<measure name="memout" type="float" val="0"/>
 						<measure name="models" type="int" val="0"/>
 						<measure name="status" type="string" val="UNSATISFIABLE"/>
-						<measure name="time" type="float" val="0.31"/>
 						<measure name="timeout" type="float" val="0"/>
 					</run>
 				</instance>
@@ -213,7 +211,6 @@
 						<measure name="models" type="int" val="1"/>
 						<measure name="restarts" type="float" val="0.0"/>
 						<measure name="status" type="string" val="SATISFIABLE"/>
-						<measure name="time" type="float" val="0.14"/>
 						<measure name="timeout" type="float" val="0"/>
 					</run>
 					<run number="2">
@@ -224,7 +221,6 @@
 						<measure name="models" type="int" val="1"/>
 						<measure name="restarts" type="float" val="0.0"/>
 						<measure name="status" type="string" val="SATISFIABLE"/>
-						<measure name="time" type="float" val="0.14"/>
 						<measure name="timeout" type="float" val="0"/>
 					</run>
 				</instance>
@@ -237,7 +233,6 @@
 						<measure name="models" type="int" val="1"/>
 						<measure name="restarts" type="float" val="0.0"/>
 						<measure name="status" type="string" val="SATISFIABLE"/>
-						<measure name="time" type="float" val="0.19"/>
 						<measure name="timeout" type="float" val="0"/>
 					</run>
 					<run number="2">
@@ -248,7 +243,6 @@
 						<measure name="models" type="int" val="1"/>
 						<measure name="restarts" type="float" val="0.0"/>
 						<measure name="status" type="string" val="SATISFIABLE"/>
-						<measure name="time" type="float" val="0.19"/>
 						<measure name="timeout" type="float" val="0"/>
 					</run>
 				</instance>

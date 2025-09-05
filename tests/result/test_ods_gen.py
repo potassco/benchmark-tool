@@ -212,7 +212,7 @@ class TestInstSheet(TestCase):
         self.ref_val[13] = ["min", "time", 0.1]
         self.ref_val[14] = [np.nan, "timeout", 0]
         self.ref_val[15] = [np.nan, "models", 0]
-        self.ref_val[16] = ["median", "time", 0.31]
+        self.ref_val[16] = ["median", "time", 3.55]
         self.ref_val[17] = [np.nan, "timeout", 0]
         self.ref_val[18] = [np.nan, "models", 0]
         self.ref_val[19] = ["max", "time", 7]
@@ -373,6 +373,9 @@ class TestInstSheet(TestCase):
                     self.assertTrue(pd.isna(test_val))
                 else:
                     self.assertEqual(test_val, ref_val)
+        # dont gen summary for empty columns while other settings have results
+        for row in range(2, len(sheet.content.index)):
+            self.assertTrue(pd.isna(sheet.content.at[row, 9]))
 
     def test_add_styles(self) -> None:
         """
@@ -479,7 +482,7 @@ class TestClassSheet(TestInstSheet):
         self.ref_val[13] = ["min", "time", 0.20500000000000002]
         self.ref_val[14] = [np.nan, "timeout", 0]
         self.ref_val[15] = [np.nan, "models", 0]
-        self.ref_val[16] = ["median", "time", 0.31]
+        self.ref_val[16] = ["median", "time", 4.3525]
         self.ref_val[17] = [np.nan, "timeout", 0]
         self.ref_val[18] = [np.nan, "models", 0]
         self.ref_val[19] = ["max", "time", 8.5]
