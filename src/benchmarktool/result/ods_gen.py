@@ -374,9 +374,7 @@ class Sheet:
             self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, col] = block.gen_name(len(self.machines) > 1)
             for m in block.columns:
-                if m not in self.types:
-                    self.types[m] = block.columns[m]
-                elif self.types[m] == "None" or self.types[m] == "empty":
+                if m not in self.types or self.types[m] in ("None", "empty"):
                     self.types[m] = block.columns[m]
             col += len(block.columns)
 
