@@ -5,7 +5,7 @@ Created on Jan 19, 2010
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any, Iterator, Optional
 
 from benchmarktool.result.ods_gen import ODSDoc
 
@@ -44,9 +44,12 @@ class Result:
                 benchmarks.add(runspec.benchmark)
         return BenchmarkMerge(benchmarks)
 
-    def gen_office(self, out: str, sel_projects: str, measures: list[tuple[str, Any]]) -> None:
+    def gen_office(
+        self, out: str, sel_projects: str, measures: list[tuple[str, Any]], export: bool = False
+    ) -> Optional[str]:
         """
         Prints the current result in open office spreadsheet format.
+        Returns the name of the export file if values are exported.
 
         Attributes:
             out (str):                        The output file to write to.
@@ -65,6 +68,12 @@ class Result:
                 sheet.add_runspec(runspec)
         sheet.finish()
         sheet.make_ods(out)
+
+        if export:
+            ex_file = out.replace(".ods", ".parquet")
+            sheet.inst_sheet.export_values(ex_file)
+            return ex_file
+        return None
 
 
 class BenchmarkMerge:

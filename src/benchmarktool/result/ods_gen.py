@@ -249,6 +249,8 @@ class Sheet:
         self.summary_refs: dict[str, Any] = {}
         # dataframe containing all results and stats
         self.values = pd.DataFrame()
+        # columns containing floats
+        self.float_occur: dict[str, set[Any]] = {}
 
         # first column
         self.content[0] = None
@@ -380,7 +382,6 @@ class Sheet:
 
         # get columns used for summary calculations
         # add formulas for results of classSheet
-        float_occur: dict[str, set[Any]] = {}
         for column in self.content:
             name = self.content.at[1, column]
             if self.types.get(name, "") == "classresult":
@@ -401,9 +402,9 @@ class Sheet:
                             )
                         )
             if self.types.get(name, "") in ["float", "classresult"]:
-                if not name in float_occur:
-                    float_occur[name] = set()
-                float_occur[name].add(column)
+                if not name in self.float_occur:
+                    self.float_occur[name] = set()
+                self.float_occur[name].add(column)
 
         if self.ref_sheet is not None:
             self.values = self.values.reindex(index=self.content.index, columns=self.content.columns)
@@ -414,21 +415,20 @@ class Sheet:
             )
 
         # add summaries
-        self.add_row_summary(float_occur, col)
+        self.add_row_summary(col)
         self.add_col_summary()
 
         # color cells
-        self.add_styles(float_occur)
+        self.add_styles()
 
         # replace all undefined cells with None (empty cell)
         self.content = self.content.fillna(np.nan).replace([np.nan], [None])
 
-    def add_row_summary(self, float_occur: dict[str, set[Any]], offset: int) -> None:
+    def add_row_summary(self, offset: int) -> None:
         """
         Add row summary (min, max, median).
 
         Attributes:
-            float_occur (dict[str, set[Any]]): Dict containing column references of float columns.
             offset (int):                      Column offset.
         """
         col = offset
@@ -438,13 +438,13 @@ class Sheet:
             self.summary_refs[col_name] = {"col": col}
             measures: list[str]
             if len(self.measures) == 0:
-                measures = sorted(float_occur.keys())
+                measures = sorted(self.float_occur.keys())
             else:
                 measures = list(map(lambda x: x[0], self.measures))
             for measure in measures:
-                if measure in float_occur:
+                if measure in self.float_occur:
                     self.values.at[1, col] = measure
-                    self._add_summary_formula(block, col_name, measure, float_occur, col)
+                    self._add_summary_formula(block, col_name, measure, self.float_occur, col)
                     self.summary_refs[col_name][measure] = (
                         col,
                         "{0}:{1}".format(
@@ -567,18 +567,15 @@ class Sheet:
                             == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["max"][name][0]])
                         )
 
-    def add_styles(self, float_occur: dict[str, Any]) -> None:
+    def add_styles(self) -> None:
         """
         Color float results and their summaries.
-
-        Attributes:
-            float_occur (dict[str, Any]): Dict containing column references of float columns.
         """
         # remove header
         results = self.values.loc[2:, 1:]
 
         for measure in self.measures:
-            if measure[0] in float_occur:
+            if measure[0] in self.float_occur:
                 func = measure[1]
                 if func == "t":
                     diff = 2
@@ -587,7 +584,7 @@ class Sheet:
                 else:
                     return
 
-                cols = sorted(float_occur[measure[0]])
+                cols = sorted(self.float_occur[measure[0]])
                 # filter empty rows
                 values_df = results.loc[:, cols].dropna(how="all")
                 rows = values_df.index
@@ -615,6 +612,34 @@ class Sheet:
                     )
                     .combine_first(self.content)
                 )
+
+    def export_values(self, file_name: str) -> None:
+        """
+        Export values to parquet file.
+
+        Attributes:
+            file_name (str): Name of the parquet file.
+        """
+        # currently only inst sheet exported
+        if self.ref_sheet is not None:
+            return
+        # group values by measure
+        df = self.values.iloc[2:, [0]].reset_index(drop=True).astype("string")
+        df.columns = pd.MultiIndex.from_tuples([("", "instance")], names=["measure", "setting"])
+        for m, cols in self.float_occur.items():
+            nf = self.values.iloc[2:, sorted(cols)].reset_index(drop=True).astype("float64")
+            nf.columns = self.values.iloc[
+                0, [(x - 1) // len(self.float_occur) * len(self.float_occur) + 1 for x in sorted(cols)]
+            ].to_list()
+            nf.columns = pd.MultiIndex.from_product([[m], nf.columns], names=["measure", "setting"])
+            df = df.join(nf)
+        # metadata
+        # offset -2 (header) -1 (empty row)
+        metadf = pd.DataFrame({"offset": [self.result_offset - 3]})
+        metadf.columns = pd.MultiIndex.from_product([["_metadata"], metadf.columns], names=["measure", "setting"])
+        self.values = df.join(metadf)
+        #! min,med,max no longer included
+        self.values.astype(str).to_parquet(file_name)
 
 
 @dataclass(order=True, unsafe_hash=True)
