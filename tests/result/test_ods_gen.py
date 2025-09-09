@@ -277,6 +277,7 @@ class TestInstSheet(TestCase):
         self.assertEqual(sheet.ref_sheet, self.ref_sheet)
         self.assertDictEqual(sheet.summary_refs, {})
         pd.testing.assert_frame_equal(sheet.values, pd.DataFrame())
+        self.assertDictEqual(sheet.float_occur, {})
 
     def test_add_runspec(self) -> None:
         """
@@ -391,6 +392,19 @@ class TestInstSheet(TestCase):
         self.assertEqual(sheet.content.at[2, 5][1], "cellBest")
         self.assertEqual(sheet.content.at[9, 1][1], "cellWorst")
         self.assertEqual(sheet.content.at[9, 5][1], "cellBest")
+
+    def test_export_values(self) -> None:
+        """
+        Test export_values methods.
+        """
+        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_spec[0])
+        sheet.add_runspec(self.run_spec[1])
+        sheet.finish()
+        name = "file.ipynb"
+        with patch.object(pd.DataFrame, "to_parquet") as tp:
+            sheet.export_values(name)
+            tp.assert_called_once_with(name)
 
 
 # pylint: disable=too-many-instance-attributes,too-many-statements
@@ -535,6 +549,19 @@ class TestClassSheet(TestInstSheet):
         self.assertEqual(sheet.content.at[2, 5][1], "cellBest")
         self.assertEqual(sheet.content.at[5, 1][1], "cellWorst")
         self.assertEqual(sheet.content.at[5, 5][1], "cellBest")
+
+    def test_export_values(self) -> None:
+        """
+        Test export_values methods.
+        """
+        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_spec[0])
+        sheet.add_runspec(self.run_spec[1])
+        sheet.finish()
+        name = "file.ipynb"
+        with patch.object(pd.DataFrame, "to_parquet") as tp:
+            sheet.export_values(name)
+            tp.assert_not_called()
 
 
 class TestSystemBlock(TestCase):
