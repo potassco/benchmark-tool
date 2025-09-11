@@ -1,6 +1,6 @@
 #SBATCH --time={walltime}
 #SBATCH --cpus-per-task={cpt}
 #SBATCH --partition={partition}
-{slurm_options}
+{dist_options}
 
 jobs="{jobs}"

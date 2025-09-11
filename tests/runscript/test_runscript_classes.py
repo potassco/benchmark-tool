@@ -120,7 +120,7 @@ class TestSetting(TestCase):
             self.order,
             self.template,
             {},
-            "--test=1 --opt=test",
+            "#SBATCH --test=1,#SBATCH --opt=test",
             {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}},
         )
         o = io.StringIO()
@@ -128,7 +128,7 @@ class TestSetting(TestCase):
         self.assertEqual(
             o.getvalue(),
             '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
-            'disttemplate="template" slurmopts="--test=1 --opt=test">\n'
+            'disttemplate="template" distopts="#SBATCH --test=1,#SBATCH --opt=test">\n'
             '\t\t<encoding file="def.lp"/>\n'
             '\t\t<encoding file="test1.lp" tag="test"/>\n'
             '\t\t<encoding file="test2.lp" tag="test"/>\n'
@@ -511,7 +511,7 @@ class TestDistScript(TestCase):
         ps.num = 1
         ps.runspec.setting = mock.Mock(spec=runscript.Setting)
         ps.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
-        ps.runspec.setting.slurm_options = "--test=1 --opt=test"
+        ps.runspec.setting.dist_options = "#SBATCH --test=1,#SBATCH --opt=test"
 
         ps.runspec.project = mock.Mock(spec=runscript.Project)
         ps.runspec.project.job = mock.Mock(spec=runscript.DistJob)
@@ -581,7 +581,7 @@ class TestDistScriptGen(TestScriptGen):
         Test gen_start_script method.
         """
         self.setup_obj()
-        self.runspec.setting.slurm_options = ""
+        self.runspec.setting.dist_options = ""
         self.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
         self.runspec.project.job.walltime = 20
         self.runspec.project.job.cpt = 4
