@@ -8,10 +8,18 @@ icon: "material/play-outline"
 The bconv entry point can be used to convert the results obtained by *beval* into an ods file, which can be opened using LibreOffice, OpenOffice or Excel.
 
 ```bash
-$ bconv benchmark-results.xml -m "time:t,choices" -o results.ods
+$ bconv benchmark-results.xml -m "time:t,choices" -o results.ods -j plots.ipynb
 ```
 
-The -m option selects all measures which should be included in the table. Which measure are available depends on the previously used [resultparser](../beval/index.md#resultparser) during evaluation. Each measure can also include a optional formatting argument after a ':'. The only formatting options supported at the moment are 't' and 'to'. Both can be used to mark best and worst values of float measures. While 't' works for most measures, 'to' should be used for float measures representing booleans, such as 'timeout'.
+The name of the resulting ods file is specified by the `-o` option.
+
+The `-m` option selects all measures that should be included in the table. Which measures are available depends on the previously used [resultparser](../beval/index.md#resultparser) during evaluation. Each measure can also include an optional formatting argument after a ':'. The only formatting options supported at the moment are 't' and 'to'. Both can be used to mark the best and worst values of float measures. While 't' works for most measures, 'to' should be used for float measures representing booleans, such as 'timeout'.
+
+The `-x` option can be used to export the dataframe containing the instance results to a parquet file. The file name will be the same as the argument given to the `-o` option e.g., `-o results.ods -x` will result in the files results.ods and results.parquet.
+
+`-j` can be used to specify the name of a jupyter notebook (.ipynb), which will be generated and contain some visualization of the instance data. To run this notebook, some additional packages are required, which can be installed using `$ pip install .[plot]` inside the benchmark-tool directory. The notebook can be started using `$ jupyter notebook <notebook.ipynb>`. If you are using conda, jupyter should already be installed; otherwise you have to install it yourself.
+
+Since the notebook reads the instance data via the exported .parquet file, the `-j` option also automatically sets the `-x` option, without the need to do so manually.
 
 ## ODS Generation
 
