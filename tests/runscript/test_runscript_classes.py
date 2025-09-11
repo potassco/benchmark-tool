@@ -527,7 +527,7 @@ class TestDistScript(TestCase):
             x = f.read()
         self.assertEqual(
             x,
-            "#SBATCH --time=00:01:40\n"
+            "#SBATCH --time=00-00:01:40\n"
             "#SBATCH --cpus-per-task=1\n"
             "#SBATCH --partition=all\n"
             "#SBATCH --test=1\n"

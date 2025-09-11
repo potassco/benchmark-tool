@@ -249,7 +249,7 @@ class Parser:
 
     <xs:simpleType name="timeType">
         <xs:restriction base="xs:string">
-            <xs:pattern value="[0-9]+(:[0-9]+(:[0-9]+)?)?"/>
+            <xs:pattern value="([0-9]+)|([0-9]+d)?[ ]*([0-9]+h)?[ ]*([0-9]+m)?[ ]*([0-9]+s)?"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -343,14 +343,13 @@ class Parser:
                 partition = node.get("partition")
                 if partition is None:
                     partition = "kr"
-
                 job = DistJob(
                     node.get("name"),
-                    tools.xml_time(node.get("timeout")),
+                    tools.get_int_time(node.get("timeout")),
                     int(node.get("runs")),
                     attr,
                     node.get("script_mode"),
-                    tools.xml_time(node.get("walltime")),
+                    tools.get_int_time(node.get("walltime")),
                     int(node.get("cpt")),
                     partition,
                 )
@@ -360,7 +359,7 @@ class Parser:
                 attr = self._filter_attr(node, ["name", "timeout", "runs", "parallel"])
                 job = SeqJob(
                     node.get("name"),
-                    tools.xml_time(node.get("timeout")),
+                    tools.get_int_time(node.get("timeout")),
                     int(node.get("runs")),
                     attr,
                     int(node.get("parallel")),

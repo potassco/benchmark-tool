@@ -101,14 +101,14 @@ class Parser:
                 self.setting_order += 1
             case "seqjob":
                 name = attrib.pop("name")
-                timeout = tools.xml_time(attrib.pop("timeout"))
+                timeout = tools.get_int_time(attrib.pop("timeout"))
                 runs = int(attrib.pop("runs"))
                 parallel = int(attrib.pop("parallel"))
                 seq_job = SeqJob(name, timeout, runs, attrib, parallel)
                 self.result.jobs[seq_job.name] = seq_job
             case "distjob":
                 name = attrib.pop("name")
-                timeout = tools.xml_time(attrib.pop("timeout"))
+                timeout = tools.get_int_time(attrib.pop("timeout"))
                 runs = int(attrib.pop("runs"))
                 script_mode = attrib.pop("script_mode")
                 walltime = attrib.pop("walltime")

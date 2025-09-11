@@ -10,9 +10,9 @@
 
     </system>
 
-	<seqjob name="seq-gen" timeout="900" runs="1" parallel="1"/>
+	<seqjob name="seq-gen" timeout="900s" runs="1" parallel="1"/>
 
-	<distjob name="dist-gen" timeout="1200" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
+	<distjob name="dist-gen" timeout="1200s" runs="1" script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
 
 	<benchmark name="no-pigeons">
 		<folder path="benchmarks/clasp/">
