@@ -8,7 +8,7 @@
 		<setting name="vsids"    cmdline="--heu=vsids 1"/>
 	</system>
 
-	<seqjob name="seq-generic" timeout="120" runs="1" parallel="4"/>
+	<seqjob name="seq-generic" timeout="120s" runs="1" parallel="4"/>
 
 	<benchmark name="seq-suite">
 		<folder path="benchmarks/clasp">

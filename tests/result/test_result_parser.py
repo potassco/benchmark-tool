@@ -81,7 +81,7 @@ class TestParser(TestCase):
         self.assertEqual(dist_job.timeout, 10)
         self.assertEqual(dist_job.runs, 2)
         self.assertEqual(dist_job.script_mode, "timeout")
-        self.assertEqual(dist_job.walltime, "23:59:59")
+        self.assertEqual(dist_job.walltime, "70000")
         self.assertEqual(dist_job.partition, "test_partition")
         self.assertDictEqual(dist_job.attr, {})
 

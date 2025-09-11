@@ -109,9 +109,9 @@ A job is used to define additional arguments for individual runs. Any number of 
 A seqjob is identified by its name and sets the *timeout* in seconds for a single run, the number of *runs* for each instance and the number of runs performed in *parallel*.
 
 ```xml
-<distjob name="dist-gen" timeout="900" runs="1" script_mode="timeout" walltime="23:59:59" cpt="4"/>
+<distjob name="dist-gen" timeout="900" runs="1" script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
 ```
-A distjob is also identified by its name and defines a *timeout* and the number of *runs*. *walltime* sets an overall time limit for all runs in the HH:MM:SS format.
+A distjob is also identified by its name and defines a *timeout* and the number of *runs*. *walltime* sets an overall time limit for all runs in the `[<D>d] [<H>h] [<M>m] [<S>s]` format. Each value is optional can be any integer value e.g., `12d 350s` is valid. Additionally a only single value without an unit can be provided, which will be interpreted as seconds (as seen in the timeout attribute above).
 
 The *script_mode* attribute, defines how runs are grouped and dispatched to the cluster. 'multi' dispatches all runs individually to the cluster for maximum possible parallelization.
 'timeout' dispatches groups of runs depending on the set *timeout* and *walltime*. If it is not possible to execute all runs sequentially inside the *walltime* specified, they will be split into as many groups as necessary so that the *walltime* is never surpassed. For example, if the *walltime* is 25 hours and you have 100 instances with a *timeout* of 1 hour each and 1 run each, there will be 4 groups, each with 25 runs, which will be dispatched.
