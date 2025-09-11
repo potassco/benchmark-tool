@@ -12,6 +12,7 @@ import os
 import re
 import sys
 from dataclasses import dataclass, field
+from functools import total_ordering
 from types import ModuleType
 from typing import Any, Iterator, Optional
 
@@ -158,7 +159,8 @@ class Setting:
         out.write("{0}</setting>\n".format(indent))
 
 
-@dataclass(order=True, frozen=True)
+@total_ordering
+@dataclass(eq=False, frozen=True)
 class Job:
     """
     Base class for all jobs.
@@ -174,6 +176,19 @@ class Job:
     timeout: int = field(compare=False)
     runs: int = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Job):
+            raise RuntimeError("Cannot compare Job to non-Job")
+        return self.name == other.name
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, Job):
+            raise RuntimeError("Cannot compare Job to non-Job")
+        return self.name < other.name
+
+    def __hash__(self) -> int:
+        return hash(self.name)
 
     def _to_xml(self, out: Any, indent: str, xmltag: str, extra: str) -> None:
         """
@@ -703,7 +718,7 @@ class DistScriptGen(ScriptGen):
         tools.set_executable(os.path.join(path, "start.sh"))
 
 
-@dataclass(order=True, frozen=True)
+@dataclass(eq=False, frozen=True)
 class SeqJob(Job):
     """
     Describes a sequential job.
@@ -737,7 +752,7 @@ class SeqJob(Job):
         Job._to_xml(self, out, indent, "seqjob", extra)
 
 
-@dataclass(order=True, frozen=True)
+@dataclass(eq=False, frozen=True)
 class DistJob(Job):
     """
     Describes a dist job.

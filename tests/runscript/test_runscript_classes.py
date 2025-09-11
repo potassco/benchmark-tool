@@ -148,6 +148,35 @@ class TestJob(TestCase):
         self.attr = {"key": "val"}
         self.j = runscript.Job(self.name, self.timeout, self.runs, self.attr)
 
+    # pylint: disable=pointless-statement
+    def test_eq(self):
+        """
+        Test __eq__ method.
+        """
+        j2 = runscript.Job("name2", 20, 2, {"key": "val"})
+        self.assertFalse(self.j == j2)
+        self.assertTrue(self.j == self.j)
+        with self.assertRaises(RuntimeError):
+            self.j == "invalid"
+
+    # pylint: disable=pointless-statement
+    def test_lt(self):
+        """
+        Test __lt__ method.
+        """
+        j2 = runscript.Job("name2", 10, 1, {})
+        self.assertTrue(self.j < j2)
+        self.assertFalse(j2 < self.j)
+        self.assertFalse(self.j < self.j)
+        with self.assertRaises(RuntimeError):
+            self.j < "invalid"
+
+    def test_hash(self):
+        """
+        Test __hash__ method.
+        """
+        self.assertEqual(hash(self.j), hash(self.name))
+
     def test_to_xml(self):
         """
         Test _to_xml method.
