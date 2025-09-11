@@ -4,7 +4,7 @@
 #SBATCH --time={walltime}        # walltime
 #SBATCH --cpus-per-task={cpt}    # number of processor cores (i.e. tasks)
 #SBATCH --partition={partition}
-{slurm_options}                  # additional slurm options (specified via runscript setting)
+{dist_options}                  # additional dist options (specified via runscript setting)
 
 # Good Idea to stop operation on first error.
 set -e

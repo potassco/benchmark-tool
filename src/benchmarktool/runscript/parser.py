@@ -118,7 +118,7 @@ class Parser:
                         </xs:simpleType>
                     </xs:attribute>
                     <xs:attribute name="disttemplate" type="xs:string"/>
-                    <xs:attribute name="slurmopts" type="xs:string"/>
+                    <xs:attribute name="distopts" type="xs:string"/>
                     <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
             </xs:element>
@@ -383,7 +383,7 @@ class Parser:
                 setting_order = 0
                 sys_cmdline = node.get("cmdline")
                 for child in node.xpath("setting"):
-                    attr = self._filter_attr(child, ["name", "cmdline", "tag", "slurmopts", "disttemplate"])
+                    attr = self._filter_attr(child, ["name", "cmdline", "tag", "distopts", "disttemplate"])
                     compound_settings[child.get("name")] = []
                     disttemplate = child.get("disttemplate")
                     if disttemplate is None:
@@ -392,9 +392,9 @@ class Parser:
                         tag = set()
                     else:
                         tag = set(child.get("tag").split(None))
-                    slurm_options = child.get("slurmopts")
-                    if slurm_options is None:
-                        slurm_options = ""
+                    dist_options = child.get("distopts")
+                    if dist_options is None:
+                        dist_options = ""
                     encodings: dict[str, set[str]] = {"_default_": set()}
                     for grandchild in child.xpath("./encoding"):
                         if grandchild.get("enctag") is None:
@@ -409,7 +409,7 @@ class Parser:
                     cmdline = " ".join(filter(None, [sys_cmdline, child.get("cmdline")]))
                     name = child.get("name")
                     compound_settings[child.get("name")].append(name)
-                    setting = Setting(name, cmdline, tag, setting_order, disttemplate, attr, slurm_options, encodings)
+                    setting = Setting(name, cmdline, tag, setting_order, disttemplate, attr, dist_options, encodings)
                     system.add_setting(setting)
                     setting_order += 1
 

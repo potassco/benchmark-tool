@@ -17,7 +17,7 @@
 
 	<config name="dist-generic" template="templates/dist-generic.sh"/>
 	<system name="claspar" version="2.1.0" measures="claspar" config="dist-generic" cmdline="--stats">
-		<setting name="one-as" tag="par one-as" cmdline="1" slurmopts="--test=1 --opt=test" disttemplate="templates/impi.dist">
+		<setting name="one-as" tag="par one-as" cmdline="1" distopts="#SBATCH --test=1,#SBATCH --opt=test" disttemplate="templates/impi.dist">
 			<encoding file="def.lp"/>
 			<encoding file="test1.lp" enctag="test"/>
 			<encoding file="test2.lp" enctag="test"/>

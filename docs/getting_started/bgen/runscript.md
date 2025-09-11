@@ -90,14 +90,14 @@ Settings are identified by their name and define additional arguments and encodi
 
  The setting element additionaly supports an optional attribute *disttemplate*. The default value is `"templates/single.dist"` which is a reference to [single.dist](https://github.com/potassco/benchmark-tool/blob/master/templates/single.dist). This attribute is only relevant for distjobs. More information to dist templates can be found [here](templates.md#dist-templates).
 
- Another optional attribute only used for distjobs is *slurmopts*, which allows the user to add additional slurm options. *slurmopts* expects a string of space separated options. For example `slurmopts="--hint=compute_bound --job-name="my_benchmark_run"` results in the following lines being added to the script:
+ Another optional attribute only used for distjobs is *distopts*, which allows the user to add additional options for distributed jobs. *distopts* expects a string of comma separated options. For example `distopts="#SBATCH --hint=compute_bound,#SBATCH --job-name="my_benchmark_run"` results in the following lines being added to the script:
 
  ```
  #SBATCH --hint=compute_bound
  #SBATCH --job-name="my_benchmark_run"
  ```
 
-For a list of available SLURM options check [here](https://slurm.schedmd.com/sbatch.html).
+The default template for distributed jobs uses SLURM. A list of available SLURM options can be found [here](https://slurm.schedmd.com/sbatch.html).
 
 ## Job
 
