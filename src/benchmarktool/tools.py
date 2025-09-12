@@ -20,9 +20,9 @@ def mkdir_p(path: str) -> None:
         os.makedirs(path)
 
 
-def get_int_time(str_rep: str) -> int:
+def xml_to_seconds_time(str_rep: str) -> int:
     """
-    Converts '[<D>d] [<H>h] [<M>m] [<S>s]' time format to integer value in seconds.
+    Converts '[<D>d] [<H>h] [<M>m] [<S>s]' time format to seconds.
 
     Attributes:
         str_rep (str): String representation.
@@ -39,9 +39,9 @@ def get_int_time(str_rep: str) -> int:
     return accu
 
 
-def get_xml_time(int_rep: int) -> str:
+def seconds_to_xml_time(int_rep: int) -> str:
     """
-    Converts integer value in seconds to '[<D>d] [<H>h] [<M>m] [<S>s]' time format.
+    Converts time in seconds to '[<D>d] [<H>h] [<M>m] [<S>s]' time format.
 
     Attributes:
         int_rep (int): Int representation.
@@ -55,9 +55,9 @@ def get_xml_time(int_rep: int) -> str:
     return "{0:02}d {1:02}h {2:02}m {3:02}s".format(d, h, m, s)
 
 
-def get_slurm_time(int_rep: int) -> str:
+def seconds_to_slurm_time(int_rep: int) -> str:
     """
-    Converts integer value in seconds to [[h:]m:]s time format.
+    Converts time in seconds to 'DD-HH:MM:SS' time format.
 
     Attributes:
         int_rep (int): Int representation.

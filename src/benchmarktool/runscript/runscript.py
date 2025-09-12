@@ -629,7 +629,7 @@ class DistScriptGen(ScriptGen):
                 with open(script, "w", encoding="utf8") as f:
                     f.write(
                         template.format(
-                            walltime=tools.get_slurm_time(self.runspec.project.job.walltime),
+                            walltime=tools.seconds_to_slurm_time(self.runspec.project.job.walltime),
                             jobs=self.startscripts,
                             cpt=self.runspec.project.job.cpt,
                             partition=self.runspec.project.job.partition,

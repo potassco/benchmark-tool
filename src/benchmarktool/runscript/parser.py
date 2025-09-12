@@ -345,11 +345,11 @@ class Parser:
                     partition = "kr"
                 job = DistJob(
                     node.get("name"),
-                    tools.get_int_time(node.get("timeout")),
+                    tools.xml_to_seconds_time(node.get("timeout")),
                     int(node.get("runs")),
                     attr,
                     node.get("script_mode"),
-                    tools.get_int_time(node.get("walltime")),
+                    tools.xml_to_seconds_time(node.get("walltime")),
                     int(node.get("cpt")),
                     partition,
                 )
@@ -359,7 +359,7 @@ class Parser:
                 attr = self._filter_attr(node, ["name", "timeout", "runs", "parallel"])
                 job = SeqJob(
                     node.get("name"),
-                    tools.get_int_time(node.get("timeout")),
+                    tools.xml_to_seconds_time(node.get("timeout")),
                     int(node.get("runs")),
                     attr,
                     int(node.get("parallel")),
