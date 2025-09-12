@@ -28,32 +28,32 @@ class TestTools(TestCase):
         """
         Test get_int_time function.
         """
-        self.assertEqual(tools.get_int_time("10s"), 10)
-        self.assertEqual(tools.get_int_time("10m 10s"), 610)
-        self.assertEqual(tools.get_int_time("10h 10m 10s"), 36610)
-        self.assertEqual(tools.get_int_time("1d 1h 1m 1s"), 90061)
-        self.assertEqual(tools.get_int_time("320"), 320)
-        self.assertEqual(tools.get_int_time("1d 3s"), 86403)
+        self.assertEqual(tools.xml_to_seconds_time("10s"), 10)
+        self.assertEqual(tools.xml_to_seconds_time("10m 10s"), 610)
+        self.assertEqual(tools.xml_to_seconds_time("10h 10m 10s"), 36610)
+        self.assertEqual(tools.xml_to_seconds_time("1d 1h 1m 1s"), 90061)
+        self.assertEqual(tools.xml_to_seconds_time("320"), 320)
+        self.assertEqual(tools.xml_to_seconds_time("1d 3s"), 86403)
 
     def test_get_xml_time(self):
         """
         Test get_xml_time function.
         """
-        self.assertEqual(tools.get_xml_time(10), "00d 00h 00m 10s")
-        self.assertEqual(tools.get_xml_time(610), "00d 00h 10m 10s")
-        self.assertEqual(tools.get_xml_time(36610), "00d 10h 10m 10s")
-        self.assertEqual(tools.get_xml_time(90061), "01d 01h 01m 01s")
-        self.assertEqual(tools.get_xml_time(86403), "01d 00h 00m 03s")
+        self.assertEqual(tools.seconds_to_xml_time(10), "00d 00h 00m 10s")
+        self.assertEqual(tools.seconds_to_xml_time(610), "00d 00h 10m 10s")
+        self.assertEqual(tools.seconds_to_xml_time(36610), "00d 10h 10m 10s")
+        self.assertEqual(tools.seconds_to_xml_time(90061), "01d 01h 01m 01s")
+        self.assertEqual(tools.seconds_to_xml_time(86403), "01d 00h 00m 03s")
 
     def test_get_slurm_time(self):
         """
         Test get_slurm_time function.
         """
-        self.assertEqual(tools.get_slurm_time(10), "00-00:00:10")
-        self.assertEqual(tools.get_slurm_time(610), "00-00:10:10")
-        self.assertEqual(tools.get_slurm_time(36610), "00-10:10:10")
-        self.assertEqual(tools.get_slurm_time(90061), "01-01:01:01")
-        self.assertEqual(tools.get_slurm_time(86403), "01-00:00:03")
+        self.assertEqual(tools.seconds_to_slurm_time(10), "00-00:00:10")
+        self.assertEqual(tools.seconds_to_slurm_time(610), "00-00:10:10")
+        self.assertEqual(tools.seconds_to_slurm_time(36610), "00-10:10:10")
+        self.assertEqual(tools.seconds_to_slurm_time(90061), "01-01:01:01")
+        self.assertEqual(tools.seconds_to_slurm_time(86403), "01-00:00:03")
 
     def test_set_executable(self):
         """
