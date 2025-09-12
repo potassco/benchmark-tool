@@ -43,5 +43,5 @@ The following references can currently be used:
 `walltime`: the overall time limit  
 `cpt`: the number of cpus per tasks  
 `partition`: the cluster partition to be used  
-`dist_options`: additional slurm options  
+`dist_options`: additional options for distributed jobs (e.g. for SLURM)  
 `jobs`: a list of jobs to be run  
