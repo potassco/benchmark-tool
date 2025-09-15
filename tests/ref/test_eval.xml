@@ -7,7 +7,7 @@
 		<setting name="test_setting2" cmdline="test_cmdline" tag="basic"/>
 	</system>
 	<seqjob name="test_seq" timeout="10" runs="2" parallel="1"/>
-	<distjob name="test_dist" timeout="10" runs="2" script_mode="timeout" walltime="23:59:59" partition="test_partition"/>
+	<distjob name="test_dist" timeout="10" runs="2" script_mode="timeout" walltime="70000" partition="test_partition"/>
 	<benchmark name="test_bench">
 		<class name="test_class0" id="0">
 			<instance name="test_inst00" id="0">

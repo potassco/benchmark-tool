@@ -5,6 +5,7 @@ Created on Jan 15, 2010
 """
 
 import os
+import re
 import stat
 
 
@@ -19,26 +20,28 @@ def mkdir_p(path: str) -> None:
         os.makedirs(path)
 
 
-def xml_time(str_rep: str) -> int:
+def xml_to_seconds_time(str_rep: str) -> int:
     """
-    Converts [[h:]m:]s time format to integer value in seconds.
+    Converts '[<D>d] [<H>h] [<M>m] [<S>s]' time format to seconds.
 
     Attributes:
         str_rep (str): String representation.
     """
-    timeout = str_rep.split(":")
-    seconds = int(timeout[-1])
-    minutes = hours = 0
-    if len(timeout) > 1:
-        minutes = int(timeout[-2])
-    if len(timeout) > 2:
-        hours = int(timeout[-3])
-    return seconds + minutes * 60 + hours * 60 * 60
+    mult = {"d": 86400, "h": 3600, "m": 60, "s": 1, "so": 1}
+    m = re.fullmatch(
+        r"(?P<so>[0-9]+)|(?:(?P<d>[0-9]+)d)?\s*(?:(?P<h>[0-9]+)h)?\s*(?:(?P<m>[0-9]+)m)?\s*(?:(?P<s>[0-9]+)s)?", str_rep
+    )
+    accu = 0
+    if m is not None:
+        for key, val in m.groupdict().items():
+            if val is not None:
+                accu += int(val) * mult[key]
+    return accu
 
 
-def dist_time(int_rep: int) -> str:
+def seconds_to_xml_time(int_rep: int) -> str:
     """
-    Converts integer value in seconds to [[h:]m:]s time format.
+    Converts time in seconds to '[<D>d] [<H>h] [<M>m] [<S>s]' time format.
 
     Attributes:
         int_rep (int): Int representation.
@@ -47,8 +50,25 @@ def dist_time(int_rep: int) -> str:
     int_rep //= 60
     m = int_rep % 60
     int_rep //= 60
-    h = int_rep
-    return "{0:02}:{1:02}:{2:02}".format(h, m, s)
+    h = int_rep % 24
+    d = int_rep // 24
+    return "{0:02}d {1:02}h {2:02}m {3:02}s".format(d, h, m, s)
+
+
+def seconds_to_slurm_time(int_rep: int) -> str:
+    """
+    Converts time in seconds to 'DD-HH:MM:SS' time format.
+
+    Attributes:
+        int_rep (int): Int representation.
+    """
+    s = int_rep % 60
+    int_rep //= 60
+    m = int_rep % 60
+    int_rep //= 60
+    h = int_rep % 24
+    d = int_rep // 24
+    return "{0:02}-{1:02}:{2:02}:{3:02}".format(d, h, m, s)
 
 
 def set_executable(filename: str) -> None:

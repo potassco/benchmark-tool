@@ -120,7 +120,7 @@ class TestSetting(TestCase):
             self.order,
             self.template,
             {},
-            "--test=1 --opt=test",
+            "#SBATCH --test=1,#SBATCH --opt=test",
             {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}},
         )
         o = io.StringIO()
@@ -128,7 +128,7 @@ class TestSetting(TestCase):
         self.assertEqual(
             o.getvalue(),
             '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
-            'disttemplate="template" slurmopts="--test=1 --opt=test">\n'
+            'disttemplate="template" distopts="#SBATCH --test=1,#SBATCH --opt=test">\n'
             '\t\t<encoding file="def.lp"/>\n'
             '\t\t<encoding file="test1.lp" tag="test"/>\n'
             '\t\t<encoding file="test2.lp" tag="test"/>\n'
@@ -147,6 +147,35 @@ class TestJob(TestCase):
         self.runs = 2
         self.attr = {"key": "val"}
         self.j = runscript.Job(self.name, self.timeout, self.runs, self.attr)
+
+    # pylint: disable=pointless-statement
+    def test_eq(self):
+        """
+        Test __eq__ method.
+        """
+        j2 = runscript.Job("name2", 20, 2, {"key": "val"})
+        self.assertFalse(self.j == j2)
+        self.assertTrue(self.j == self.j)
+        with self.assertRaises(RuntimeError):
+            self.j == "invalid"
+
+    # pylint: disable=pointless-statement
+    def test_lt(self):
+        """
+        Test __lt__ method.
+        """
+        j2 = runscript.Job("name2", 10, 1, {})
+        self.assertTrue(self.j < j2)
+        self.assertFalse(j2 < self.j)
+        self.assertFalse(self.j < self.j)
+        with self.assertRaises(RuntimeError):
+            self.j < "invalid"
+
+    def test_hash(self):
+        """
+        Test __hash__ method.
+        """
+        self.assertEqual(hash(self.j), hash(self.name))
 
     def test_to_xml(self):
         """
@@ -482,7 +511,7 @@ class TestDistScript(TestCase):
         ps.num = 1
         ps.runspec.setting = mock.Mock(spec=runscript.Setting)
         ps.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
-        ps.runspec.setting.slurm_options = "--test=1 --opt=test"
+        ps.runspec.setting.dist_options = "#SBATCH --test=1,#SBATCH --opt=test"
 
         ps.runspec.project = mock.Mock(spec=runscript.Project)
         ps.runspec.project.job = mock.Mock(spec=runscript.DistJob)
@@ -498,7 +527,7 @@ class TestDistScript(TestCase):
             x = f.read()
         self.assertEqual(
             x,
-            "#SBATCH --time=00:01:40\n"
+            "#SBATCH --time=00-00:01:40\n"
             "#SBATCH --cpus-per-task=1\n"
             "#SBATCH --partition=all\n"
             "#SBATCH --test=1\n"
@@ -552,7 +581,7 @@ class TestDistScriptGen(TestScriptGen):
         Test gen_start_script method.
         """
         self.setup_obj()
-        self.runspec.setting.slurm_options = ""
+        self.runspec.setting.dist_options = ""
         self.runspec.setting.disttemplate = "tests/ref/test_disttemplate.dist"
         self.runspec.project.job.walltime = 20
         self.runspec.project.job.cpt = 4
