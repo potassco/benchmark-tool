@@ -23,6 +23,7 @@ clasp_re = {
     "status": ("string", re.compile(r"^(s )?(?P<val>SATISFIABLE|UNSATISFIABLE|UNKNOWN|OPTIMUM FOUND)[ ]*$")),
     "interrupted": ("string", re.compile(r"(c )?(?P<val>INTERRUPTED!)")),
     "error": ("string", re.compile(r"^\*\*\* clasp ERROR: (?P<val>.*)$")),
+    "rstatus": ("string", re.compile(r"^\[runlim\] status:\s*(?P<val>.*)$")),
     "memerror": ("string", re.compile(r"^(Maximum VSize exceeded|\[runlim\] status:\s*out of memory)(?P<val>.*)")),
     "mem": ("float", re.compile(r"^\[runlim\] space:[\t]*(?P<val>[0-9]+(\.[0-9]+)?) MB")),
 }
