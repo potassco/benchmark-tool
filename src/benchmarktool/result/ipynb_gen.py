@@ -74,6 +74,64 @@ df_fill = (
 ### Helper functions
 """
     code2 = '''\
+def multi_checkbox_widget(options_dict: dict):
+    """
+    Widget with a search field and lots of checkboxes.
+    Based on 'https://gist.github.com/MattJBritton/9dc26109acb4dfe17820cf72d82f1e6f'.
+
+    Attributes:
+        options_dict (dict): Widget options.
+    """
+    search_widget = widgets.Text()
+    output_widget = widgets.Output()
+    options = [x for x in options_dict.values()]
+    options_layout = widgets.Layout(
+        overflow='auto',
+        border='1px solid black',
+        width='300px',
+        height='300px',
+        flex_flow='column',
+        display='flex'
+    )
+    
+    #selected_widget = wid.Box(children=[options[0]])
+    options_widget = widgets.VBox(options, layout=options_layout)
+    #left_widget = wid.VBox(search_widget, selected_widget)
+    multi_select = widgets.VBox([search_widget, options_widget])
+
+    @output_widget.capture()
+    def on_checkbox_change(change):
+        
+        selected_recipe = change["owner"].description
+        #print(options_widget.children)
+        #selected_item = wid.Button(description = change["new"])
+        #selected_widget.children = [] #selected_widget.children + [selected_item]
+        options_widget.children = sorted([x for x in options_widget.children], key = lambda x: x.value, reverse = True)
+        
+    for checkbox in options:
+        checkbox.observe(on_checkbox_change, names="value")
+
+    # Wire the search field to the checkboxes
+    @output_widget.capture()
+    def on_text_change(change):
+        search_input = change['new']
+        if search_input == '':
+            # Reset search field
+            new_options = sorted(options, key = lambda x: x.value, reverse = True)
+        else:
+            # Filter by search field using difflib.
+            #close_matches = difflib.get_close_matches(search_input, list(options_dict.keys()), cutoff=0.0)
+            close_matches = [x for x in list(options_dict.keys()) if str.lower(search_input.strip('')) in str.lower(x)]
+            new_options = sorted(
+                [x for x in options if x.description in close_matches], 
+                key = lambda x: x.value, reverse = True
+            ) #[options_dict[x] for x in close_matches]
+        options_widget.children = new_options
+
+    search_widget.observe(on_text_change, names='value')
+    display(output_widget)
+    return multi_select
+
 %matplotlib ipympl
 def get_vals(df: pd.DataFrame, measure: str, setting: str) -> dict[str, list[float]]:
     """
@@ -125,44 +183,79 @@ def select_mode_mode(measure: str, mode: str) -> None:
             button_style='', # 'success', 'info', 'warning', 'danger' or ''
             tooltips=["Merge runs using median", "Merge runs using mean"],
         )
+        interact(select_selection, measure=fixed(measure), mode=fixed(mode), sub_mode=z)
     elif mode == "comp-runs":
-        z = widgets.ToggleButtons(
+        def f(sub_mode):
+            plot(measure, mode, sub_mode, [])
+        z = widgets.RadioButtons(
             options=sorted(settings),
+        #    layout={'width': 'max-content'}, # If the items' names are long
             description='Setting:',
-            disabled=False,
-            button_style='', # 'success', 'info', 'warning', 'danger' or ''
-            style={"button_width": "auto"},
+            disabled=False
         )
+        out = widgets.interactive_output(f, {"sub_mode":z})
+        display(widgets.HBox([z, out]))
     else:
         raise RuntimeError("Invalid mode")
-    interact(plot, measure=fixed(measure), mode=fixed(mode), select=z)
+    
+def select_selection(measure: str, mode:str, sub_mode: str) -> None:
+    """
+    Select plotted settings for comp-settings mode.
 
-def plot(measure: str, mode: str, select: str) -> None:
+    Attributes:
+        measure (str): Measure name.
+        mode (str): Comparison mode.
+        sub_mode (str): Secondary mode.
+    """
+    if mode == "comp-settings":
+        def f(**args):
+            results = [key for key, value in args.items() if value]
+            plot(measure, mode, sub_mode, results)
+            
+        options_dict = {
+            x: widgets.Checkbox(
+                description=x, 
+                value=False,
+                style={"description_width":"0px"}
+            ) for x in sorted(settings)
+        }
+        ui = multi_checkbox_widget(options_dict)
+        out = widgets.interactive_output(f, options_dict)
+        display(widgets.HBox([ui, out]))
+    elif mode == "comp-runs":
+        plot(measure, mode, sub_mode, "")
+    else:
+        raise RuntimeError("Invalid selection")
+
+def plot(measure: str, mode: str, sub_mode: str, select: list[str] = []) -> None:
     """
     Simplified plot function for better readability and maintainability.
 
     Attributes
         measure (str): Measure name.
         mode (str): Comparison mode.
-        merge (str): Secondary selection.
+        sub_mode (str): Secondary mode.
+        select (list[str]): Selection.
     """
     plt.close('all')  # Close previous figures to avoid memory issues
     values: dict[str, dict[str, float]] = {}
 
     if mode == "comp-settings":
         values = {
-            setting: {x: getattr(np, select)(y) for x, y in get_vals(df_fill, measure, setting).items()}
-            for setting in settings
+            setting: {x: getattr(np, sub_mode)(y) for x, y in get_vals(df_fill, measure, setting).items()}
+            for setting in select
         }
         title = f"Comparison of settings: {measure}"
-        labels = settings
+        labels = select
+        legend_cols = 1
     elif mode == "comp-runs":
         values = {}
-        for ins, runs in get_vals(df_fill, measure, select).items():
+        for ins, runs in get_vals(df_fill, measure, sub_mode).items():
             for run, val in enumerate(runs, start=1):
                 values.setdefault(str(run), {})[ins] = val
-        title = f"Comparison of runs: {measure}, {select}"
+        title = f"Comparison of runs: {measure}, {sub_mode}"
         labels = values.keys()
+        legend_cols = 3
     else:
         raise RuntimeError("Invalid mode")
     ins: pd.DataFrame = df.replace("<NA>", np.nan).dropna().loc[: float(metadata["offset"]), [("", "instance")]].squeeze()
@@ -180,7 +273,7 @@ def plot(measure: str, mode: str, select: str) -> None:
     ax.set_xlabel("Value")
     ax.set_title(title)
     ax.set_yticks(y + height / 2 * (len(labels) - 1), ins)
-    ax.legend(loc='upper left', ncols=len(labels))
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncols=legend_cols)
     ax.invert_yaxis()
     plt.show()
 '''
@@ -205,8 +298,10 @@ The first row of buttons selects which measure will be compared.
 
 The second row selects if different settings or runs of the same setting should be compared with each other.
 
-If settings are compared, the third row of buttons selects how different runs should be merged.  
-If runs are compared, the third row of buttons instead selects the setting.
+If settings should be compared, the third row of buttons selects how different runs should be merged.  
+Which settings will be compared can be search through and selected using the winfow left of the plot.
+
+If runs should be compared, the corresponding setting has to be selected. 
 
 ---
 
