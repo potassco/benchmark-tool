@@ -17,7 +17,7 @@ The `-m` option selects all measures that should be included in the table. Which
 
 The `-x` option can be used to export the dataframe containing the instance results to a parquet file. The file name will be the same as the argument given to the `-o` option e.g., `-o results.ods -x` will result in the files results.ods and results.parquet.
 
-`-j` can be used to specify the name of a jupyter notebook (.ipynb), which will be generated and contain some visualization of the instance data. To run this notebook, some additional packages are required, which can be installed using `$ pip install .[plot]` inside the benchmark-tool directory. The notebook can be started using `$ jupyter notebook <notebook.ipynb>`. If you are using conda, jupyter should already be installed; otherwise you have to install it yourself.
+`-j` can be used to specify the name of a jupyter notebook (.ipynb), which will be generated and contain some visualization of the instance data. To run this notebook, some additional packages are required, which can be installed using `$ pip install .[plot]` inside the benchmark-tool directory. The notebook can be started using `$ jupyter notebook <notebook.ipynb>`.
 
 Since the notebook reads the instance data via the exported .parquet file, the `-j` option also automatically sets the `-x` option, without the need to do so manually.
 
