@@ -28,6 +28,9 @@ clasp_re = {
     "mem": ("float", re.compile(r"^\[runlim\] space:[\t]*(?P<val>[0-9]+(\.[0-9]+)?) MB")),
 }
 
+# penalized-average-runtime score constant
+PAR = 2
+
 
 # pylint: disable=unused-argument
 def parse(
@@ -67,8 +70,10 @@ def parse(
         or res["time"][1] >= timeout
         or "interrupted" in res
     )
+    res["parx"] = ("float", res["time"][1])
     if timedout:
         res["time"] = ("float", timeout)
+        res["parx"] = ("float", PAR * timeout)
     if error:
         sys.stderr.write("*** ERROR: Run {0} failed with unrecognized status or error!\n".format(root))
     result.append(("error", "float", int(error)))
