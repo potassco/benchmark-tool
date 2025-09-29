@@ -13,7 +13,7 @@ bconv benchmark-results.xml -m "time:t,choices" -o results.ods
 ```
 
 The `-m` option specifies which measures to include in the table. Available
-measures depend on the [resultparser] used during evaluation. Each measure can
+measures depend on the [result parser] used during evaluation. Each measure can
 optionally include a formatting argument after a `:`. Currently, the supported
 formatting options are `t` and `to`. Both highlight best and worst values for
 float measures. Use `t` for most measures, and `to` for float measures
@@ -43,5 +43,5 @@ When generating a spreadsheet in ODS format, two sheets are created:
     Both the ODS representation and the actual content are stored in [pandas]
     DataFrames for easier handling and future modifications.
 
-[resultparser]: ../beval/index.md#resultparser
+[result parser]: ../../reference/resultparser.md
 [pandas]: https://pandas.pydata.org/

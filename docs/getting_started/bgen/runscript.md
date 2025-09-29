@@ -8,10 +8,9 @@ you adapt an existing runscript or create a new one from scratch.
 
 Various runscripts can be found on the [examples] page.
 
-## Folder Structure
+## Runscript Elements
 
-When running `bgen`, a folder structure is created. The name of the top-level
-folder is specified by the root element in the runscript:
+A runscript element is defined as follows:
 
 ```xml
 <runscript output="output-folder">
@@ -19,29 +18,57 @@ folder is specified by the root element in the runscript:
 </runscript>
 ```
 
-In this example, the top-level folder is named `output-folder`.
+The `output` attribute specifies the top-level folder where all scripts and
+results are stored.
 
-The second folder in the hierarchy represents the project, which will be
-explained later.
+### Machine Elements
 
-The third folder corresponds to the name of the machine on which the benchmark
-is run. Machines are defined in the runscript as follows:
+The `runscript` element can contain any number of the `machine` elements:
 
 ```xml
 <machine name="hpc" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
 ```
 
+The attributes are as follows:
+
+- The `name` attribute identifies the machine.
+- The `cpu` attribute describes the CPU of the machine.
+- The `memory` attribute describes the available memory of the machine.
+
 !!! info
     The `cpu` and `memory` attributes are for informational purposes only.
 
-    You can define any number of machines.
+### Folder Structure
 
-Within this folder, you will find the start scripts for launching the benchmark
-and the resulting output. Results are organized as follows:
+When running the `bgen` tool on a runscript, a folder structure is created.
 
+```text
+<output>
+└─ <project>
+   └─ <machine>
+      └─ <results>
+         └─ <benchmark-set>
+            └─ <sytem-name>-<system-version>-<setting>
+               ├─ <benchclass>
+               │  ├─ <instance>
+               │  │  ├─ <run>
+               │  │  ├─ ...
+               │  │  └─ <run>
+               │  ├─ ...
+               │  └─ <instance>
+               │     └─ ...
+               ├─ ...
+               └─ <benchclass>
+                  └─ ...
 ```
-./results/<benchmark-name>/<system-name>-<system-version>-<setting>/<benchclass>/<instance>/<run>
-```
+
+1. The name of the top-level folder is specified by the `output` attribute of
+the `runscript` element.
+2. The second folder in the hierarchy represents the project, which will be
+explained later.
+3. The third folder corresponds to the name of the machine on which the
+benchmark is run. Within this folder, you will find the start scripts for
+launching the benchmark and the resulting output files.
 
 ## Configuration
 
@@ -127,6 +154,8 @@ A job defines additional arguments for individual runs. You can define any
 number of jobs. There are two types: sequential jobs (`seqjob`) and distributed
 jobs (`distjob`) for running benchmarks on a cluster.
 
+### Sequential Jobs
+
 A sequential job is identified by its `name` and sets the `timeout` (in
 seconds) for a single run, the number of `runs` for each instance, and the
 number of solver processes performed in `parallel`:
@@ -134,6 +163,8 @@ number of solver processes performed in `parallel`:
 ```xml
 <seqjob name="seq-gen" timeout="900" runs="1" parallel="1"/>
 ```
+
+### Distributed Jobs
 
 A distributed job is also identified by its `name` and defines a `timeout` and
 number of `runs`:
@@ -169,9 +200,11 @@ Note that these values depend on your cluster configuration.
     cluster's scheduler. Use `timeout` or dispatch the generated `.dist` jobs
     using `./dispatcher.py`.
 
-## Benchmark/Instances
+## Benchmark Sets
 
-The benchmark element is mainly used to indicate the location of the instances. Any number of benchmarks can be defined.
+The benchmark element defines a group of benchmark instances grouped into
+classes to be run by systems. It is identified by its `name` and can contain
+any number of `folder` or `files` elements:
 
 ```xml
 <benchmark name="no-pigeons">
@@ -179,69 +212,125 @@ The benchmark element is mainly used to indicate the location of the instances. 
 <benchmark/>
 ```
 
-A benchmark is identified by its *name* and can contain any number of *folder* or *files* elements.
+### Folder Elements
+
+A `folder` element defines a `path` to a folder containing instances, which is
+searched recursively. Each sub-folder folders with instances is treated as a
+benchmark class, and results are separated accordingly:
+
 ```xml
 <folder path="benchmarks/clasp" enctag="tag1" group="true">
     <ignore prefix="pigeons"/>
     <encoding file="encodings/no-pigeons.lp"/>
 <folder/>
 ```
-Folder elements define a *path* to a folder containing instances. The folder is recursively searched. If there are several folders with instances, the folder where the instances are located is taken as a "domain" and there will be an additional separation of the results using these "domains".
-If there are folders that should not be included in the benchmark instances, the *ignore* element can be used to define a *prefix* which will be ignored.
 
-Instances can be grouped using the the optional boolean *group* attribute of the *folder* element. By default this value is set to `false`. If enbaled, instance files in the form `<instance>.<extension>` with the same 'instance' located in the same folder are grouped together. For example, if there where files `inst1.1.lp` and `inst1.2.1.lp` in the same folder, they would be grouped together to 'inst1' and the corresponding job would reference both files using `{run.files}` in the template.
+A folder `element` can have the following optional attributes:
 
-It is also possible to specify any amount of encodings which should be called together with all instances in this folder by using the *encoding* element. Setting-depended encodings can be added by using the optional *enctag* attribute. A more detailed explanation with examples for encoding support can be found [here](../../reference/encoding_support.md).
+- You can specify the optional `enctag` attribute to only run for settings with
+matching tags. This topic is discussed in more detail on the [encoding support]
+page.
+- Instances can be grouped using the optional Boolean `group` attribute
+(default is `false`). If enabled, instance files in same folder of form
+`<instance>.<extension>` sharing the same prefix `<instance>` are passed
+together to the system. For example, files `inst1.1.lp` and `inst1.2.lp` in the
+same folder would be grouped as `inst1`.
+
+A `folder` element can contain any number of `encoding` and `ignore` elements:
+
+- To exclude folders from the benchmark, use the `ignore` element to define a
+path `prefix` to be ignored.
+- You can also specify encodings to be used with all instances in a folder
+using the `encoding` element.
+
+### File Elements
+
+Instead of using a `folder` element to gather benchmark instances, you can also
+manually add specific files using the `files` element:
 
 ```xml
 <files path="benchmarks/clasp" enctag="tag1 tag2">
     <encoding file="default.lp"/>
-    <add file="pigeons/pigeonhole11-unsat.lp"/>
-</files>
-```
-Similar to folder, the *files* elements define a path to a folder containing instances, but specific instances have to be added manually using the *add* element. In the example above, only `benchmarks/clasp/pigeons/pigeonhole11-unsat.lp` is added.
-
-Specified instance files can optionally be grouped together using the *group* attribute as seen below:
-
-```xml
-<files path="benchmarks/clasp">
     <add file="dir/inst1.lp" group="group1"/>
     <add file="dir/inst2.lp" group="group1"/>
 </files>
 ```
 
-Grouped instances have to be located in the same directory. If no groups are specified, instance files are not grouped.
+The `files` element has the following optional attributes:
 
-The *files* element does also support instance- and setting-depended encodings. More information can be found [here](../../reference/encoding_support.md).
+- The `path` attribute specifies the folder containing the instances to be added.
+- The `enctag` attribute works the same way as for the `folder` element.
+
+The `files` element can contain any number of `encoding` and `add` elements:
+
+- The add element specifies a file to be added to the benchmark. The `file`
+attribute gives the path to the instance relative to the `path` attribute of
+its parent `files` element.
+- Instance files can optionally be grouped together using the `group`
+attribute. Groups of instances have to be located in the same directory and are
+passed together to the system.
 
 ## Projects
 
-Projects are used to combine all of the previous elements to define a complete benchmark. There are two ways to define projects, using the *runtag* or the *runspec* element. A project can contain any number of *runtag* and *runspec* elements.
+Projects combine all previous elements to define a complete benchmark.
 
 ```xml
 <project name="clingo-basic" job="seq-gen">
-    <runtag machine="hpc" benchmark="no-pigeons" tag="basic"/>
+    ...
 </project>
 ```
 
-Each project is identified by its *name*. The value of *name* is also what gives the name of the seconds folder in the overall folder structure. *job* references a previously defined job to be used as a template for the benchmark.
+A `project` element has the following attributes:
 
-The *runtag* element specifies a machine and benchmark (group of instances) to be run. One or multiple settings to be used can be selected by the *tag*. The special tag *all* can be used to select all settings. The system to be used is inferred through the setting.
+- Each project is identified by its `name`, which also determines the name of
+the second folder in the overall folder structure.
+- The `job` attribute references a previously defined job to use as a template
+for the benchmark.
 
-In the above example all instances defined in the 'no-pigeons' benchmark are run using the 'seq-gen' job configuration on machine 'hpc' once for each setting with the tag 'basic'.
+There are two ways to define projects: using the `runtag` or the `runspec`
+element. A project can contain any number of `runtag` and `runspec` elements.
+
+### Runtag Elements
+
+The `runtag` element specifies a machine and benchmark set to run:
 
 ```xml
-<project name="clingo-dist" job="dist-gen">
-    <runspec machine="hpc" benchmark="no-pigeons" system="clingo" version="5.8.0" setting="setting-1"/>
-</project>
+<runtag machine="hpc" benchmark="no-pigeons" tag="basic"/>
 ```
 
-Similar to the *runtag* element, the *runspec* element can be used to specify a machine and a benchmark. But in contrast to before, only a single *system* *version* with a single *setting* can be referenced.
+It has the following attributes:
 
+- The `machine` attribute references a previously defined machine.
+- The `benchmark` attribute references a previously defined benchmark set.
+- The `tag` attribute specifies one or multiple setting tags to be used. Only
+settings with matching tags are selected. To include all settings, use the
+special `all` tag.
+
+In the above example all instances defined in the `no-pigeons` benchmark are
+run using the `seq-gen` job configuration on machine `hpc` once for each
+setting with the tag `basic`.
+
+### Runspec Elements
+
+Finally, the `project` element can also contain `runspec` elements to select
+explicitly a single machine, benchmark, system, version, and setting:
+
+```xml
+<runspec machine="hpc" benchmark="no-pigeons" system="clingo" version="5.8.0"
+    setting="setting-1"/>
+```
+
+The attributes are as follows:
+
+- The `machine` attribute references a previously defined machine.
+- The `benchmark` attribute references a previously defined benchmark set.
+- The `system` and `version` attributes reference a previously defined system.
+- The `setting` attribute references a previously defined setting of the selected
 
 [run template]: ./templates.md#run-templates
-[result parser]: ../beval/index.md#resultparser
+[result parser]: ../../reference/resultparser.md
 [single.dist]: https://github.com/potassco/benchmark-tool/blob/master/templates/single.dist
 [templates]: templates.md#dist-templates
 [examples]: ../../examples/index.md#runscripts
 [SLURM documentation]: https://slurm.schedmd.com/sbatch.html
+[encoding support]: ../../reference/encoding_support.md
