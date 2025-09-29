@@ -2,46 +2,49 @@
 title: "Templates"
 ---
 
-# Templates
+Templates control how scripts for benchmarking are generated. Run templates
+(`.sh` scripts) are used for individual benchmark runs, while dist templates
+(`.dist` scripts) serve distributed computation on clusters.
 
-Templates are used to simplify the creation of different scripts. While run templates (`.sh` scripts) are used to generate scripts for individual benchmark runs, dist templates (`.dist` scripts) are used to enable computation on a cluster.
-
-A collection of templates can be found [here](https://github.com/potassco/benchmark-tool/blob/master/templates).
+You can browse a curated collection of example templates in the [benchmark-tool
+repository].
 
 ## Run Templates
-A run template dictates how each benchmark instance should be run. During generation the references inside the template, e.g. `run.file`, are replaced by the corresponding values.
 
-The following references can currently be used:  
-`run.files`: the instance files  
-`run.encodings`: encoding files to be used for this instance  
-`run.root`: the path to the benchmark-tool folder  
-`run.timeout`: the walltime for this run  
-`run.memout`: the memory limit for this run in MB (20000 by default)  
-`run.solver`: the solver/program to be used for this run  
-`run.args`: additional arguments to be used by the solver/program  
+Run templates define how each benchmark instance is executed. During script
+generation, references within the template (e.g., `run.file`) are replaced with
+corresponding values.
 
+The following references are available:
 
-Most templates make use of the [runlim](https://github.com/arminbiere/runlim) program to supervise the benchmark runs.
+- `run.files`: instance files
+- `run.encodings`: encoding files used for this instance
+- `run.root`: path to the benchmark-tool folder
+- `run.timeout`: walltime for this run
+- `run.memout`: memory limit for this run in MB (default: 20000)
+- `run.solver`: solver or program used for this run
+- `run.args`: additional arguments for the solver/program
+
+Most templates use the [runlim] program to supervise benchmark runs.
 
 !!! info
-    When using the provided templates you might have to update the runlim version inside the template.
+    If you use the provided templates, you may need to update the [runlim]
+    version specified in the template.
 
 ## Dist Templates
 
-Dist templates describes how a single new job will look like, when grouping multiple jobs together to run on a cluster. This includes setting job parameters such as walltime, loading the environment and deciding in which order the jobs will be run.
+Dist templates define how jobs are grouped and executed on a cluster, including
+job parameters such as walltime, environment setup, and job scheduling order.
 
-While parameters can be set using the default `#SBATCH` syntax of SLURM, environments can be loaded explicitly in this file or by sourcing a `.bashrc`file.
+Parameters can be set using the standard SLURM `#SBATCH` syntax.
 
-For example to activate a locally installed miniconda environment on the cluster add:
-```bash
-source ~/.bashrc
-source ~/miniconda3/bin/activate
-source activate <env-name>
-```
+The following references are available:
 
-The following references can currently be used:  
-`walltime`: the overall time limit  
-`cpt`: the number of cpus per tasks  
-`partition`: the cluster partition to be used  
-`dist_options`: additional options for distributed jobs (e.g. for SLURM)  
-`jobs`: a list of jobs to be run  
+- `walltime`: overall time limit
+- `cpt`: number of CPUs per task
+- `partition`: cluster partition to use
+- `dist_options`: additional options for distributed jobs (e.g., SLURM)
+- `jobs`: list of jobs to run
+
+[benchmark-tool repository]: https://github.com/potassco/benchmark-tool/blob/master/templates
+[runlim]: https://github.com/arminbiere/runlim
