@@ -1,19 +1,17 @@
 ---
-title: "runscript"
-
+title: "Runscripts for Benchmarking"
 ---
 
-# Runscript
+A runscript defines all aspects of a benchmark set and the systems used to run
+them. The following sections explain each part of a typical runscript, helping
+you adapt an existing runscript or create a new one from scratch.
 
-A runscript defines all aspects of a benchmark set. The following sections will go
-through all parts of a typical runscript and show what is possible, so you can adapt
-an existing runscript to your needs or create a new one from scratch.
-
-Some example runscripts can be found [here](../../examples/index.md#runscripts)
+Various runscripts can be found on the [examples] page.
 
 ## Folder Structure
 
-When running `bgen` a folder structure is created. The name of the first folder in the tree is given by the root element in the runscript:
+When running `bgen`, a folder structure is created. The name of the top-level
+folder is specified by the root element in the runscript:
 
 ```xml
 <runscript output="output-folder">
@@ -21,60 +19,71 @@ When running `bgen` a folder structure is created. The name of the first folder 
 </runscript>
 ```
 
-In this case, the name of the folder is "output-folder". It is recommended that the name should be changed to something meaningful and representative of the benchmark you are running.
+In this example, the top-level folder is named `output-folder`.
 
-The name of the folder second in the hierarchy represents the project, which will be explained later.
+The second folder in the hierarchy represents the project, which will be
+explained later.
 
-The folder third in the hierarchy corresponds to the name of the machine the benchmark was run on. A machine is defined in the runscript as seen below:
+The third folder corresponds to the name of the machine on which the benchmark
+is run. Machines are defined in the runscript as follows:
 
 ```xml
 <machine name="hpc" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
 ```
 
 !!! info
-    The *cpu* and *memory* attributes are currently unused.
+    The `cpu` and `memory` attributes are for informational purposes only.
 
-    Any number of machines can be defined.
+    You can define any number of machines.
 
+Within this folder, you will find the start scripts for launching the benchmark
+and the resulting output. Results are organized as follows:
 
-In this folder you will find the start scripts to start the benchmark and the results afterwards.
-The results are structured as follows:
 ```
 ./results/<benchmark-name>/<system-name>-<system-version>-<setting>/<benchclass>/<instance>/<run>
 ```
 
 ## Configuration
 
-At the moment a configuration is only used to reference a run template. Any number of configurations can be defined as below:
+Configurations are used to reference run templates. You can define any number
+of configurations:
 
 ```xml
-<conifg name="seq-generic" template="templates/seq-generic.sh"/>
+<config name="seq-generic" template="templates/seq-generic.sh"/>
 ```
 
-For more information regarding run templates check [here](templates.md#run-templates).
+For more information on the [template][run template] page.
 
 ## System
 
-The following line shows, how a system is defined.
+Systems are defined as follows:
+
 ```xml
-<system name="clingo" version="5.8.0" measures="clingo" config="seq-generic" cmdline="--stats">
+<system name="clingo" version="5.8.0" measures="clingo" config="seq-generic"
+        cmdline="--stats">
     ...
 </system>
 ```
 
-The values of *name* and *version* work together to describe the name of a bash script named `<name>-<version>`, which has to be placed inside the `./programs` directory. In the case of the example above, the solver given to the [run template](./templates.md#run-templates) described in the configuration is `./programs/clingo-4.5.4`. Since this is a regular bash script, feel free to modify it to your heart's content.
+- The `name` and `version` attributes together specify the name of an executable
+or script called `<name>-<version>`, which must be placed in the `./programs`
+directory. For example, the solver referenced by the [run template] in the
+configuration is `./programs/clingo-5.8.0`. You can freely modify this script
+as needed.
+- The `measures` attribute specifies the name of a [result parser] used during
+benchmark result evaluation. This does not affect benchmark script generation.
+- The `config` attribute refers to the configuration to use for running this
+system.
+- The `cmdline` attribute is optional and can be any string, which will be passed
+to the system regardless of the setting.
 
-The *measure* attribute describes a name of a [result parser](../beval/index.md#resultparser), which will be used to evaluate the results during the `beval` call. This has no effect on `bgen`.
-
-The *config* attribute refers to the name of a configuration, which should be used to run this system.
-
-The *cmdline* attribute is optional and can be any string, which will be passed to the system regardless of the setting.
-
-A runscript can contain any number of systems, which in turn can contain any number of settings.
+A runscript can contain any number of systems, each with any number of
+settings.
 
 ### Setting
 
-Settings are identified by their name and define additional arguments and encodings used by the system.
+Settings are identified by their `name` and define additional arguments and
+encodings used by the system.
 
 ```xml
 <setting name="setting-1" cmdline="--quiet=1,0" tag="basic">
@@ -82,44 +91,83 @@ Settings are identified by their name and define additional arguments and encodi
     <encoding file="extra.lp" tag="extra"/>
 </setting>
 ```
- The value of the *cmdline* attribute can be any valid string, which will be passed to the system via the run template when this setting is selected.
 
- The *tag* attribute is another identifier, which is only valid inside this runscript and is used to select multiple setting at once.
+- The `cmdline` attribute can be any valid string, which will be passed to the
+system via the run template when this setting is selected.
+- The `tag` attribute is an identifier used within the runscript to select
+multiple settings at once.
+- Each setting can contain any number of encoding elements.
+    - The `file` attribute is a relative path from the directory where `bgen`
+    is run to the encoding file.
+    - If no `tag` is given, the encoding is passed to the system for all
+    instances when this setting is selected.
+    - If a `tag` is given, encoding usage is instance-dependent. Multiple
+    encodings can be selected by using the same tag.
+- The setting element also supports an optional `disttemplate` attribute. The
+default value is `templates/single.dist`, which refers to [single.dist]. This
+attribute is only relevant for distributed jobs. More information about dist
+templates can be found on the [templates] page.
+- Another optional attribute for distributed jobs is `distopts`, which allows
+    you to add additional options for distributed jobs. `distopts` expects a
+    comma-separated string of options. For example, `distopts="#SBATCH
+    --hint=compute_bound,#SBATCH --job-name=\"my_benchmark_run\""` results in
+    the following lines being added to the script:
 
- Each setting can also contain any number of encoding elements. The *file* attribute is a relative path from the directory, where `bgen` is run, to the encoding. If no *tag* is defined the encoding is passed to the system via the run template for all instances when this setting is selected. A *tag* can be provided to make the encoding usage instance dependant. Multiple encodings can be selected by using the same tag.
+    ```bash
+    #SBATCH --hint=compute_bound
+    #SBATCH --job-name="my_benchmark_run"
+    ```
 
- The setting element additionaly supports an optional attribute *disttemplate*. The default value is `"templates/single.dist"` which is a reference to [single.dist](https://github.com/potassco/benchmark-tool/blob/master/templates/single.dist). This attribute is only relevant for distjobs. More information to dist templates can be found [here](templates.md#dist-templates).
-
- Another optional attribute only used for distjobs is *distopts*, which allows the user to add additional options for distributed jobs. *distopts* expects a string of comma separated options. For example `distopts="#SBATCH --hint=compute_bound,#SBATCH --job-name="my_benchmark_run"` results in the following lines being added to the script:
-
- ```
- #SBATCH --hint=compute_bound
- #SBATCH --job-name="my_benchmark_run"
- ```
-
-The default template for distributed jobs uses SLURM. A list of available SLURM options can be found [here](https://slurm.schedmd.com/sbatch.html).
+    The default template for distributed jobs uses SLURM; a comprehensive list
+    of available options is provided in the [SLURM documentation].
 
 ## Job
 
-A job is used to define additional arguments for individual runs. Any number of jobs can be defined. There are two types of jobs, 'default' sequential *seqjob*s and *distjob*s for running the benchmarks on a cluster.
+A job defines additional arguments for individual runs. You can define any
+number of jobs. There are two types: sequential jobs (`seqjob`) and distributed
+jobs (`distjob`) for running benchmarks on a cluster.
+
+A sequential job is identified by its `name` and sets the `timeout` (in
+seconds) for a single run, the number of `runs` for each instance, and the
+number of solver processes performed in `parallel`:
 
 ```xml
 <seqjob name="seq-gen" timeout="900" runs="1" parallel="1"/>
 ```
-A seqjob is identified by its name and sets the *timeout* in seconds for a single run, the number of *runs* for each instance and the number of runs performed in *parallel*.
+
+A distributed job is also identified by its `name` and defines a `timeout` and
+number of `runs`:
 
 ```xml
-<distjob name="dist-gen" timeout="900" runs="1" script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
+<distjob name="dist-gen" timeout="900" runs="1" script_mode="timeout"
+         walltime="23h 59m 59s" cpt="4"/>
 ```
-A distjob is also identified by its name and defines a *timeout* and the number of *runs*. *walltime* sets an overall time limit for all runs in the `[<D>d] [<H>h] [<M>m] [<S>s]` format. Each value is optional and can be any integer value e.g., `12d 350s` is valid. Alternatively, a single value without a unit can be provided, which will be interpreted as seconds (as seen in the timeout attribute above).
 
-The *script_mode* attribute, defines how runs are grouped and dispatched to the cluster. 'multi' dispatches all runs individually to the cluster for maximum possible parallelization.
-'timeout' dispatches groups of runs depending on the set *timeout* and *walltime*. If it is not possible to execute all runs sequentially inside the *walltime* specified, they will be split into as many groups as necessary so that the *walltime* is never surpassed. For example, if the *walltime* is 25 hours and you have 100 instances with a *timeout* of 1 hour each and 1 run each, there will be 4 groups, each with 25 runs, which will be dispatched.
+Furthermore, a distributed job has the following additional attributes:
+
+- The `walltime` sets an overall time limit for all runs in `[0-9]+d [0-9]+h
+[0-9]+m [0-9]+s` format. Each value is optional and can be any integer, for
+example, `12d 350s` sets the time to 12 days and 350 seconds. Alternatively, a
+single value without a unit is interpreted as seconds.
+- The `script_mode` attribute defines how runs are grouped and dispatched to
+the cluster.
+    - Value `multi` dispatches all runs individually for maximum
+    parallelization. (In this mode the walltime is ignored.)
+    - Value `timeout` dispatches groups of runs based on the `timeout` and
+    `walltime` of the distributed job. Runs are gathered into groups such that
+    the total time for each group is below the specified `walltime`. For
+    example, if the `walltime` is 25 hours and you have 100 instances with a
+    `timeout` of 1 hour each and 1 run each, there will be 4 groups of 25 runs
+    each, which are dispatched separately.
+- A final optional attribute for distributed jobs  is `partition`, which
+specifies the cluster partition name. The default is `kr`. Other values include
+`short` and `long`. If `short` is used, the walltime cannot exceed 24 hours.
+Note that these values depend on your cluster configuration.
 
 !!! info
-        If you have a lot of runs *script_mode* 'multi' can cause issues with the cluster scheduler. Either use 'timeout' or dispatch the generated `.dist` jobs using the `./dispatcher.py`.
-
-A last optional attribute for distjobs is *partition*, which is the name of the partition used on the cluster. The default value is 'kr'. Other values for this argument can be "short" and "long". If short is used the walltime can not exceed 24 hours.
+    If you have many runs, `script_mode=multi` can cause issues with the
+    cluster's scheduler. Use `timeout` or dispatch the generated `.dist` jobs
+    using `./dispatcher.py`.
 
 ## Benchmark/Instances
 
@@ -189,3 +237,11 @@ In the above example all instances defined in the 'no-pigeons' benchmark are run
 ```
 
 Similar to the *runtag* element, the *runspec* element can be used to specify a machine and a benchmark. But in contrast to before, only a single *system* *version* with a single *setting* can be referenced.
+
+
+[run template]: ./templates.md#run-templates
+[result parser]: ../beval/index.md#resultparser
+[single.dist]: https://github.com/potassco/benchmark-tool/blob/master/templates/single.dist
+[templates]: templates.md#dist-templates
+[examples]: ../../examples/index.md#runscripts
+[SLURM documentation]: https://slurm.schedmd.com/sbatch.html
