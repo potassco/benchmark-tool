@@ -17,8 +17,7 @@ pip install .
 
 The provided default templates use [runlim] to supervise benchmark execution.
 If you want to use them, make sure to build the latest version and copy (or
-symlink) the executable into the `./programs` directory. You may need to adjust
-the version number inside the [template].
+symlink) the executable into the `./programs` directory.
 
 ## Structure
 

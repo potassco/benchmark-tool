@@ -46,7 +46,7 @@ When running the `bgen` tool on a runscript, a folder structure is created.
 <output>
 └─ <project>
    └─ <machine>
-      └─ <results>
+      └─ results
          └─ <benchmark-set>
             └─ <sytem-name>-<system-version>-<setting>
                ├─ <benchclass>
@@ -79,7 +79,7 @@ of configurations:
 <config name="seq-generic" template="templates/seq-generic.sh"/>
 ```
 
-For more information on the [template][run template] page.
+For more information refer to the [template][run template] page.
 
 ## System
 
@@ -190,7 +190,7 @@ the cluster.
     example, if the `walltime` is 25 hours and you have 100 instances with a
     `timeout` of 1 hour each and 1 run each, there will be 4 groups of 25 runs
     each, which are dispatched separately.
-- A final optional attribute for distributed jobs  is `partition`, which
+- A final optional attribute for distributed jobs is `partition`, which
 specifies the cluster partition name. The default is `kr`. Other values include
 `short` and `long`. If `short` is used, the walltime cannot exceed 24 hours.
 Note that these values depend on your cluster configuration.
@@ -227,9 +227,10 @@ benchmark class, and results are separated accordingly:
 
 A folder `element` can have the following optional attributes:
 
-- You can specify the optional `enctag` attribute to only run for settings with
-matching tags. This topic is discussed in more detail on the [encoding support]
-page.
+- You can specify the optional `enctag` attribute to select encodings with
+matching tags in setting definitions. These encodings are used with all
+instances in this folder, when the corresponding setting is run. This topic is
+discussed in more detail on the [encoding support] page.
 - Instances can be grouped using the optional Boolean `group` attribute
 (default is `false`). If enabled, instance files in same folder of form
 `<instance>.<extension>` sharing the same prefix `<instance>` are passed

@@ -12,8 +12,8 @@ repository].
 ## Run Templates
 
 Run templates define how each benchmark instance is executed. During script
-generation, references within the template (e.g., `run.file`) are replaced with
-corresponding values.
+generation, references within the template (e.g., `run.files`) are replaced
+with corresponding values.
 
 The following references are available:
 
@@ -26,10 +26,6 @@ The following references are available:
 - `run.args`: additional arguments for the solver/program
 
 Most templates use the [runlim] program to supervise benchmark runs.
-
-!!! info
-    If you use the provided templates, you may need to update the [runlim]
-    version specified in the template.
 
 ## Dist Templates
 
