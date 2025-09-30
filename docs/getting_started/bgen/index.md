@@ -1,17 +1,23 @@
 ---
-title: "bgen"
+title: "Generating Benchmarks Scripts"
 icon: "material/play-outline"
 ---
 
-# bgen
+The `bgen` tool helps you set up the folder structure and scripts needed to run
+your benchmarks efficiently. It automates the creation of directories and job
+scripts based on your configuration.
 
-The bgen entry point can be used to generate the benchmark folder structure and create all benchmark scripts according to a provided runscript.
+To generate the benchmark folder structure and scripts, use the following
+command:
 
 ```bash
-$ bgen ./runscripts/runscript-example.xml
+bgen ./runscripts/runscript-example.xml
 ```
 
-Afterwards the benchmarks can be started by executing the `start.sh` or `start.py` script in the folder corresponding to the machine, the benchmark should be run on (3 folders down from where *bgen* was called).
+After generation, start your benchmarks by executing either the `start.sh` or
+`start.py` file found in the `machine` subfolder of the generated structure.
 
 !!! info
-    It is not necessary to use an sbatch command for these start files. The file itself will call a number of `.dist` files using sbatch in order to add your benchmark jobs to the cluster.
+    You do not need to manually use the `sbatch` command for these start files.
+    The start script will automatically submit the relevant `.dist` job files
+    to the cluster using `sbatch`.
