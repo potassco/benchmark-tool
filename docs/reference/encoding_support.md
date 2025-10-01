@@ -91,12 +91,12 @@ This results in the following runs:
     - For all instances inside the 'with-encoding' directory (tag: 'tag'):
     `$ clingo-1.0.0 <instance> folder-encoding.lp helper.lp def.lp enc11a.lp enc11b.lp <arguments>`
     - For instance 'other-folder/some-file.lp' (tag: 'tag2'):
-    `$ clingo-1.0.0 <instance> file-encoding.lp def.lp enc21.lp <arguments>`
+    `$ clingo-1.0.0 <instance> file-encoding.lp def.lp <arguments>`
 - When setting 's2' is used:
     - For all instances inside the default folder:
     `$ clingo-1.0.0 <instance> <arguments>`
     - For all instances inside the 'with-encoding' directory (tag: 'tag'):
-    `$ clingo-1.0.0 <instance> folder-encoding.lp helper.lp enc11a.lp enc11b.lp <arguments>`
+    `$ clingo-1.0.0 <instance> folder-encoding.lp helper.lp enc21.lp <arguments>`
     - For instance 'other-folder/some-file.lp' (tag: 'tag2'):
     `$ clingo-1.0.0 <instance> file-encoding.lp enc22.lp <arguments>`
 
