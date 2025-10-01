@@ -17,7 +17,7 @@ $ <system> <instance> <arguments>
 
 ## Instance dependent
 
-It is possible to use specific encodings depending on the instance by defining them inside the corresponding [*benchmark*](../getting_started/bgen/runscript.md#benchmarkinstances) element in the runscript, more specifically inside the *folder* and *files* child-elements.
+It is possible to use specific encodings depending on the instance by defining them inside the corresponding [*benchmark*](../getting_started/bgen/runscript.md#benchmark-sets) element in the runscript, more specifically inside the *folder* and *files* child-elements.
 
 Any amount of *encoding* elements can be defined, which will be called together with all instances inside the given *folder* or *files*.
 
@@ -49,7 +49,7 @@ Here we have to differentiate three cases:
 
 ## Setting dependent
 
-It is also possible to use specific encodings depending on the setting used by defining them inside the corresponding [*setting*](../getting_started/bgen/runscript.md#setting) element and referencing them inside the [*benchmark*](../getting_started/bgen/runscript.md#benchmarkinstances) element.
+It is also possible to use specific encodings depending on the setting used by defining them inside the corresponding [*setting*](../getting_started/bgen/runscript.md#setting) element and referencing them inside the [*benchmark*](../getting_started/bgen/runscript.md#benchmark-sets) element.
 
 Any amount of *encoding* elements can be defined, which will be called together with all instances using the given setting or, when given an 'enctag', only with similarly tagged instances.
 

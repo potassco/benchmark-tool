@@ -6,18 +6,18 @@ hide:
 
 # benchmark-tool
 
-A tool to easier generate, run and evaluate benchmarks.
+A tool to simplify the generation, execution, and evaluation of benchmarks.
 
-This documentation includes:
+This documentation covers:
 
-- **Getting Started:** An introduction into the tool and how to use it.
-- **Examples:** Examples for all components of the tool.
-- **References:** More detailed documentation and technical information.
-- **Community:** Contact and how you can help improve this tool.
+- **Getting Started:** An introduction to the tool and instructions for use.
+- **Examples:** Demonstrations of all tool components.
+- **References:** Detailed documentation and technical information.
+- **Community:** Contact details and ways to contribute to the project.
 
 !!! info
-    The *benchmark-tool* is part of the [Potassco](https://potassco.org) suite.
+    The _benchmark-tool_ is part of the [Potassco](https://potassco.org) suite.
 
-    This project is still in active development.
+    This project is currently under active development.
 
-    Functionality is only verified on Linux. There may be issues on other platforms.
+    Functionality is verified only on Linux. Issues may occur on other platforms.
