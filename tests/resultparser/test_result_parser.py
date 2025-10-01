@@ -41,6 +41,7 @@ class TestClaspParser(TestCase):
             ("models", "float", 4.0),
             ("choices", "float", 52.0),
             ("restarts", "float", 0.0),
+            ("parx", "float", 0.088461),
         ]
         refb1 = [
             ("error", "float", 0),
@@ -49,6 +50,7 @@ class TestClaspParser(TestCase):
             ("time", "float", self.timeout),
             ("models", "float", 4.0),
             ("status", "string", "UNKNOWN"),
+            ("parx", "float", self.timeout * 2),
         ]
         refb2 = [
             ("error", "float", 1),
@@ -56,6 +58,7 @@ class TestClaspParser(TestCase):
             ("memout", "float", 0),
             ("time", "float", self.timeout),
             ("models", "float", 4.0),
+            ("parx", "float", self.timeout * 2),
         ]
 
         self.assertListEqual(self.parser.parse(self.root, self.rs, self.ins), ref)
