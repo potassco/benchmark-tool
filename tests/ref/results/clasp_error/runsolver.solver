@@ -1,5 +1,6 @@
 ## dummy result used for testing
 
+*** Info : (clingo): INTERRUPTED by signal!
 *** clasp ERROR: test_error
 
 Models       : 4
