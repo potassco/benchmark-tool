@@ -157,21 +157,23 @@ jobs (`distjob`) for running benchmarks on a cluster.
 ### Sequential Jobs
 
 A sequential job is identified by its `name` and sets the `timeout` (in
-seconds) for a single run, the number of `runs` for each instance, and the
-number of solver processes performed in `parallel`:
+seconds) for a single run, the number of `runs` for each instance, and
+the number of solver processes performed in `parallel`. The optional
+attribute `memout` sets a memory limit (in MB) for each run. If no limit
+is set, a default limit of 2000 MB is used:
 
 ```xml
-<seqjob name="seq-gen" timeout="900" runs="1" parallel="1"/>
+<seqjob name="seq-gen" timeout="900" runs="1" memout="1000" parallel="1"/>
 ```
 
 ### Distributed Jobs
 
-A distributed job is also identified by its `name` and defines a `timeout` and
-number of `runs`:
+A distributed job is also identified by its `name` and defines a `timeout`,
+the number of `runs` and an optional `memout`:
 
 ```xml
-<distjob name="dist-gen" timeout="900" runs="1" script_mode="timeout"
-         walltime="23h 59m 59s" cpt="4"/>
+<distjob name="dist-gen" timeout="900" runs="1" memout="1000"
+        script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
 ```
 
 Furthermore, a distributed job has the following additional attributes:

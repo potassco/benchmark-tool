@@ -370,6 +370,7 @@ class ScriptGen:
             spec.loader.exec_module(module)
             return module
 
+        result_parser: Optional[ModuleType] = None
         # dynamicly import result parser
         rp_name = "benchmarktool.resultparser.{0}".format(runspec.system.measures)
         try:
@@ -379,16 +380,25 @@ class ScriptGen:
                 result_parser = import_from_path(
                     rp_name, os.path.join("src/benchmarktool/resultparser", "{0}.py".format(runspec.system.measures))
                 )
+                sys.stderr.write(f"**2{result_parser}\n")
             except FileNotFoundError:
-                print("ERROR: Resultparser '{0}' referenced in runscript does not exist.".format(rp_name))
-                sys.exit(1)
+                sys.stderr.write(
+                    f"*** ERROR: Result parser import failed: {rp_name}! "
+                    "All runs using this parser will have no measures recorded!\n."
+                )
 
         for run in range(1, self.job.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
             # result parser call
-            result = result_parser.parse(self._path(runspec, instance, run), runspec, instance)
-            for key, valtype, val in sorted(result):
-                out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val))
+            try:
+                result = result_parser.parse(self._path(runspec, instance, run), runspec, instance)  # type: ignore
+                for key, valtype, val in sorted(result):
+                    out.write(
+                        '{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val)
+                    )
+            except AttributeError:
+                pass
+
             out.write("{0}</run>\n".format(indent))
 
 

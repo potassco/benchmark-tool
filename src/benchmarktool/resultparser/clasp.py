@@ -17,15 +17,19 @@ clasp_re = {
     "models": ("float", re.compile(r"^(c )?Models[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
     "choices": ("float", re.compile(r"^(c )?Choices[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
     "time": ("float", re.compile(r"^(Real time \(s\):|\[runlim\] real:)\s*(?P<val>[0-9]+(\.[0-9]+)?)")),
-    "conflicts": ("float", re.compile(r"^(c )?Conflicts[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
-    "restarts": ("float", re.compile(r"^(c )?Restarts[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
+    "conflicts": ("float", re.compile(r"^(c )?Conflicts[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
+    "restarts": ("float", re.compile(r"^(c )?Restarts[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
     "optimum": ("string", re.compile(r"^(c )?Optimization[ ]*:[ ]*(?P<val>(-?[0-9]+)( -?[0-9]+)*)[ ]*$")),
     "status": ("string", re.compile(r"^(s )?(?P<val>SATISFIABLE|UNSATISFIABLE|UNKNOWN|OPTIMUM FOUND)[ ]*$")),
-    "interrupted": ("string", re.compile(r"(c )?(?P<val>INTERRUPTED!)")),
+    "interrupted": ("string", re.compile(r"(c )?(?P<val>INTERRUPTED)")),
     "error": ("string", re.compile(r"^\*\*\* clasp ERROR: (?P<val>.*)$")),
+    "rstatus": ("string", re.compile(r"^\[runlim\] status:\s*(?P<val>.*)$")),
     "memerror": ("string", re.compile(r"^(Maximum VSize exceeded|\[runlim\] status:\s*out of memory)(?P<val>.*)")),
     "mem": ("float", re.compile(r"^\[runlim\] space:[\t]*(?P<val>[0-9]+(\.[0-9]+)?) MB")),
 }
+
+# penalized-average-runtime score constant
+PAR = 2
 
 
 # pylint: disable=unused-argument
@@ -66,8 +70,10 @@ def parse(
         or res["time"][1] >= timeout
         or "interrupted" in res
     )
+    res["parx"] = ("float", res["time"][1])
     if timedout:
         res["time"] = ("float", timeout)
+        res["parx"] = ("float", PAR * timeout)
     if error:
         sys.stderr.write("*** ERROR: Run {0} failed with unrecognized status or error!\n".format(root))
     result.append(("error", "float", int(error)))

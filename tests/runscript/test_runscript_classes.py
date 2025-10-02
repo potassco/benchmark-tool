@@ -447,6 +447,11 @@ class TestScriptGen(TestCase):
             self.sg.eval_results(o, "\t", self.runspec, self.instance)
         self.assertEqual(o.getvalue(), '\t<run number="1">\n\t\t<measure name="time" type="int" val="5"/>\n\t</run>\n')
 
+        o = io.StringIO()
+        self.runspec.system.measures = "unknown"
+        self.sg.eval_results(o, "\t", self.runspec, self.instance)
+        self.assertEqual(o.getvalue(), '\t<run number="1">\n\t</run>\n')
+
 
 class TestSeqScriptGen(TestScriptGen):
     """
