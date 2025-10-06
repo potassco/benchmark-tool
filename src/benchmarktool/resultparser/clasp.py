@@ -35,7 +35,7 @@ PAR = 2
 # pylint: disable=unused-argument
 def parse(
     root: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance"
-) -> list[tuple[str, str, Any]]:
+) -> dict[str, tuple[str, Any]]:
     """
     Extracts some clasp statistics.
 
@@ -58,7 +58,7 @@ def parse(
         res["error"] = ("string", "std::bad_alloc")
         res["status"] = ("string", "UNKNOWN")
         del res["memerror"]
-    result: list[tuple[str, str, Any]] = []
+    result: dict[str, tuple[str, Any]] = {}
     error = "status" not in res or ("error" in res and res["error"][1] != "std::bad_alloc")
     memout = "error" in res and res["error"][1] == "std::bad_alloc"
     status = res["status"][1] if "status" in res else None
@@ -70,24 +70,22 @@ def parse(
         or res["time"][1] >= timeout
         or "interrupted" in res
     )
-    res["parx"] = ("float", res["time"][1])
     if timedout:
         res["time"] = ("float", timeout)
-        res["parx"] = ("float", PAR * timeout)
     if error:
         sys.stderr.write("*** ERROR: Run {0} failed with unrecognized status or error!\n".format(root))
-    result.append(("error", "float", int(error)))
-    result.append(("timeout", "float", int(timedout)))
-    result.append(("memout", "float", int(memout)))
+    result["error"] = ("float", int(error))
+    result["timeout"] = ("float", int(timedout))
+    result["memout"] = ("float", int(memout))
 
     if "optimum" in res and not " " in res["optimum"][1]:
-        result.append(("optimum", "float", float(res["optimum"][1])))
+        result["optimum"] = ("float", float(res["optimum"][1]))
         del res["optimum"]
     if "interrupted" in res:
         del res["interrupted"]
     if "error" in res:
         del res["error"]
     for key, value in res.items():
-        result.append((key, value[0], value[1]))
+        result[key] = (value[0], value[1])
 
     return result
