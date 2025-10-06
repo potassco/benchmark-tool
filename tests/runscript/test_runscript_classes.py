@@ -443,9 +443,47 @@ class TestScriptGen(TestCase):
         """
         self.setup_obj()
         o = io.StringIO()
-        with mock.patch("benchmarktool.resultparser.clasp.parse", return_value=[("time", "int", 5)], create=True):
+        with mock.patch("benchmarktool.resultparser.clasp.parse", return_value={"time": ("float", 5)}, create=True):
             self.sg.eval_results(o, "\t", self.runspec, self.instance)
-        self.assertEqual(o.getvalue(), '\t<run number="1">\n\t\t<measure name="time" type="int" val="5"/>\n\t</run>\n')
+        self.assertEqual(
+            o.getvalue(), '\t<run number="1">\n\t\t<measure name="time" type="float" val="5"/>\n\t</run>\n'
+        )
+
+        o = io.StringIO()
+        with mock.patch(
+            "benchmarktool.resultparser.clasp.parse",
+            return_value={"time": ("float", 5), "timeout": ("float", 0)},
+            create=True,
+        ):
+            self.sg.eval_results(o, "\t", self.runspec, self.instance)
+        self.assertEqual(
+            o.getvalue(),
+            (
+                '\t<run number="1">\n'
+                '\t\t<measure name="par2" type="float" val="5"/>\n'
+                '\t\t<measure name="time" type="float" val="5"/>\n'
+                '\t\t<measure name="timeout" type="float" val="0"/>\n'
+                "\t</run>\n"
+            ),
+        )
+
+        o = io.StringIO()
+        with mock.patch(
+            "benchmarktool.resultparser.clasp.parse",
+            return_value={"time": ("float", 5), "timeout": ("float", 1)},
+            create=True,
+        ):
+            self.sg.eval_results(o, "\t", self.runspec, self.instance, 3)
+        self.assertEqual(
+            o.getvalue(),
+            (
+                '\t<run number="1">\n'
+                '\t\t<measure name="par3" type="float" val="30"/>\n'
+                '\t\t<measure name="time" type="float" val="5"/>\n'
+                '\t\t<measure name="timeout" type="float" val="1"/>\n'
+                "\t</run>\n"
+            ),
+        )
 
         o = io.StringIO()
         self.runspec.system.measures = "unknown"
@@ -1298,7 +1336,7 @@ class TestRunscript(TestCase):
 
         with mock.patch("benchmarktool.runscript.runscript.SeqScriptGen.eval_results") as sg_eval:
             self.rs.eval_results(self.o)
-            sg_eval.assert_called_once_with(self.o, "\t\t\t\t\t", runspec, inst)
+            sg_eval.assert_called_once_with(self.o, "\t\t\t\t\t", runspec, inst, 2)
         self.assertEqual(
             self.o.getvalue(),
             "<result>\n"
