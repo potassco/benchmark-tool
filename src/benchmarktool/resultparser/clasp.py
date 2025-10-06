@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 clasp_re = {
     "models": ("float", re.compile(r"^(c )?Models[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
     "choices": ("float", re.compile(r"^(c )?Choices[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
-    "time": ("float", re.compile(r"^(Real time \(s\):|\[runlim\] real:)\s*(?P<val>[0-9]+(\.[0-9]+)?)")),
+    "time": ("float", re.compile(r"^\[runlim\] real:\s*(?P<val>[0-9]+(\.[0-9]+)?)")),
     "conflicts": ("float", re.compile(r"^(c )?Conflicts[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
     "restarts": ("float", re.compile(r"^(c )?Restarts[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
     "optimum": ("string", re.compile(r"^(c )?Optimization[ ]*:[ ]*(?P<val>(-?[0-9]+)( -?[0-9]+)*)[ ]*$")),
@@ -24,8 +24,7 @@ clasp_re = {
     "interrupted": ("string", re.compile(r"(c )?(?P<val>INTERRUPTED)")),
     "error": ("string", re.compile(r"^\*\*\* clasp ERROR: (?P<val>.*)$")),
     "rstatus": ("string", re.compile(r"^\[runlim\] status:\s*(?P<val>.*)$")),
-    "memerror": ("string", re.compile(r"^(Maximum VSize exceeded|\[runlim\] status:\s*out of memory)(?P<val>.*)")),
-    "mem": ("float", re.compile(r"^\[runlim\] space:[\t]*(?P<val>[0-9]+(\.[0-9]+)?) MB")),
+    "mem": ("float", re.compile(r"^\[runlim\] space:\s*(?P<val>[0-9]+(\.[0-9]+)?) MB")),
 }
 
 # penalized-average-runtime score constant
@@ -54,10 +53,9 @@ def parse(
                     if m:
                         res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
 
-    if "memerror" in res:
+    if "rstatus" in res and res["rstatus"][1] == "out of memory":
         res["error"] = ("string", "std::bad_alloc")
         res["status"] = ("string", "UNKNOWN")
-        del res["memerror"]
     result: dict[str, tuple[str, Any]] = {}
     error = "status" not in res or ("error" in res and res["error"][1] != "std::bad_alloc")
     memout = "error" in res and res["error"][1] == "std::bad_alloc"
