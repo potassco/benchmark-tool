@@ -11,6 +11,9 @@ benchmark run and save them to an XML file. To do this, pass the same
 beval ./runscripts/runscript-example.xml > benchmark-results.xml
 ```
 
+The `--par-x` option can be used to set the factor for the
+penalized-average-runtime score (default: 2).
+
 Results are written in XML format to standard output, so it is recommended to
 redirect the output to a file.
 

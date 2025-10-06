@@ -158,7 +158,7 @@ jobs (`distjob`) for running benchmarks on a cluster.
 
 A sequential job is identified by its `name` and sets the `timeout` (in
 seconds) for a single run, the number of `runs` for each instance, and
-the number of solver processes performed in `parallel`. The optional
+the number of solver processes executed in `parallel`. The optional
 attribute `memout` sets a memory limit (in MB) for each run. If no limit
 is set, a default limit of 2000 MB is used:
 
