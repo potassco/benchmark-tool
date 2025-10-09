@@ -5,8 +5,6 @@ CAT="{run.root}/programs/gcat.sh"
 
 cd "$(dirname $0)"
 
-#top -n 1 -b > top.txt
-
 [[ -e .finished ]] || $CAT {run.files} {run.encodings} | "{run.root}/programs/runlim" \
 	--space-limit={run.memout} \
 	--output-file=runsolver.watcher \
