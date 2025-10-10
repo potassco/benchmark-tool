@@ -1,22 +1,29 @@
 ---
-title: "beval"
+title: "Gathering Benchmark Results"
 icon: "material/play-outline"
 ---
 
-# beval
-
-The beval entry point can be used to gather all relevant results of a benchmark run and save them into an xml file. To do so the same [runscript](../bgen/runscript.md) used for the benchmark script generation has to be to passed as an argument.
+The `beval` entry point is used to collect all relevant results from a
+benchmark run and save them to an XML file. To do this, pass the same
+[runscript] used for benchmark script generation as an argument:
 
 ```bash
-$ beval ./runscripts/runscript-example.xml > benchmark-results.xml
+beval ./runscripts/runscript-example.xml > benchmark-results.xml
 ```
 
-The script writes the results in xml format to the standard output. It is recommended to save the result in a file by redirecting the output.
+The `--par-x` option can be used to set the factor for the
+penalized-average-runtime score (default: 2).
 
-## Resultparser
+Results are written in XML format to standard output, so it is recommended to
+redirect the output to a file.
 
-How the results are evaluated is decided by the the value of the *measures* attribute of the [*system*](../bgen/runscript.md#system) element inside the runscript. The value of *measures* is a reference to a python file located in the `/src/benchmarktool/resultparser` directory.
+!!!info
+    The evaluation of results is controlled by the `measures` attribute of the
+    [system element] in the runscript. This attribute should reference a Python
+    file located in `src/benchmarktool/resultparser`.
 
-This file has to contain a `parse()` function, which parses relevant statistics from the result files.
+    For more details, see the [result parser documentation][result parser].
 
-More information regarding the result parser can be found [here](../../reference/resultparser.md).
+[runscript]: ../bgen/runscript.md
+[system element]: ../bgen/runscript.md#system
+[result parser]: ../../reference/resultparser.md

@@ -1,0 +1,58 @@
+clingo version 5.7.1
+Reading from golf.lp
+Solving...
+Optimization: 24
+Optimization: 23
+Optimization: 22
+Optimization: 21
+Optimization: 20
+Optimization: 19
+Optimization: 18
+Optimization: 17
+Optimization: 16
+Optimization: 15
+Optimization: 14
+Optimization: 13
+Optimization: 12
+Optimization: 11
+Optimization: 10
+Optimization: 9
+Optimization: 8
+Optimization: 7
+Answer: 18
+plays(1,1,2) plays(2,1,4) plays(3,1,4) plays(4,1,5) plays(5,1,3) plays(6,1,1) plays(7,1,2) plays(8,1,2) plays(9,1,1) plays(10,1,3) plays(11,1,4) plays(12,1,5) plays(13,1,5) plays(14,1,3) plays(15,1,1) plays(16,1,5) plays(17,1,2) plays(18,1,3) plays(19,1,1) plays(20,1,1) plays(21,1,4) plays(22,1,2) plays(23,1,3) plays(24,1,4) plays(25,1,5) plays(1,2,1) plays(2,2,3) plays(3,2,3) plays(4,2,3) plays(5,2,5) plays(6,2,5) plays(7,2,4) plays(8,2,5) plays(9,2,1) plays(10,2,4) plays(11,2,2) plays(12,2,2) plays(13,2,1) plays(14,2,1) plays(15,2,3) plays(16,2,5) plays(17,2,4) plays(18,2,2) plays(19,2,2) plays(20,2,4) plays(21,2,1) plays(22,2,2) plays(23,2,5) plays(24,2,4) plays(25,2,3) plays(1,3,1) plays(2,3,5) plays(3,3,4) plays(4,3,5) plays(5,3,5) plays(6,3,5) plays(7,3,4) plays(8,3,3) plays(9,3,3) plays(10,3,4) plays(11,3,3) plays(12,3,2) plays(13,3,4) plays(14,3,3) plays(15,3,2) plays(16,3,2) plays(17,3,5) plays(18,3,2) plays(19,3,1) plays(20,3,3) plays(21,3,2) plays(22,3,4) plays(23,3,1) plays(24,3,1) plays(25,3,1) plays(1,4,4) plays(2,4,4) plays(3,4,4) plays(4,4,1) plays(5,4,3) plays(6,4,4) plays(7,4,5) plays(8,4,5) plays(9,4,1) plays(10,4,5) plays(11,4,3) plays(12,4,4) plays(13,4,1) plays(14,4,2) plays(15,4,3) plays(16,4,2) plays(17,4,3) plays(18,4,1) plays(19,4,2) plays(20,4,1) plays(21,4,5) plays(22,4,2) plays(23,4,3) plays(24,4,2) plays(25,4,5) plays(1,5,4) plays(2,5,5) plays(3,5,3) plays(4,5,4) plays(5,5,3) plays(6,5,5) plays(7,5,5) plays(8,5,1) plays(9,5,3) plays(10,5,4) plays(11,5,4) plays(12,5,1) plays(13,5,1) plays(14,5,5) plays(15,5,1) plays(16,5,4) plays(17,5,3) plays(18,5,3) plays(19,5,2) plays(20,5,2) plays(21,5,2) plays(22,5,2) plays(23,5,2) plays(24,5,1) plays(25,5,5)
+SATISFIABLE
+
+INTERRUPTED  : 1
+Models       : 18+
+  Optimum    : unknown
+Optimization : 7
+Calls        : 1
+Time         : 9.960s (Solving: 9.91s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 9.953s
+
+Choices      : 215295
+Conflicts    : 99457    (Analyzed: 99457)
+Restarts     : 327      (Average: 304.15 Last: 99452)
+Model-Level  : 237.7
+Problems     : 1        (Average Length: 0.00 Splits: 0)
+Lemmas       : 99457    (Deleted: 92719)
+  Binary     : 0        (Ratio:   0.00%)
+  Ternary    : 1        (Ratio:   0.00%)
+  Conflict   : 99457    (Average Length:   79.1 Ratio: 100.00%)
+  Loop       : 0        (Average Length:    0.0 Ratio:   0.00%)
+  Other      : 0        (Average Length:    0.0 Ratio:   0.00%)
+Backjumps    : 99457    (Average:  1.86 Max: 172 Sum: 185294)
+  Executed   : 99457    (Average:  1.86 Max: 172 Sum: 185294 Ratio: 100.00%)
+  Bounded    : 0        (Average:  0.00 Max:   0 Sum:      0 Ratio:   0.00%)
+
+Rules        : 13990    (Original: 9665)
+  Choice     : 150
+  Minimize   : 1
+Atoms        : 3713
+Bodies       : 12875    (Original: 9175)
+  Count      : 50       (Original: 600)
+Equivalences : 2649     (Atom=Atom: 775 Body=Body: 0 Other: 1874)
+Tight        : Yes
+Variables    : 13098    (Eliminated:    0 Frozen:  674)
+Constraints  : 45547    (Binary:  72.6% Ternary:  23.1% Other:   4.4%)

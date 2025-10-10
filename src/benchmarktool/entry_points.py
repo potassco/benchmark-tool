@@ -81,14 +81,17 @@ def start_beval() -> None:
     """
     usage = "usage: %prog [options] <runscript>"
     parser = optparse.OptionParser(usage=usage)
+    parser.add_option(
+        "--par-x", type="int", dest="parx", default=2, help="penalized-average-runtime score factor [default: %default]"
+    )
 
-    _, files = parser.parse_args(sys.argv[1:])
+    opts, files = parser.parse_args(sys.argv[1:])
 
     if len(files) == 1:
         file_name = files[0]
         p = RunParser()
         run = p.parse(file_name)
-        run.eval_results(sys.stdout)
+        run.eval_results(sys.stdout, opts.parx)
     else:
         parser.error("Exactly on file has to be given")
 

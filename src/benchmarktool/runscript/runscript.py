@@ -343,7 +343,9 @@ class ScriptGen:
                 self.startfiles.append((runspec, path, "start.sh"))
                 tools.set_executable(startpath)
 
-    def eval_results(self, out: Any, indent: str, runspec: "Runspec", instance: "Benchmark.Instance") -> None:
+    def eval_results(
+        self, out: Any, indent: str, runspec: "Runspec", instance: "Benchmark.Instance", parx: int = 2
+    ) -> None:
         """
         Parses the results of a given benchmark instance and outputs them as XML.
 
@@ -352,6 +354,7 @@ class ScriptGen:
             indent (str):                  Amount of indentation.
             runspec (Runspec):             The run specification of the benchmark.
             instance (Benchmark.Instance): The benchmark instance.
+            parx (int):                    Factor for penalized-average-runtime score.
         """
 
         def import_from_path(module_name: str, file_path: str) -> ModuleType:  # nocoverage
@@ -370,6 +373,7 @@ class ScriptGen:
             spec.loader.exec_module(module)
             return module
 
+        result_parser: Optional[ModuleType] = None
         # dynamicly import result parser
         rp_name = "benchmarktool.resultparser.{0}".format(runspec.system.measures)
         try:
@@ -380,15 +384,30 @@ class ScriptGen:
                     rp_name, os.path.join("src/benchmarktool/resultparser", "{0}.py".format(runspec.system.measures))
                 )
             except FileNotFoundError:
-                print("ERROR: Resultparser '{0}' referenced in runscript does not exist.".format(rp_name))
-                sys.exit(1)
+                sys.stderr.write(
+                    f"*** ERROR: Result parser import failed: {rp_name}! "
+                    "All runs using this parser will have no measures recorded!\n."
+                )
 
         for run in range(1, self.job.runs + 1):
             out.write('{0}<run number="{1}">\n'.format(indent, run))
             # result parser call
-            result = result_parser.parse(self._path(runspec, instance, run), runspec, instance)
-            for key, valtype, val in sorted(result):
-                out.write('{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val))
+            try:
+                result: dict[str, tuple[str, Any]] = result_parser.parse(  # type: ignore
+                    self._path(runspec, instance, run), runspec, instance
+                )
+                # penalized-average-runtime score
+                if all(key in result for key in ["time", "timeout"]):
+                    value = parx * self.job.timeout if result["timeout"][1] else result["time"][1]
+                    result[f"par{parx}"] = ("float", value)
+
+                for key, (valtype, val) in sorted(result.items()):
+                    out.write(
+                        '{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val)
+                    )
+            except AttributeError:
+                pass
+
             out.write("{0}</run>\n".format(indent))
 
 
@@ -1354,13 +1373,14 @@ class Runscript:
         return self.output
 
     # pylint: disable=too-many-branches
-    def eval_results(self, out: Any) -> None:
+    def eval_results(self, out: Any, parx: int = 2) -> None:
         """
         Evaluates and prints the results of all benchmarks described
         by this run script. (Start scripts have to be run first.)
 
         Attributes:
             out (Any): Output stream for xml output.
+            parx (int): Factor for penalized-average-runtime score.
         """
         machines: set[Machine] = set()
         jobs: set[SeqJob | DistJob] = set()
@@ -1413,7 +1433,7 @@ class Runscript:
                         instances = runspec.benchmark.instances[classname]
                         for instance in instances:
                             out.write('\t\t\t\t<instance id="{0.id}">\n'.format(instance))
-                            job_gen.eval_results(out, "\t\t\t\t\t", runspec, instance)
+                            job_gen.eval_results(out, "\t\t\t\t\t", runspec, instance, parx)
                             out.write("\t\t\t\t</instance>\n")
                         out.write("\t\t\t</class>\n")
                     out.write("\t\t</runspec>\n")

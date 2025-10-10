@@ -41,7 +41,7 @@ def dispatch(folder: str, maxjobs: int, username: str, wait_time: int = 1):
     # read files to dispatch from folder
     jobs = []
 
-    jobs = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f)) and f.endswith(".pbs")]
+    jobs = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f)) and f.endswith(".dist")]
     jobs = sorted(jobs)
     total_jobs = len(jobs)
     print(f"Found {total_jobs} jobs to dispatch")
