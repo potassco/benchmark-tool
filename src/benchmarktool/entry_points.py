@@ -71,7 +71,7 @@ def start_bconv() -> None:
         ex_file = res.gen_office(opts.output, opts.projects, measures, opts.export)
     else:
         parser.error("Exactly on file has to be given")
-    if ex_file is not None:
+    if opts.jupyter_notebook is not None:
         gen_ipynb(ex_file, opts.jupyter_notebook)
 
 
