@@ -613,7 +613,7 @@ class Sheet:
                     .combine_first(self.content)
                 )
 
-    def export_values(self, file_name: str) -> None:
+    def export_values(self, file_name: str, metadata: dict[str, list[Any]]) -> None:
         """
         Export values to parquet file.
 
@@ -635,7 +635,8 @@ class Sheet:
             df = df.join(nf)
         # metadata
         # offset -2 (header) -1 (empty row)
-        metadf = pd.DataFrame({"offset": [self.result_offset - 3]})
+        metadict = {**{"offset": [self.result_offset - 3]}, **metadata}
+        metadf = pd.DataFrame({k: pd.Series(v) for k, v in metadict.items()})
         metadf.columns = pd.MultiIndex.from_product([["_metadata"], metadf.columns], names=["measure", "setting"])
         self.values = df.join(metadf)
         #! min,med,max no longer included

@@ -71,7 +71,7 @@ class Result:
 
         if export:
             ex_file = out.replace(".ods", ".parquet")
-            sheet.inst_sheet.export_values(ex_file)
+            sheet.inst_sheet.export_values(ex_file, {"timeout": [job.timeout for job in self.jobs.values()]})
             return ex_file
         return None
 
