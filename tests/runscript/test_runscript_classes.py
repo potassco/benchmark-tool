@@ -639,7 +639,7 @@ class TestDistScriptGen(TestScriptGen):
             p = "tests/ref"
             self.sg.gen_start_script("tests/ref")
             mkdir.assert_called_once_with(p)
-            set_exec.assert_called_once_with(os.path.join(p, "start.sh"))
+            set_exec.assert_has_calls([mock.call(os.path.join(p, "start.sh")), mock.call(os.path.join(p, "start.py"))])
 
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
@@ -659,7 +659,7 @@ class TestDistScriptGen(TestScriptGen):
             p = "tests/ref"
             self.sg.gen_start_script("tests/ref")
             mkdir.assert_called_once_with(p)
-            set_exec.assert_called_once_with(os.path.join(p, "start.sh"))
+            set_exec.assert_has_calls([mock.call(os.path.join(p, "start.sh")), mock.call(os.path.join(p, "start.py"))])
 
         self.assertTrue(os.path.isfile("./tests/ref/start.sh"))
         with open("./tests/ref/start.sh", "r", encoding="utf8") as f:
