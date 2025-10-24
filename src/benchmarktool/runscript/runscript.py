@@ -776,9 +776,13 @@ class DistScriptGen(ScriptGen):
                     while pending:
                         jobs = get_running_jobs(args.user)
                         while jobs < args.max and pending:
-                            job = pending.pop(0)
-                            subprocess.run(["sbatch", job])
+                            job = pending[0]
+                            res = subprocess.run(["sbatch", job])
+                            if res.returncode != 0:
+                                print(f"Failed to submit {{job}}, try again later.")
+                                break
                             print(f"Submitted {{job}}")
+                            pending.pop(0)
                             jobs += 1
                         time.sleep(5)
                     print("All jobs submitted.")
