@@ -13,6 +13,7 @@ import re
 import sys
 from dataclasses import dataclass, field
 from functools import total_ordering
+from textwrap import dedent
 from types import ModuleType
 from typing import Any, Iterator, Optional
 
@@ -726,8 +727,12 @@ class DistScriptGen(ScriptGen):
                 dist_script.time += runspec.project.job.timeout + 300
                 dist_script.append(job_script)
 
+        partitions = []
         for dist_script in dist_scripts.values():
+            assert isinstance(dist_script.runspec.project.job, DistJob)
+            partitions.append(dist_script.runspec.project.job.partition)
             dist_script.write()
+        partitions = sorted(set(partitions))
 
         with open(os.path.join(path, "start.sh"), "w", encoding="utf8") as startfile:
             startfile.write(
@@ -735,48 +740,52 @@ class DistScriptGen(ScriptGen):
                 + "\n".join(['sbatch "{0}"'.format(os.path.basename(x)) for x in queue])
             )
         tools.set_executable(os.path.join(path, "start.sh"))
+        extra = ', "-p", "{}"'.format(",".join(partitions)) if partitions else ""
+        jobs = ",\n".join(['    "{}"'.format(os.path.basename(x)) for x in queue])
         with open(os.path.join(path, "start.py"), "w", encoding="utf8") as startfile:
             startfile.write(
-                """\
-#!/usr/bin/env python3
-import subprocess
-import time
-import os
-import argparse
+                dedent(
+                    f"""\
+                #!/usr/bin/env python3
+                import subprocess
+                import time
+                import os
+                import argparse
 
-job_files = [
-{jobs}
-]
+                JOB_FILES = [
+                {jobs}
+                ]
 
-def get_running_jobs(user):
-    result = subprocess.run(
-        ["squeue", "-u", user, "-h", "-o", "%j"],
-        stdout=subprocess.PIPE, text=True
-    )
-    jobs = result.stdout.strip().splitlines()
-    return len(jobs)
+                def get_running_jobs(user):
+                    result = subprocess.run(
+                        ["squeue", "-u", user, "-h", "-o", "%j"{extra}],
+                        stdout=subprocess.PIPE, text=True
+                    )
+                    jobs = result.stdout.strip().splitlines()
+                    return len(jobs)
 
-def main():
-    parser = argparse.ArgumentParser(description="Submit jobs with concurrency limit.")
-    parser.add_argument("--max", type=int, default=100,
-                        help="Maximum number of concurrent jobs (default: 100)")
-    parser.add_argument("--user", type=str, default=os.environ.get("USER", "unknown"),
-                        help="Username for job querying (default: current user)")
-    args = parser.parse_args()
+                def main():
+                    parser = argparse.ArgumentParser(description="Submit jobs with concurrency limit.")
+                    parser.add_argument("--max", type=int, default=100,
+                                        help="Maximum number of concurrent jobs (default: 100)")
+                    parser.add_argument("--user", type=str, default=os.environ.get("USER", "unknown"),
+                                        help="Username for job querying (default: current user)")
+                    args = parser.parse_args()
 
-    pending = list(job_files)
-    while pending:
-        while get_running_jobs(args.user) < args.max and pending:
-            job = pending.pop(0)
-            subprocess.run(["sbatch", job])
-            print(f"Submitted {{job}}")
-        time.sleep(5)
-    print("All jobs submitted.")
+                    pending = list(JOB_FILES)
+                    while pending:
+                        jobs = get_running_jobs(args.user)
+                        while jobs < args.max and pending:
+                            job = pending.pop(0)
+                            subprocess.run(["sbatch", job])
+                            print(f"Submitted {{job}}")
+                            jobs += 1
+                        time.sleep(5)
+                    print("All jobs submitted.")
 
-if __name__ == "__main__":
-    main()
-""".format(
-                    jobs=",\n".join(['    "{}"'.format(os.path.basename(x)) for x in queue])
+                if __name__ == "__main__":
+                    main()
+                """
                 )
             )
         tools.set_executable(os.path.join(path, "start.py"))
