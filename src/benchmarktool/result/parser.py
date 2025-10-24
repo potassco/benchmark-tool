@@ -68,7 +68,7 @@ class Parser:
         assert isinstance(self.result, Result)
         return self.result
 
-    # pylint: disable=too-many-statements
+    # pylint: disable=too-many-statements,too-many-branches
     def start(self, tag: str, attrib: dict[str, Any]) -> None:
         """
         This method is called for every opening XML tag.
