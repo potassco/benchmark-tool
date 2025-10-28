@@ -42,8 +42,11 @@ def start_bconv() -> None:
         "--jupyter-notebook",
         dest="jupyter_notebook",
         default=None,
-        help=("name of generated .ipynb file (if none given, no notebook is generated); "
-              "can be started using 'jupyter notebook <notebook>'"),
+        help=(
+            "name of generated .ipynb file (if none given, no notebook is generated); "
+            "can be started using 'jupyter notebook <notebook>'; "
+            "all dependencies for the notebook can be installed using 'pip install .[plot]'"
+        ),
     )
 
     opts, files = parser.parse_args(sys.argv[1:])
@@ -71,7 +74,7 @@ def start_bconv() -> None:
         ex_file = res.gen_office(opts.output, opts.projects, measures, opts.export)
     else:
         parser.error("Exactly on file has to be given")
-    if opts.jupyter_notebook is not None:
+    if opts.jupyter_notebook is not None and ex_file is not None:
         gen_ipynb(ex_file, opts.jupyter_notebook)
 
 
