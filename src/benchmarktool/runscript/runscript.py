@@ -726,8 +726,12 @@ class DistScriptGen(ScriptGen):
                 dist_script.time += runspec.project.job.timeout + 300
                 dist_script.append(job_script)
 
+        partitions = []
         for dist_script in dist_scripts.values():
+            assert isinstance(dist_script.runspec.project.job, DistJob)
+            partitions.append(dist_script.runspec.project.job.partition)
             dist_script.write()
+        partitions = sorted(set(partitions))
 
         with open(os.path.join(path, "start.sh"), "w", encoding="utf8") as startfile:
             startfile.write(
