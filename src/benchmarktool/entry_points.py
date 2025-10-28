@@ -66,7 +66,7 @@ def start_bconv() -> None:
             res = p.parse(in_file)
         res.gen_office(opts.output, opts.projects, measures)
     else:
-        parser.error("Exactly on file has to be given")
+        parser.error("Exactly one file has to be given")
 
 
 def start_beval() -> None:
@@ -91,7 +91,7 @@ def start_beval() -> None:
         run = p.parse(file_name)
         run.eval_results(sys.stdout, opts.parx)
     else:
-        parser.error("Exactly on file has to be given")
+        parser.error("Exactly one file has to be given")
 
 
 def start_bgen() -> None:
@@ -117,7 +117,7 @@ def start_bgen() -> None:
         run = p.parse(file_name)
         run.gen_scripts(opts.exclude)
     else:
-        parser.error("Exactly on file has to be given")
+        parser.error("Exactly one file has to be given")
 
 
 def btool_conv(subparsers: Any) -> None:
@@ -210,8 +210,7 @@ def btool_run_dist(subparsers: Any) -> None:
             text=True,
             check=True,
         )
-        jobs = result.stdout.strip().splitlines()
-        return len(jobs)
+        return len([f for f in result.stdout.strip().splitlines() if f])
 
     def run(args: Any) -> None:
         pending = [
