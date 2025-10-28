@@ -62,7 +62,7 @@ def start_bconv() -> None:
         res = p.parse(sys.stdin)
         res.gen_office(opts.output, opts.projects, measures)
     elif len(files) == 1:
-        with open(files[0], encoding="utf8") as in_file:
+        with open(files[0], encoding="utf-8") as in_file:
             res = p.parse(in_file)
         res.gen_office(opts.output, opts.projects, measures)
     else:
@@ -140,7 +140,7 @@ def btool_conv(subparsers: Any) -> None:
     def run(args: Any) -> None:
         p = ResParser()
         if args.resultfile:
-            with open(args.resultfile, encoding="utf8") as in_file:
+            with open(args.resultfile, encoding="utf-8") as in_file:
                 res = p.parse(in_file)
         else:
             res = p.parse(sys.stdin)
@@ -262,6 +262,47 @@ def btool_run_dist(subparsers: Any) -> None:
     parser.set_defaults(func=run)
 
 
+def btool_verify(subparsers: Any) -> None:
+    """
+    Register verify subcommand.
+
+    Checks benchmark results for runlim errors and re-runs such instances.
+    """
+
+    def find_runlim_errors(folder: str) -> list[str]:
+        error_files = []
+        for root, _, files in os.walk(folder):
+            for file in files:
+                if file == "runsolver.watcher":
+                    watcher_path = os.path.join(root, file)
+                    with open(watcher_path, encoding="utf-8") as f:
+                        if "runlim error" in f.read():
+                            error_files.append(watcher_path)
+        return error_files
+
+    def run(args: Any) -> None:
+        folder = args.folder
+        if not os.path.isdir(folder):
+            print("Error: provided folder doesn't exist", file=sys.stderr)
+            sys.exit(1)
+
+        if error_files := find_runlim_errors(folder):
+            for watcher_file in error_files:
+                finished_file = os.path.join(os.path.dirname(watcher_file), ".finished")
+                if os.path.isfile(finished_file):
+                    os.remove(finished_file)
+                    print(f"Removed: {finished_file}")
+                else:
+                    print(f"Pending: {os.path.dirname(finished_file)}")
+
+        else:
+            print("No runlim errors found")
+
+    parser = subparsers.add_parser("verify", help="Check for runlim errors and re-run failed instances")
+    parser.add_argument("folder", type=str, help="Folder containing the benchmark results")
+    parser.set_defaults(func=run)
+
+
 def main() -> None:
     """
     Entry point for benchmark tool CLI.
@@ -273,6 +314,7 @@ def main() -> None:
     btool_eval(subparsers)
     btool_gen(subparsers)
     btool_run_dist(subparsers)
+    btool_verify(subparsers)
 
     args = parser.parse_args()
     args.func(args)
