@@ -28,6 +28,7 @@ dev = ["benchmarktool[test,typecheck,lint_pylint]"]
 bconv = "benchmarktool.entry_points:start_bconv"
 beval = "benchmarktool.entry_points:start_beval"
 bgen = "benchmarktool.entry_points:start_bgen"
+btool = "benchmarktool.entry_points:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
