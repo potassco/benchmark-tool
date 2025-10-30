@@ -398,12 +398,13 @@ class TestInstSheet(TestCase):
         Test export_values methods.
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
-        sheet.add_runspec(self.run_spec[1])
+        sheet.add_runspec(self.run_specs[0])
+        sheet.add_runspec(self.run_specs[1])
         sheet.finish()
         name = "file.ipynb"
+        md = {"test": [1, 2, 3]}
         with patch.object(pd.DataFrame, "to_parquet") as tp:
-            sheet.export_values(name)
+            sheet.export_values(name, md)
             tp.assert_called_once_with(name)
 
 
@@ -555,12 +556,13 @@ class TestClassSheet(TestInstSheet):
         Test export_values methods.
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        sheet.add_runspec(self.run_spec[0])
-        sheet.add_runspec(self.run_spec[1])
+        sheet.add_runspec(self.run_specs[0])
+        sheet.add_runspec(self.run_specs[1])
         sheet.finish()
         name = "file.ipynb"
+        md = {"test": [1, 2, 3]}
         with patch.object(pd.DataFrame, "to_parquet") as tp:
-            sheet.export_values(name)
+            sheet.export_values(name, md)
             tp.assert_not_called()
 
 
