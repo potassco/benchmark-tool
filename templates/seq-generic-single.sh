@@ -5,8 +5,6 @@ CAT="{run.root}/programs/gcat.sh"
 
 cd "$(dirname $0)"
 
-#top -n 1 -b > top.txt
-
 runner=( "{run.root}/programs/runlim" \
   --single \
   --space-limit={run.memout} \

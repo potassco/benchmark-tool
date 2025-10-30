@@ -1,11 +1,7 @@
 #!/bin/bash
 # https://github.com/arminbiere/runlim
 
-CAT="{run.root}/programs/gcat.sh"
-
 cd "$(dirname $0)"
-
-#top -n 1 -b > top.txt
 
 [[ -e .finished ]] || "{run.root}/programs/runlim" \
 	--space-limit={run.memout} \
