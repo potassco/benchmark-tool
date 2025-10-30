@@ -46,14 +46,8 @@ And afterwards accessed at `http://localhost:8000/systems/benchmark-tool/`.
 You can check a successful installation by running
 
 ```bash
-$ bgen -h
+$ btool -h
 ```
-
-Supported entry points:\
-`bgen` - creates start scripts\
-`beval` - evaluates
-solver runs\
-`bconv` - transforms output of eval into spreadsheets
 
 For more information and examples check the documentation.
 
