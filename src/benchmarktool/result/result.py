@@ -4,7 +4,6 @@ Created on Jan 19, 2010
 @author: Roland Kaminski
 """
 
-from collections.abc import Container
 from dataclasses import dataclass, field
 from typing import Any, Iterator, Optional
 
@@ -46,7 +45,7 @@ class Result:
         return BenchmarkMerge(benchmarks)
 
     def gen_office(
-        self, out: str, sel_projects: Container[str], measures: list[tuple[str, Any]], export: bool = False
+        self, out: str, sel_projects: set[str], measures: list[tuple[str, Any]], export: bool = False
     ) -> Optional[str]:
         """
         Prints the current result in open office spreadsheet format.
@@ -54,12 +53,12 @@ class Result:
 
         Attributes:
             out (str):                        The output file to write to.
-            sel_projects (str):               The selected projects ("" for all).
+            sel_projects (set[str]):          The selected projects ("" for all).
             measures (list[tuple[str, Any]]): The measures to extract.
         """
         projects: list[Project] = []
         for project in self.projects.values():
-            if sel_projects == "" or project.name in sel_projects:
+            if len(sel_projects) == 0 or project.name in sel_projects:
                 projects.append(project)
         benchmark_merge = self.merge(projects)
 
