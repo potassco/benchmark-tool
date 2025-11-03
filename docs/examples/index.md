@@ -38,7 +38,7 @@ While [runscript-example.xml](https://github.com/potassco/benchmark-tool/blob/ma
 
 Examples for the encoding support feature can be found [here](../reference/encoding_support.md).
 
-For a more detailed explanation of a runscript and its components check [here](../getting_started/bgen/runscript.md)
+For a more detailed explanation of a runscript and its components check [here](../getting_started/gen/runscript.md)
 
 [1]: https://potassco.org/clasp/
 [2]: https://github.com/arminbiere/runlim
