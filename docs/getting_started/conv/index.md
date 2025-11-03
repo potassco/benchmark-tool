@@ -12,12 +12,25 @@ To convert your benchmark results to a spreadsheet, use the following command:
 btool conv benchmark-results.xml -m "time:t,choices" -o results.ods
 ```
 
-The `-m` option specifies which measures to include in the table. Available
-measures depend on the [result parser] used during evaluation. Each measure can
-optionally include a formatting argument after a `:`. Currently, the supported
-formatting options are `t` and `to`. Both highlight best and worst values for
-float measures. Use `t` for most measures, and `to` for float measures
-representing booleans, such as `timeout`.
+The name of the resulting `.ods` file is set using the `-o, --output` option (default `out.ods`).
+
+Which benchmark projects to include in the output can be selected via the `-p, --project`
+option. By default all projects are selected.
+
+The `-m, --measures` option specifies which measures to include in the table (default: time:t,timeout:to;
+`-m all` selects all measure). Available measures depend on the [result parser] used during evaluation. Each measure can optionally include a formatting argument after a `:`. Currently,
+the supported formatting options are `t` and `to`. Both highlight best and worst values for
+float measures. Use `t` for most measures, and `to` for float measures representing booleans,
+such as `timeout`.
+
+You can chose to export the instance data to a `.parquet` file using the `-e, --export`
+option. The name of the file will be the same as the specified output, i.e. `-o res.ods -e`
+-> `res.parquet`.
+
+The `-j, --jupyter-notebook` option can be used to generate a `.ipynb` file, which contains
+some basic visualization of the instance data, specifically survivor, cactus and CDF diagrams.
+The notebook can be started using `jupyter notebook <notebook.ipynb>` and dependencies for the notebook can be installed using `pip install .[plot]`. This option also automatically enables
+the `-e` option.
 
 ## Spreadsheet Generation
 
