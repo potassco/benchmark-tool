@@ -227,7 +227,7 @@ def btool_run_dist(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # 
     parser.add_argument(
         "-j",
         "--jobs",
-        help="Maximum number of jobs running at once",
+        help="Maximum number of jobs running at once (default: 100)",
         type=int,
         default=100,
         metavar="<n>",
@@ -235,7 +235,7 @@ def btool_run_dist(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # 
     parser.add_argument(
         "-w",
         "--wait",
-        help="Time to wait between checks in seconds",
+        help="Time to wait between checks in seconds (default: 1)",
         type=int,
         default=1,
         metavar="<n>",
@@ -285,11 +285,12 @@ def btool_verify(subparsers: Any) -> None:  # nocoverage
         description=dedent(
             """\
             Checks benchmark results in the given folder for runlim errors
-            and removes .finished files for affected instances.
+            and removes '.finished' files for affected instances.
             Use 'btool gen -e <runscript.xml>' to re-generate new start scripts
             which exclude finished/valid runs.
             """
         ),
+        formatter_class=formatter,
     )
     parser.add_argument("folder", type=str, help="Folder containing the benchmark results", metavar="<folder>")
     parser.set_defaults(func=run)
