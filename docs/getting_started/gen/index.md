@@ -23,7 +23,7 @@ After generation, start your benchmarks by executing either the `start.sh` or
 If you want to run your generated benchmark set on a cluster and it consists of
 many jobs, you can use the `run-dist` subcommand to dispatch jobs to the cluster
 without overloading the queue. Make sure to use a `run-dist` inside a persistent
-shell (tmux, screen, ...) or using nohub.
+shell (tmux, screen, ...).
 
 !!! info
     You do not need to manually use the `sbatch` command for these start files.

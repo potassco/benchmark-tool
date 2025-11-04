@@ -22,5 +22,4 @@ The `-w, --wait` option sets the number of seconds between checking the number
 of jobs on the cluster (default: 1)
 
 !!!info
-    Make sure to use a `run-dist` inside a persistent shell (tmux, screen, ...)
-    or using nohub.
+    Make sure to use a `run-dist` inside a persistent shell (tmux, screen, ...).
