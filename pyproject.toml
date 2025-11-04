@@ -25,7 +25,7 @@ typecheck = ["types-setuptools", "mypy"]
 test = ["coverage[toml]"]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
 dev = ["benchmarktool[test,typecheck,lint_pylint]"]
-plot = ["matplotlib", "ipympl", "buckaroo", "jupyter"]
+plot = ["plotly", "ipywidgets", "anywidget", "jupyter"]
 
 [project.scripts]
 btool = "benchmarktool.entry_points:main"
