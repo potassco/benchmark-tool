@@ -41,6 +41,11 @@ class TestResult(TestCase):
         Test gen_office method.
         """
         run = mock.Mock(spec=result.Runspec)
+        run.setting = mock.Mock(spec=result.Setting)
+        run.setting.name = "test_setting"
+        run.setting.system = mock.Mock(spec=result.System)
+        run.setting.system.name = "test_system"
+        run.setting.system.version = "1.0"
         p1 = result.Project("p1", "job", [run])
         p2 = result.Project("p2", "job")
         self.res.projects = {"p1": p1, "p2": p2}
@@ -66,7 +71,9 @@ class TestResult(TestCase):
 
             ex_file = self.res.gen_office("out.ods", "p1", [("time", "to")], True)
             self.assertEqual(ex_file, "out.parquet")
-            ods_doc.inst_sheet.export_values.assert_called_once_with("out.parquet", {"timeout": [10]})
+            ods_doc.inst_sheet.export_values.assert_called_once_with(
+                "out.parquet", {"_to_test_system-1.0/test_setting": [10]}
+            )
 
 
 class TestBenchmarkMerge(TestCase):

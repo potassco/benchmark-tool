@@ -144,35 +144,33 @@ def prepare_data(data: pd.DataFrame, merge: str) -> pd.DataFrame:
     """
     measure = "time"
 
-    cs = list(map(lambda x: x[1], list(data.columns)))
-    cs.remove("instance")
+    cs =  list(data["time"].columns)
     df_plot = pd.DataFrame()
     df_plot["instance"] = data.loc[:, ("", "instance")]
     for c in cs:
         df_plot[c] = pd.to_numeric(data.loc[:, (measure, c)], errors="coerce")
 
     if merge == "median":
-        df_plot = df_plot.groupby("instance", dropna=False).median().reset_index()
+        df_plot = df_plot.groupby(
+            "instance", dropna=False).median().reset_index()
     elif merge == "mean":
-        df_plot = df_plot.groupby("instance", dropna=False).mean().reset_index()
+        df_plot = df_plot.groupby(
+            "instance", dropna=False).mean().reset_index()
 
     df_plot = df_plot.drop(["instance"], axis=1)
     df_plot.loc[-1] = [0 for x in range(len(df_plot.columns))]
     df_plot.sort_index(inplace=True)
     df_plot.index = df_plot.index + 1
 
-    if "timeout" in metadata:
-        tl = max(map(float, metadata["timeout"]))
-    else:
-        tl = None
-
+    res = pd.DataFrame()
     for c in cs:
-        df_plot[c] = df_plot[c].sort_values(ignore_index=True).drop_duplicates(keep="last")
-        # filter timeouts
-        if tl is not None:
-            df_plot[c] = df_plot[c].apply(lambda x: x if x != tl else np.nan)
-
-    return df_plot
+        s = df_plot[c].sort_values(ignore_index=True).drop_duplicates(keep="last")
+        key = "_to_" + c
+        if key in metadata:
+            tl = max(map(float, metadata[key]))
+            s.mask(s.ge(tl), inplace=True)
+        res = pd.concat([res, s], axis=1)
+    return res.sort_index()
 
 
 def prepare_plots(
@@ -196,16 +194,16 @@ def prepare_plots(
     # set up multiple traces
     i = 0
     lookup = {}
-    for col in plot_data.columns[1:]:
+    for col in plot_data.columns:
         val = plot_data[[col]].dropna()
         if mode == "Survivor":
-            fig.add_trace(go.Scatter(x=val[col].cumsum(), y=val.index, name=col, visible=False))
+            fig.add_trace(go.Scatter(x=val[col].cumsum(), y=val.index, name=col, visible=False, line={"shape": 'hv'}))
             switch_xy = False
         elif mode == "Cactus":
-            fig.add_trace(go.Scatter(x=val.index, y=val[col].cumsum(), name=col, visible=False))
+            fig.add_trace(go.Scatter(x=val.index, y=val[col], name=col, visible=False, line={"shape": 'hv'}))
             switch_xy = True
         else:
-            fig.add_trace(go.Scatter(x=val[col], y=val.index, name=col, visible=False))
+            fig.add_trace(go.Scatter(x=val[col], y=val.index, name=col, visible=False, line={"shape": 'hv'}))
             switch_xy = False
         lookup[col] = i
         i += 1

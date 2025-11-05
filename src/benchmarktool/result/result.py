@@ -71,7 +71,19 @@ class Result:
 
         if export:
             ex_file = out.replace(".ods", ".parquet")
-            sheet.inst_sheet.export_values(ex_file, {"timeout": [job.timeout for job in self.jobs.values()]})
+
+            timeout_meta = {}
+            for project in projects:
+                for runspec in project.runspecs:
+                    timeout_meta[
+                        "_to_"
+                        + runspec.setting.system.name
+                        + "-"
+                        + runspec.setting.system.version
+                        + "/"
+                        + runspec.setting.name
+                    ] = [self.jobs[project.job].timeout]
+            sheet.inst_sheet.export_values(ex_file, timeout_meta)
             return ex_file
         return None
 
