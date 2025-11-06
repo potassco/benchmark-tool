@@ -134,16 +134,15 @@ def multi_checkbox_widget(options_dict: dict[str, widgets.Checkbox]) -> widgets.
     return multi_select
 
 
-def prepare_data(data: pd.DataFrame, merge: str) -> pd.DataFrame:
+def prepare_data(data: pd.DataFrame, measure: str, merge: str) -> pd.DataFrame:
     """
     Prepare data for plotting.
 
     Attributes:
         data_frame (pd.DataFrame): Input data.
+        measure (str): Measure to plot.
         merge (str): How to merge runs (none, mean, median).
     """
-    measure = "time"
-
     cs =  list(data["time"].columns)
     df_plot = pd.DataFrame()
     df_plot["instance"] = data.loc[:, ("", "instance")]
@@ -174,18 +173,19 @@ def prepare_data(data: pd.DataFrame, merge: str) -> pd.DataFrame:
 
 
 def prepare_plots(
-    data: pd.DataFrame, mode: str, merge: str, width: int, height: int
+    data: pd.DataFrame, measure: str, merge: str, mode: str, width: int, height: int
 ) -> tuple[go.FigureWidget, dict[str, int]]:
     """
     Prepare plotly figure and traces.
     Attributes:
         data (pd.DataFrame): Input data.
-        mode (str): Plot mode (cactus, cdf).
+        measure (str): Measure to plot.
         merge (str): How to merge runs (none, mean, median).
+        mode (str): Plot mode (cactus, cdf).
         width (int): Plot width.
         height (int): Plot height.
     """
-    plot_data = prepare_data(data, merge)
+    plot_data = prepare_data(data, measure, merge)
 
     fig = go.Figure()
     colors = px.colors.qualitative.G10
@@ -281,14 +281,22 @@ def prepare_plots(
 
 
 def plot(
-    data: pd.DataFrame, mode: str, merge: str, width: int, height: int, opts: dict[str, Any], sets: dict[str, list[str]]
+    data: pd.DataFrame,
+    measure: str,
+    merge: str,
+    mode: str,
+    width: int,
+    height: int,
+    opts: dict[str, Any],
+    sets: dict[str, list[str]],
 ) -> None:
     """
     Prepare plot and traces.
     Attributes:
         data (pd.DataFrame): Input data.
-        mode (str): Plot mode (cactus, cdf).
+        measure (str): Measure to plot
         merge (str): How to merge runs (mean, median).
+        mode (str): Plot mode (cactus, cdf).
         width (int): Plot width.
         height (int): Plot height.
         opts (dict): Widget options.
@@ -320,7 +328,7 @@ def plot(
 
         display(figure_widget)
 
-    fig, lookup = prepare_plots(data, mode, merge, width, height)
+    fig, lookup = prepare_plots(data, measure, merge, mode, width, height)
     opts["fig"] = fixed(fig)
     opts["lookup"] = fixed(lookup)
     opts["sets"] = fixed(sets)
@@ -352,20 +360,26 @@ def get_gui(data: pd.DataFrame) -> tuple[widgets.HBox, widgets.Output]:
 
     ui = multi_checkbox_widget(options_dict)
 
-    select_mode = widgets.ToggleButtons(
-        options=["Survivor", "Cactus", "CDF"],
-        description="Mode:",
+    select_measure = widgets.ToggleButtons(
+        options=measures,
+        description="Measure:",
         disabled=False,
         button_style="",  # 'success', 'info', 'warning', 'danger' or ''
-        tooltips=["Cactus plot", "CDF plot"],
+        #tooltips=["Cactus plot", "CDF plot"],
     )
-
     select_merge = widgets.ToggleButtons(
         options=["do not merge", "median", "mean"],
         description="Merge:",
         disabled=False,
         button_style="",  # 'success', 'info', 'warning', 'danger' or ''
         tooltips=["Merge runs using median", "Merge runs using mean"],
+    )
+    select_mode = widgets.ToggleButtons(
+        options=["Survivor", "Cactus", "CDF"],
+        description="Mode:",
+        disabled=False,
+        button_style="",  # 'success', 'info', 'warning', 'danger' or ''
+        tooltips=["Cactus plot", "CDF plot"],
     )
     width_slider = widgets.IntSlider(
         value=1000,
@@ -395,8 +409,9 @@ def get_gui(data: pd.DataFrame) -> tuple[widgets.HBox, widgets.Output]:
     out = widgets.interactive_output(
         plot,
         {
-            "mode": select_mode,
+            "measure": select_measure,
             "merge": select_merge,
+            "mode": select_mode,
             "width": width_slider,
             "height": height_slider,
             "opts": fixed(options_dict),
@@ -405,7 +420,7 @@ def get_gui(data: pd.DataFrame) -> tuple[widgets.HBox, widgets.Output]:
         },
     )
 
-    return widgets.HBox([widgets.VBox([select_mode, select_merge, sliders]), ui]), out
+    return widgets.HBox([widgets.VBox([select_measure, select_merge, select_mode, sliders]), ui]), out
 '''
 
     plot_heading = """\

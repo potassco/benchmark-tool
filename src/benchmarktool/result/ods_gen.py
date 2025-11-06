@@ -620,6 +620,8 @@ class Sheet:
         Attributes:
             file_name (str): Name of the parquet file.
         """
+        # fill settings
+        self.values.iloc[0, :] = self.values.iloc[0, :].ffill()
         # currently only inst sheet exported
         if self.ref_sheet is not None:
             return
