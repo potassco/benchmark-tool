@@ -188,7 +188,7 @@ def prepare_plots(
     plot_data = prepare_data(data, merge)
 
     fig = go.Figure()
-    px.colors.qualitative.Plotly
+    colors = px.colors.qualitative.G10
     switch_xy = False
 
     # set up multiple traces
@@ -197,14 +197,27 @@ def prepare_plots(
     for col in plot_data.columns:
         val = plot_data[[col]].dropna()
         if mode == "Survivor":
-            fig.add_trace(go.Scatter(x=val[col].cumsum(), y=val.index, name=col, visible=False, line={"shape": 'hv'}))
+            x_vals = val[col].cumsum()
+            y_vals = val.index
             switch_xy = False
         elif mode == "Cactus":
-            fig.add_trace(go.Scatter(x=val.index, y=val[col], name=col, visible=False, line={"shape": 'hv'}))
+            x_vals = val.index
+            y_vals = val[col]
             switch_xy = True
         else:
-            fig.add_trace(go.Scatter(x=val[col], y=val.index, name=col, visible=False, line={"shape": 'hv'}))
+            x_vals = val[col]
+            y_vals = val.index
             switch_xy = False
+        fig.add_trace(
+            go.Scatter(
+                x=x_vals,
+                y=y_vals,
+                name=col,
+                visible=False,
+                line={"shape": "hv"},
+                marker=dict(color=colors[i % len(colors)], size=15),
+            )
+        )
         lookup[col] = i
         i += 1
 
@@ -254,7 +267,16 @@ def prepare_plots(
             "maxheight": 0.1,
             "title_text": "Setting",
         },
+        margin={
+            "l": 50,
+            "r": 50,
+            "b": 50,
+            "t": 50,
+            "pad": 10,
+        },
     )
+    fig.update_yaxes(automargin=True)
+    fig.update_xaxes(automargin=True)
     return go.FigureWidget(fig), lookup
 
 
