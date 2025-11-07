@@ -143,7 +143,7 @@ def prepare_data(data: pd.DataFrame, measure: str, merge: str) -> pd.DataFrame:
         measure (str): Measure to plot.
         merge (str): How to merge runs (none, mean, median).
     """
-    cs =  list(data["time"].columns)
+    cs =  list(data[measure].columns)
     df_plot = pd.DataFrame()
     df_plot["instance"] = data.loc[:, ("", "instance")]
     for c in cs:
@@ -360,8 +360,9 @@ def get_gui(data: pd.DataFrame) -> tuple[widgets.HBox, widgets.Output]:
 
     ui = multi_checkbox_widget(options_dict)
 
+    measure_opts = ["time"] + sorted(measures - {"time"}) if "time" in measures else sorted(measures)
     select_measure = widgets.ToggleButtons(
-        options=measures,
+        options=measure_opts,
         description="Measure:",
         disabled=False,
         button_style="",  # 'success', 'info', 'warning', 'danger' or ''
@@ -420,7 +421,12 @@ def get_gui(data: pd.DataFrame) -> tuple[widgets.HBox, widgets.Output]:
         },
     )
 
-    return widgets.HBox([widgets.VBox([select_measure, select_merge, select_mode, sliders]), ui]), out
+    return (
+        widgets.HBox(
+            [widgets.VBox([select_measure, select_merge, select_mode, sliders], layout=widgets.Layout(width="60%")), ui]
+        ),
+        out,
+    )
 '''
 
     plot_heading = """\
