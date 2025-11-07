@@ -297,6 +297,12 @@ class Sheet:
             benchclass_summary: dict[str, Any] = {}
             for instance_result in benchclass_result:
                 self.add_instance_results(block, instance_result, benchclass_summary)
+                for m in block.columns:
+                    if m not in self.types or self.types[m] in ["None", "empty"]:
+                        self.types[m] = block.columns[m]
+                    # mixed measure
+                    elif block.columns[m] not in [self.types[m], "None", "empty"]:
+                        self.types[m] = "string"
             # classSheet
             if self.ref_sheet:
                 self.add_benchclass_summary(block, benchclass_result, benchclass_summary)
@@ -329,7 +335,7 @@ class Sheet:
                         )
                     else:
                         block.add_cell(instance_result.instance.values["row"] + run.number - 1, name, value_type, value)
-                elif value_type == "float":
+                elif value_type == "float" and self.ref_sheet.types.get(name, "") == "float":
                     if benchclass_summary.get(name, None) is None:
                         benchclass_summary[name] = (0.0, 0)
                     benchclass_summary[name] = (
@@ -360,7 +366,13 @@ class Sheet:
                     benchclass_result.benchclass.values["row"],
                     name,
                     "classresult",
-                    (benchclass_result.benchclass, temp_res),
+                    (
+                        {
+                            "inst_start": benchclass_result.benchclass.values["inst_start"],
+                            "inst_end": benchclass_result.benchclass.values["inst_end"],
+                            "value": temp_res,
+                        }
+                    ),
                 )
             else:
                 block.add_cell(benchclass_result.benchclass.values["row"], name, "empty", np.nan)
@@ -375,9 +387,6 @@ class Sheet:
             self.content = self.content.join(block.content)
             self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, col] = block.gen_name(len(self.machines) > 1)
-            for m in block.columns:
-                if m not in self.types or self.types[m] in ("None", "empty"):
-                    self.types[m] = block.columns[m]
             col += len(block.columns)
 
         # get columns used for summary calculations
@@ -391,20 +400,23 @@ class Sheet:
                         op = "SUM"
 
                     # avoid missing measures
-                    if isinstance(self.content.at[row, column], tuple):
-                        self.values.at[row, column] = self.content.at[row, column][1]
+                    if isinstance(self.content.at[row, column], dict):
+                        self.values.at[row, column] = self.content.at[row, column]["value"]
                         self.content.at[row, column] = Formula(
                             ""
                             + op
                             + "(Instances.{0}:Instances.{1})".format(
-                                get_cell_index(column, self.content.at[row, column][0].values["inst_start"] + 2),
-                                get_cell_index(column, self.content.at[row, column][0].values["inst_end"] + 2),
+                                get_cell_index(column, self.content.at[row, column]["inst_start"] + 2),
+                                get_cell_index(column, self.content.at[row, column]["inst_end"] + 2),
                             )
                         )
             if self.types.get(name, "") in ["float", "classresult"]:
                 if not name in self.float_occur:
                     self.float_occur[name] = set()
                 self.float_occur[name].add(column)
+            # defragmentation (temporary workaround)
+            self.content = self.content.copy()
+            self.values = self.values.copy()
 
         if self.ref_sheet is not None:
             self.values = self.values.reindex(index=self.content.index, columns=self.content.columns)
@@ -413,6 +425,10 @@ class Sheet:
             self.values = (
                 self.content.iloc[2 : self.result_offset - 1, 1:].combine_first(self.values).combine_first(self.content)
             )
+
+        # defragmentation (temporary workaround)
+        self.content = self.content.copy()
+        self.values = self.values.copy()
 
         # add summaries
         self.add_row_summary(col)
@@ -429,7 +445,7 @@ class Sheet:
         Add row summary (min, max, median).
 
         Attributes:
-            offset (int):                      Column offset.
+            offset (int): Column offset.
         """
         col = offset
         for col_name in ["min", "median", "max"]:
@@ -620,19 +636,17 @@ class Sheet:
         Attributes:
             file_name (str): Name of the parquet file.
         """
-        # fill settings
-        self.values.iloc[0, :] = self.values.iloc[0, :].ffill()
         # currently only inst sheet exported
         if self.ref_sheet is not None:
             return
+        # fill settings
+        self.values.iloc[0, :] = self.values.iloc[0, :].ffill()
         # group values by measure
         df = self.values.iloc[2:, [0]].reset_index(drop=True).astype("string")
         df.columns = pd.MultiIndex.from_tuples([("", "instance")], names=["measure", "setting"])
         for m, cols in self.float_occur.items():
             nf = self.values.iloc[2:, sorted(cols)].reset_index(drop=True).astype("float64")
-            nf.columns = self.values.iloc[
-                0, [(x - 1) // len(self.float_occur) * len(self.float_occur) + 1 for x in sorted(cols)]
-            ].to_list()
+            nf.columns = self.values.iloc[0, sorted(cols)].to_list()
             nf.columns = pd.MultiIndex.from_product([[m], nf.columns], names=["measure", "setting"])
             df = df.join(nf)
         # metadata
@@ -690,7 +704,10 @@ class SystemBlock:
         """
         if name not in self.columns:
             self.content.at[1, name] = name
-        self.columns[name] = value_type
+            self.columns[name] = value_type
+        # mixed system column
+        elif value_type not in [self.columns[name], "None"]:
+            self.columns[name] = "string"
         # leave space for header and add new row if necessary
         if row + 2 not in self.content.index:
             self.content = self.content.reindex(self.content.index.tolist() + [row + 2])
