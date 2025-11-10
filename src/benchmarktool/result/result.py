@@ -4,9 +4,9 @@ Created on Jan 19, 2010
 @author: Roland Kaminski
 """
 
-from collections.abc import Container
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from pathlib import Path
+from typing import Any, Iterator, Optional
 
 from benchmarktool.result.ods_gen import ODSDoc
 
@@ -45,18 +45,21 @@ class Result:
                 benchmarks.add(runspec.benchmark)
         return BenchmarkMerge(benchmarks)
 
-    def gen_office(self, out: str, sel_projects: Container[str], measures: list[tuple[str, Any]]) -> None:
+    def gen_office(
+        self, out: str, sel_projects: set[str], measures: list[tuple[str, Any]], export: bool = False
+    ) -> Optional[str]:
         """
         Prints the current result in open office spreadsheet format.
+        Returns the name of the export file if values are exported.
 
         Attributes:
             out (str):                        The output file to write to.
-            sel_projects (str):               The selected projects ("" for all).
+            sel_projects (set[str]):          The selected projects ("" for all).
             measures (list[tuple[str, Any]]): The measures to extract.
         """
         projects: list[Project] = []
         for project in self.projects.values():
-            if sel_projects == "" or project.name in sel_projects:
+            if len(sel_projects) == 0 or project.name in sel_projects:
                 projects.append(project)
         benchmark_merge = self.merge(projects)
 
@@ -66,6 +69,25 @@ class Result:
                 sheet.add_runspec(runspec)
         sheet.finish()
         sheet.make_ods(out)
+
+        if export:
+            # as_posix() for windows compatibility
+            ex_file = Path(out).absolute().as_posix().replace(".ods", ".parquet")
+            print(out, ex_file)
+            timeout_meta = {}
+            for project in projects:
+                for runspec in project.runspecs:
+                    timeout_meta[
+                        "_to_"
+                        + runspec.setting.system.name
+                        + "-"
+                        + runspec.setting.system.version
+                        + "/"
+                        + runspec.setting.name
+                    ] = [self.jobs[project.job].timeout]
+            sheet.inst_sheet.export_values(ex_file, timeout_meta)
+            return ex_file
+        return None
 
 
 class BenchmarkMerge:

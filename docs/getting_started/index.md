@@ -36,16 +36,20 @@ The repository is organized as follows:
 You can verify a successful installation by running:
 
 ```bash
-bgen -h
+btool -h
 ```
 
-Supported entry points:
+Supported subcommands in order of use:
 
-- `bgen` - creates start scripts
-- `beval` - evaluates solver runs
-- `bconv` - transforms output of `beval` into spreadsheets
+- `gen`        Generate scripts from runscript
+- `run-dist`   Run distributed jobs
+- `verify`     Check for runlim errors and re-run failed instances
+- `eval`       Collect results
+- `conv`       Convert results to ODS or other formats
 
-A detailed description of how to use each component is available via the sidebar.
+
+Each subcommand has their own help page, accessible via `btool <subcommand> -h`.
+A detailed description on how to use each component is available via the sidebar.
 
 !!! info
     When running benchmarks on a cluster, jobs may fail due to the following error:
@@ -62,15 +66,15 @@ A detailed description of how to use each component is available via the sidebar
     should either be the SUT executable or you should use `exec` if
     `{run.solver}` refers to a shell script.
 
-    If you cannot use `--single`, the [verify_results.sh][results] script can
-    be used to identify jobs that failed due to a `runlim error`, remove the
-    corresponding `.finished` files, and generate a new start script that
-    excludes jobs which have already completed.
+    If you cannot use `--single`, the `verify` subcommand can
+    be used to identify jobs that failed due to a `runlim error` and remove the
+    corresponding `.finished` files. The `gen` subcommand can then generate a
+    new start script, which excludes valid jobs, by using the `-e` option.
 
 [btool]: https://github.com/potassco/benchmark-tool
 [runlim]: https://github.com/arminbiere/runlim
-[template]: ./bgen/templates.md#run-templates
-[runscript]: ./bgen/runscript.md
-[script]: ./bgen/templates.md
+[template]: ./gen/templates.md#run-templates
+[runscript]: ./gen/runscript.md
+[script]: ./gen/templates.md
 [issue]: https://github.com/arminbiere/runlim/issues/8
 [results]: https://github.com/potassco/benchmark-tool/blob/master/verify_results.sh

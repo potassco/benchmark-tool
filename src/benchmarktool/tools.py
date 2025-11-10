@@ -11,7 +11,7 @@ import stat
 
 def mkdir_p(path: str) -> None:
     """
-    Simulates "mkdir -p" functionality.
+    Simulates `mkdir -p` functionality.
 
     Attributes:
         path (str): A string holding the path to create.
@@ -22,7 +22,7 @@ def mkdir_p(path: str) -> None:
 
 def xml_to_seconds_time(str_rep: str) -> int:
     """
-    Converts '[<D>d] [<H>h] [<M>m] [<S>s]' time format to seconds.
+    Converts `[<D>d] [<H>h] [<M>m] [<S>s]` time format to seconds.
 
     Attributes:
         str_rep (str): String representation.
@@ -41,7 +41,7 @@ def xml_to_seconds_time(str_rep: str) -> int:
 
 def seconds_to_xml_time(int_rep: int) -> str:
     """
-    Converts time in seconds to '[<D>d] [<H>h] [<M>m] [<S>s]' time format.
+    Converts time in seconds to `[<D>d] [<H>h] [<M>m] [<S>s]` time format.
 
     Attributes:
         int_rep (int): Int representation.
@@ -57,7 +57,7 @@ def seconds_to_xml_time(int_rep: int) -> str:
 
 def seconds_to_slurm_time(int_rep: int) -> str:
     """
-    Converts time in seconds to 'DD-HH:MM:SS' time format.
+    Converts time in seconds to `DD-HH:MM:SS` time format.
 
     Attributes:
         int_rep (int): Int representation.

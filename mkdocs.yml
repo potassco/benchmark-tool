@@ -105,27 +105,33 @@ plugins:
           options:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
-            # show_root_toc_entry: false
-            # show_inherited_summary: true
-            show_inherited_detail: true
-            show_inherited_detail_toc: true
-            show_inherited_detail_tree: true
             show_signature_annotations: true
             signature_crossrefs: true
             show_source: false
+            # show_root_toc_entry: false
+            extra:
+              # show_inherited_summary: true
+              show_inherited_detail: true
+              show_inherited_detail_toc: true
+              show_inherited_detail_tree: true
 
 nav:
   - Home: index.md
   - Getting Started:
-     - getting_started/index.md
-     - bgen:
-       - getting_started/bgen/index.md
-       - Runscript: getting_started/bgen/runscript.md
-       - Templates: getting_started/bgen/templates.md
-     - beval:
-       - getting_started/beval/index.md
-     - bconv:
-       - getting_started/bconv/index.md
+    - getting_started/index.md
+    - gen:
+      - getting_started/gen/index.md
+      - Runscript: getting_started/gen/runscript.md
+      - Templates: getting_started/gen/templates.md
+    - run-dist:
+      - getting_started/run_dist/index.md
+    - verify:
+      - getting_started/verify/index.md
+    - eval:
+      - getting_started/eval/index.md
+    - conv:
+      - getting_started/conv/index.md
+
   - Examples: examples/index.md
   - Reference:
     - reference/index.md

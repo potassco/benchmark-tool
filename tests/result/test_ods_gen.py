@@ -136,7 +136,7 @@ class TestInstSheet(TestCase):
         self.ref_block["status"] = [
             "status",
             "UNSATISFIABLE",
-            "UNSATISFIABLE",
+            "5",
             "SATISFIABLE",
             "SATISFIABLE",
             "SATISFIABLE",
@@ -258,6 +258,7 @@ class TestInstSheet(TestCase):
             4,
             4,
         ]
+        self.all_measure_size = 34
 
     def test_init(self) -> None:
         """
@@ -277,6 +278,7 @@ class TestInstSheet(TestCase):
         self.assertEqual(sheet.ref_sheet, self.ref_sheet)
         self.assertDictEqual(sheet.summary_refs, {})
         pd.testing.assert_frame_equal(sheet.values, pd.DataFrame())
+        self.assertDictEqual(sheet.float_occur, {})
 
     def test_add_runspec(self) -> None:
         """
@@ -286,6 +288,8 @@ class TestInstSheet(TestCase):
         (add_instance_results, add_benchclass_summary)
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        if sheet.ref_sheet is not None:
+            sheet.ref_sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[0])
         self.assertIsInstance(
             sheet.system_blocks[(self.run_specs[0].setting, self.run_specs[0].machine)], ods_gen.SystemBlock
@@ -300,6 +304,8 @@ class TestInstSheet(TestCase):
         Test finish method.
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        if sheet.ref_sheet is not None:
+            sheet.ref_sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[0])
         with (
             patch.object(ods_gen.Sheet, "add_row_summary") as add_row_sum,
@@ -330,6 +336,8 @@ class TestInstSheet(TestCase):
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         for run_spec in self.run_specs:
+            if sheet.ref_sheet is not None:
+                sheet.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
         with patch.object(ods_gen.Sheet, "add_styles"):
             sheet.finish()
@@ -347,9 +355,11 @@ class TestInstSheet(TestCase):
                 else:
                     self.assertEqual(test_val, ref_val)
         sheet = ods_gen.Sheet(self.bench_merge, "", self.name, self.ref_sheet)
+        if sheet.ref_sheet is not None:
+            sheet.ref_sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[0])
         sheet.finish()
-        self.assertEqual(len(sheet.content.columns), 34)
+        self.assertEqual(len(sheet.content.columns), self.all_measure_size)
 
     def test_add_col_summary(self) -> None:
         """
@@ -357,6 +367,8 @@ class TestInstSheet(TestCase):
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         for run_spec in self.run_specs:
+            if sheet.ref_sheet is not None:
+                sheet.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
         with patch.object(ods_gen.Sheet, "add_styles"):
             sheet.finish()
@@ -392,6 +404,20 @@ class TestInstSheet(TestCase):
         self.assertEqual(sheet.content.at[9, 1][1], "cellWorst")
         self.assertEqual(sheet.content.at[9, 5][1], "cellBest")
 
+    def test_export_values(self) -> None:
+        """
+        Test export_values methods.
+        """
+        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_specs[0])
+        sheet.add_runspec(self.run_specs[1])
+        sheet.finish()
+        name = "file.ipynb"
+        md = {"test": [1, 2, 3]}
+        with patch.object(pd.DataFrame, "to_parquet") as tp:
+            sheet.export_values(name, md)
+            tp.assert_called_once_with(name)
+
 
 # pylint: disable=too-many-instance-attributes,too-many-statements
 class TestClassSheet(TestInstSheet):
@@ -410,12 +436,22 @@ class TestClassSheet(TestInstSheet):
         self.ref_row_n = ["test_class0", "test_class1"]
         self.ref_block = pd.DataFrame()
         # system block
-        bench_cl0 = self.run_specs[0].classresults[0].benchclass
-        bench_cl1 = self.run_specs[0].classresults[1].benchclass
-        self.ref_block["time"] = ["time", (bench_cl0, 8.5), (bench_cl1, 1.275)]
-        self.ref_block["timeout"] = ["timeout", (bench_cl0, 0), (bench_cl1, 0)]
+        self.ref_block["time"] = [
+            "time",
+            {"inst_start": 0, "inst_end": 1, "value": 8.5},
+            {"inst_start": 2, "inst_end": 5, "value": 1.275},
+        ]
+        self.ref_block["timeout"] = [
+            "timeout",
+            {"inst_start": 0, "inst_end": 1, "value": 0},
+            {"inst_start": 2, "inst_end": 5, "value": 0},
+        ]
         self.ref_block["status"] = ["status", np.nan, np.nan]
-        self.ref_block["models"] = ["models", (bench_cl0, 0), (bench_cl1, 1)]
+        self.ref_block["models"] = [
+            "models",
+            {"inst_start": 0, "inst_end": 1, "value": 0},
+            {"inst_start": 2, "inst_end": 5, "value": 1},
+        ]
         self.ref_block.index = [1, 2, 3]
         # results
         self.ref_res = pd.DataFrame()
@@ -520,6 +556,7 @@ class TestClassSheet(TestInstSheet):
             2,
             2,
         ]
+        self.all_measure_size = 19
 
     def test_add_styles(self) -> None:
         """
@@ -527,6 +564,7 @@ class TestClassSheet(TestInstSheet):
         """
         sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         for run_spec in self.run_specs:
+            self.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
         sheet.finish()
         # selective testing
@@ -535,6 +573,21 @@ class TestClassSheet(TestInstSheet):
         self.assertEqual(sheet.content.at[2, 5][1], "cellBest")
         self.assertEqual(sheet.content.at[5, 1][1], "cellWorst")
         self.assertEqual(sheet.content.at[5, 5][1], "cellBest")
+
+    def test_export_values(self) -> None:
+        """
+        Test export_values methods.
+        """
+        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        for run_spec in self.run_specs:
+            self.ref_sheet.add_runspec(run_spec)
+            sheet.add_runspec(run_spec)
+        sheet.finish()
+        name = "file.ipynb"
+        md = {"test": [1, 2, 3]}
+        with patch.object(pd.DataFrame, "to_parquet") as tp:
+            sheet.export_values(name, md)
+            tp.assert_not_called()
 
 
 class TestSystemBlock(TestCase):

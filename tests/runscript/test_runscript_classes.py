@@ -487,7 +487,8 @@ class TestScriptGen(TestCase):
 
         o = io.StringIO()
         self.runspec.system.measures = "unknown"
-        self.sg.eval_results(o, "\t", self.runspec, self.instance)
+        with mock.patch("sys.stderr", new=io.StringIO()):
+            self.sg.eval_results(o, "\t", self.runspec, self.instance)
         self.assertEqual(o.getvalue(), '\t<run number="1">\n\t</run>\n')
 
 
