@@ -5,6 +5,7 @@ Created on Jan 19, 2010
 """
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Iterator, Optional
 
 from benchmarktool.result.ods_gen import ODSDoc
@@ -70,8 +71,9 @@ class Result:
         sheet.make_ods(out)
 
         if export:
-            ex_file = out.replace(".ods", ".parquet")
-
+            # as_posix() for windows compatibility
+            ex_file = Path(out).absolute().as_posix().replace(".ods", ".parquet")
+            print(out, ex_file)
             timeout_meta = {}
             for project in projects:
                 for runspec in project.runspecs:

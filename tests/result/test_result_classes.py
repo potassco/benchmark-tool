@@ -70,10 +70,9 @@ class TestResult(TestCase):
             ods_doc.inst_sheet.export_values.assert_not_called()
 
             ex_file = self.res.gen_office("out.ods", "p1", [("time", "to")], True)
-            self.assertEqual(ex_file, "out.parquet")
-            ods_doc.inst_sheet.export_values.assert_called_once_with(
-                "out.parquet", {"_to_test_system-1.0/test_setting": [10]}
-            )
+            self.assertIn("out.parquet", ex_file)
+            ods_doc.inst_sheet.export_values.assert_called_once()
+            self.assertIn({"_to_test_system-1.0/test_setting": [10]}, ods_doc.inst_sheet.export_values.call_args.args)
 
 
 class TestBenchmarkMerge(TestCase):
