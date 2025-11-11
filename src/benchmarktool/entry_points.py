@@ -3,6 +3,7 @@ Entry points for different components.
 """
 
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -171,6 +172,75 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     gen_parser.set_defaults(func=run)
 
 
+def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None: #nocoverage
+    """
+    Register init subcommand.
+    """
+
+    def copy_dir_rec(src_dir: str, dst_dir: str, overwrite: bool = False) -> None:
+        """
+        Copy directory src_dir recursively to dst_dir.
+        By default exitisting files are not overwritten.
+
+        Attributes:
+            src_dir (str): Source directory path.
+            dst_dir (str): Destination directory path.
+            overwrite (bool): Whether to overwrite existing files.
+        """
+        if not os.path.isdir(src_dir) or not os.path.isdir(dst_dir):
+            raise SystemExit("Source and target must be directories.")
+        for item in os.listdir(src_dir):
+            # Directory
+            if os.path.isdir(os.path.join(src_dir, item)):
+                # Create destination directory if needed
+                new_dst_dir = os.path.join(dst_dir, item)
+                if not os.path.isdir(new_dst_dir):
+                    os.mkdir(new_dst_dir)
+                else:
+                    sys.stderr.write(f"INFO: Directory already exists:\t{new_dst_dir}\n")
+                new_source_dir = os.path.join(src_dir, item)
+                copy_dir_rec(new_source_dir, new_dst_dir, overwrite)
+            # File
+            else:
+                source_name = os.path.join(src_dir, item)
+                target_name = os.path.join(dst_dir, item)
+                if os.path.isfile(target_name):
+                    sys.stderr.write(f"INFO: File already exists:\t{target_name}\n")
+                    if not overwrite:
+                        continue
+                shutil.copy(source_name, target_name)
+
+    def run(args: Any) -> None:
+        src_dir = os.path.join(os.path.dirname(__file__), "init")
+        if not os.path.isdir(src_dir):
+            raise SystemExit(f"Resources missing: '{src_dir}' does not exist.\nTry reinstalling the package.")
+        copy_dir_rec(src_dir, os.getcwd(), args.overwrite)
+        try:
+            os.mkdir(os.path.join(os.getcwd(), "benchmarks"))
+        except OSError:
+            sys.stderr.write(f"INFO: Directory already exists:\t{os.path.join(os.getcwd(), 'benchmarks')}\n")
+
+    parser = subparsers.add_parser(
+        "init",
+        help="Initialize benchmark environment",
+        description=dedent(
+            """\
+            Initialize the benchmark environment with the necessary directory structure
+            and example runscript and templates.
+            By default existing files are not overwritten; use --overwrite to change this behavior.
+            """
+        ),
+        formatter_class=formatter,
+    )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing files",
+    )
+    parser.set_defaults(func=run)
+
+
 def btool_run_dist(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # nocoverage
     """
     Run distributed jobs from a folder.
@@ -310,6 +380,7 @@ def get_parser() -> ArgumentParser:
     btool_conv(subparsers)
     btool_eval(subparsers)
     btool_gen(subparsers)
+    btool_init(subparsers)
     btool_run_dist(subparsers)
     btool_verify(subparsers)
 

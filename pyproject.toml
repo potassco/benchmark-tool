@@ -33,6 +33,9 @@ btool = "benchmarktool.entry_points:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+benchmarktool = ["init/**/*"]
+
 [tool.setuptools_scm]
 version_scheme = "python-simplified-semver"
 local_scheme = "no-local-version"
