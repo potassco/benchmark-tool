@@ -215,10 +215,6 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None: #nocove
         if not os.path.isdir(src_dir):
             raise SystemExit(f"Resources missing: '{src_dir}' does not exist.\nTry reinstalling the package.")
         copy_dir_rec(src_dir, os.getcwd(), args.overwrite)
-        try:
-            os.mkdir(os.path.join(os.getcwd(), "benchmarks"))
-        except OSError:
-            sys.stderr.write(f"INFO: Directory already exists:\t{os.path.join(os.getcwd(), 'benchmarks')}\n")
 
     parser = subparsers.add_parser(
         "init",
