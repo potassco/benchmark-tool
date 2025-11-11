@@ -2,21 +2,6 @@
 
 A tool to easier generate, run and evaluate benchmarks.
 
-## Structure
-
-This repository is structured as follows:\
-`./benchmarks/`: example
-benchmarks\
-`./docs/`: documentation\
-`./output/`: default output folder for
-the examples\
-`./programs/`: place solver/tool executables
-here\
-`./runscripts/`: contains example run-scripts\
-`./src/`: Python source
-files\
-`./templates/`: contains example script templates
-
 ## Installation
 
 The `setuptools` package is required to run the commands below. We recommend
@@ -48,6 +33,16 @@ You can check a successful installation by running
 ```bash
 $ btool -h
 ```
+
+Supported subcommands in order of use:
+
+- `init`       Prepare the benchmark environment
+- `gen`        Generate scripts from runscript
+- `run-dist`   Run distributed jobs
+- `verify`     Check for runlim errors and re-run failed instances
+- `eval`       Collect results
+- `conv`       Convert results to ODS or other formats
+
 
 For more information and examples check the documentation.
 

@@ -19,18 +19,6 @@ The provided default templates use [runlim] to supervise benchmark execution.
 If you want to use them, make sure to build the latest version and copy (or
 symlink) the executable into the `./programs` directory.
 
-## Structure
-
-The repository is organized as follows:
-
-- `./benchmarks/`: Example benchmarks
-- `./docs/`: Documentation
-- `./output/`: Default output folder for the examples
-- `./programs/`: Place solver/tool executables here
-- `./runscripts/`: Contains [example run-scripts][runscript]
-- `./src/`: Python source files
-- `./templates/`: Contains [example script templates][script]
-
 ## Usage
 
 You can verify a successful installation by running:
@@ -41,15 +29,23 @@ btool -h
 
 Supported subcommands in order of use:
 
-- `gen`        Generate scripts from runscript
-- `run-dist`   Run distributed jobs
-- `verify`     Check for runlim errors and re-run failed instances
-- `eval`       Collect results
-- `conv`       Convert results to ODS or other formats
+- `init`: Prepare the benchmark environment
+- `gen`: Generate scripts from runscript
+- `run-dist`: Run distributed jobs
+- `verify`: Check for runlim errors and re-run failed instances
+- `eval`: Collect results
+- `conv`: Convert results to ODS or other formats
 
 
 Each subcommand has their own help page, accessible via `btool <subcommand> -h`.
 A detailed description on how to use each component is available via the sidebar.
+
+After using `btool init` in a directory of your choice, it will be structured as follows:
+
+- `programs/`: Place solver/tool executables here
+- `runscripts/`: Contains example [runscripts]
+- `templates/`: Contains example script [templates]
+
 
 !!! info
     When running benchmarks on a cluster, jobs may fail due to the following error:
@@ -73,8 +69,7 @@ A detailed description on how to use each component is available via the sidebar
 
 [btool]: https://github.com/potassco/benchmark-tool
 [runlim]: https://github.com/arminbiere/runlim
-[template]: ./gen/templates.md#run-templates
-[runscript]: ./gen/runscript.md
-[script]: ./gen/templates.md
+[runscripts]: ./gen/runscript.md
+[templates]: ./gen/templates.md
 [issue]: https://github.com/arminbiere/runlim/issues/8
 [results]: https://github.com/potassco/benchmark-tool/blob/master/verify_results.sh
