@@ -172,7 +172,7 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     gen_parser.set_defaults(func=run)
 
 
-def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None: #nocoverage
+def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # nocoverage
     """
     Register init subcommand.
     """
@@ -214,7 +214,20 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None: #nocove
         src_dir = os.path.join(os.path.dirname(__file__), "init")
         if not os.path.isdir(src_dir):
             raise SystemExit(f"Resources missing: '{src_dir}' does not exist.\nTry reinstalling the package.")
-        copy_dir_rec(src_dir, os.getcwd(), args.overwrite)
+        cwd = os.getcwd()
+        copy_dir_rec(src_dir, cwd, args.overwrite)
+        rp_dir = os.path.join(cwd, "resultparsers")
+        if not os.path.isdir(rp_dir):
+            os.mkdir(rp_dir)
+        else:
+            sys.stderr.write(f"INFO: Directory already exists:\t{rp_dir}\n")
+        if args.resultparser_template:
+            rp_tmp = os.path.join(rp_dir, "rp_tmp.py")
+            if os.path.isfile(rp_tmp):
+                sys.stderr.write(f"INFO: File already exists:\t{rp_tmp}\n")
+                if not args.overwrite:
+                    return
+            shutil.copy(os.path.join(os.path.dirname(__file__), "resultparser", "clasp.py"), rp_tmp)
 
     parser = subparsers.add_parser(
         "init",
@@ -233,6 +246,11 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None: #nocove
         "--overwrite",
         action="store_true",
         help="Overwrite existing files",
+    )
+    parser.add_argument(
+        "--resultparser-template",
+        action="store_true",
+        help="Also create a copy of the default 'clasp' resultparser as 'rp_tmp.py'",
     )
     parser.set_defaults(func=run)
 
