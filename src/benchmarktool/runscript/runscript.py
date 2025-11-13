@@ -262,7 +262,7 @@ class SeqRun(Run):
     files: str = field(init=False)
     encodings: str = field(init=False)
     args: str = field(init=False)
-    sovler: str = field(init=False)
+    solver: str = field(init=False)
     timeout: int = field(init=False)
     memout: int = field(init=False)
 
