@@ -43,6 +43,7 @@ A detailed description on how to use each component is available via the sidebar
 After using `btool init` in a directory of your choice, it will be structured as follows:
 
 - `programs/`: Place solver/tool executables here
+- `resultparsers/`: Place custom [resultparsers] here
 - `runscripts/`: Contains example [runscripts]
 - `templates/`: Contains example script [templates]
 
@@ -69,6 +70,7 @@ After using `btool init` in a directory of your choice, it will be structured as
 
 [btool]: https://github.com/potassco/benchmark-tool
 [runlim]: https://github.com/arminbiere/runlim
+[resultparsers]: ../reference/resultparser.md
 [runscripts]: ./gen/runscript.md
 [templates]: ./gen/templates.md
 [issue]: https://github.com/arminbiere/runlim/issues/8

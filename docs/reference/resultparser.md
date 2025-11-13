@@ -7,11 +7,17 @@ icon: "material/text-box-check-outline"
 
 The default resultparser provided is [clasp.py](https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp.py), which supports many of clingo's statistics. However, sometimes we will need access to other statistics that the script doesn't retrieve. We could also be running a program that has its own set of statistics.
 
+While the `clasp` resultparser is included in the benchmarktool package, custom resultparsers
+have to be placed inside the resultparser folder created by `btool init`. You can use the
+`--resultparser-template` option to create a copy of the `clasp` resultparser called `rp_tmp.py`,
+which you can use as a base to create your own. You can overwrite the default `clasp`
+resultparser by providing `claps.py` inside the resultparsers folder.
+
 We will now take a look at how the scripts work, how to change them to fit your own goals and how to write your own.
 
-Lets look at [clasp.py](https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp.py) as an example. All resultparser **must** define a `parse()`function, which takes 3 arguments. The first argument is the path to the root directory of the benchmark and where the results are saved. The second argument, runspec, gives us access to the data that we defined in the runscript file. The third argument is an instance class that includes information such as the location and the name of the instance.
+Lets look at the [clasp](https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp.py) resultparser as an example. All resultparser **must** define a `parse()`function, which takes 3 arguments. The first argument is the path to the root directory of the benchmark and where the results are saved. The second argument, runspec, gives us access to the data that we defined in the runscript file. The third argument is an instance class that includes information such as the location and the name of the instance.
 
-The function is applied to every benchmark 'run' individually. It gathers the data for a particular run in basically three steps:
+The function is applied to every benchmark 'run' individually. It gathers the data for a particular run in three steps:
 
 - Read the relevant input files
 - Extract the data using regular expressions
