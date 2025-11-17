@@ -46,9 +46,9 @@ def parse(
     timeout = runspec.project.job.timeout
     res: dict[str, tuple[str, Any]] = {"time": ("float", timeout)}
     for f in ["runsolver.solver", "runsolver.watcher"]:
-        if sys.version_info >= (3, 14): # nocoverage
+        if sys.version_info >= (3, 14):  # nocoverage
             open_func = open
-        else: # nocoverage
+        else:  # nocoverage
             open_func = codecs.open
         with open_func(os.path.join(root, f), errors="ignore", encoding="utf-8") as file:
             for line in file:
