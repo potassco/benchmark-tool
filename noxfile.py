@@ -8,7 +8,7 @@ nox.options.sessions = "lint_pylint", "typecheck", "test"
 EDITABLE_TESTS = True
 PYTHON_VERSIONS = None
 if "GITHUB_ACTIONS" in os.environ:
-    PYTHON_VERSIONS = ["3.10"]
+    PYTHON_VERSIONS = ["3.10", "3.14"]
     EDITABLE_TESTS = False
 
 FILES_TO_BE_CHECKED = [
