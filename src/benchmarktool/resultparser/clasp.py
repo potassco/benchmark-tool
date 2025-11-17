@@ -50,7 +50,9 @@ def parse(
             open_func = open
         else:  # nocoverage
             open_func = codecs.open
-        with open_func(os.path.join(root, f), errors="ignore", encoding="utf-8") as file: # pylint: disable=deprecated-method
+        with open_func(
+            os.path.join(root, f), errors="ignore", encoding="utf-8"
+        ) as file:  # pylint: disable=deprecated-method
             for line in file:
                 for val, reg in clasp_re.items():
                     m = reg[1].match(line)
