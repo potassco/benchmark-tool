@@ -121,7 +121,7 @@ encodings used by the system.
 
 - The `cmdline` attribute can be any valid string, which will be passed to the
 system via the run template when this setting is selected.
-- The `tag` attribute is a space seperated identifier used within the runscript
+- The `tag` attribute is a space separated identifier used within the runscript
 to select multiple settings at once.
 - Each setting can contain any number of encoding elements.
     - The `file` attribute is a relative path from the directory where `bgen`
