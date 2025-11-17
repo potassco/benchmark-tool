@@ -31,7 +31,7 @@ clasp_re = {
 PAR = 2
 
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument,too-many-branches
 def parse(
     root: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance"
 ) -> dict[str, tuple[str, Any]]:
@@ -49,7 +49,7 @@ def parse(
         if sys.version_info >= (3, 14):  # nocoverage
             open_func = open
         else:  # nocoverage
-            open_func = codecs.open
+            open_func = codecs.open  # pylint: disable=deprecated-method
         with open_func(os.path.join(root, f), errors="ignore", encoding="utf-8") as file:
             for line in file:
                 for val, reg in clasp_re.items():
