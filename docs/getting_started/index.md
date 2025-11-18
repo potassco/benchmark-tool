@@ -3,9 +3,10 @@
 ## Installation
 
 The `setuptools` package is required to run the commands below. We recommend
-using conda, which includes `setuptools` in its default Python installation. To
-install the tool, either clone the [repository][btool] or download the latest
-release and run the following commands:
+using conda, which includes `setuptools` in its default Python installation.
+Any python version newer than 3.10 is supported. To install the tool, either
+clone the [repository][btool] or download the latest release and run the
+following commands:
 
 ```bash
 git clone https://github.com/potassco/benchmark-tool
@@ -43,13 +44,18 @@ Supported subcommands in order of use:
 
 - `gen`        Generate scripts from runscript
 - `run-dist`   Run distributed jobs
-- `verify`     Check for runlim errors and re-run failed instances
+- `verify`     Check for runlim errors
 - `eval`       Collect results
 - `conv`       Convert results to ODS or other formats
 
 
-Each subcommand has their own help page, accessible via `btool <subcommand> -h`.
-A detailed description on how to use each component is available via the sidebar.
+Each subcommand has their own help page, which you can access using:
+```bash
+btool <subcommand> -h
+```
+
+A generic workflow and detailed descriptions on how to use each component is
+available via the sidebar.
 
 !!! info
     When running benchmarks on a cluster, jobs may fail due to the following error:

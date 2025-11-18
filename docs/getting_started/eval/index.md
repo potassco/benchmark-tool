@@ -7,7 +7,7 @@ The `eval` subcommand is used to collect all relevant results from a
 benchmark run and save them to an XML file. To do this, pass the same
 [runscript] used for benchmark script generation as an argument:
 
-```bash
+```
 btool eval ./runscripts/runscript-example.xml > benchmark-results.xml
 ```
 

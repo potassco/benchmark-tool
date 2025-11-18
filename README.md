@@ -21,7 +21,7 @@ files\
 
 The `setuptools` package is required to run the commands below. We recommend
 the usage of conda, which already includes `setuptools` in its default python
-installation.
+installation. Any python version newer than 3.10 is supported.
 
 ```bash
 $ git clone https://github.com/potassco/benchmark-tool
