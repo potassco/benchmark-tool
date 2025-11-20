@@ -365,7 +365,7 @@ def btool_verify(subparsers: Any) -> None:  # nocoverage
 
     parser = subparsers.add_parser(
         "verify",
-        help="Check for runlim errors and re-run failed instances",
+        help="Check for runlim errors",
         description=dedent(
             """\
             Checks benchmark results in the given folder for runlim errors

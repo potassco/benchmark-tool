@@ -121,8 +121,8 @@ encodings used by the system.
 
 - The `cmdline` attribute can be any valid string, which will be passed to the
 system via the run template when this setting is selected.
-- The `tag` attribute is an identifier used within the runscript to select
-multiple settings at once.
+- The `tag` attribute is a space seperated identifier used within the runscript
+to select multiple settings at once.
 - Each setting can contain any number of encoding elements.
     - The `file` attribute is a relative path from the directory where `bgen`
     is run to the encoding file.
@@ -306,8 +306,11 @@ It has the following attributes:
 - The `machine` attribute references a previously defined machine.
 - The `benchmark` attribute references a previously defined benchmark set.
 - The `tag` attribute specifies one or multiple setting tags to be used. Only
-settings with matching tags are selected. To include all settings, use the
-special `all` tag.
+settings with matching tags are selected. The tag may use `|` for disjunction and
+spaces for conjunction. The disjunction has higher precedence, e.g., a runtag with
+the tag `base | foo bar` selects settings, which either have `base` or both `foo`
+and `bar` in their tags. A setting with only the tag `bar` would not be selected.
+To include all settings, use the special `*all*` tag.
 
 In the above example all instances defined in the `no-pigeons` benchmark are
 run using the `seq-gen` job configuration on machine `hpc` once for each

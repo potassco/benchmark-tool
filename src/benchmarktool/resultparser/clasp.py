@@ -4,7 +4,6 @@ Created on Jan 17, 2010
 @author: Roland Kaminski
 """
 
-import codecs
 import os
 import re
 import sys
@@ -46,7 +45,7 @@ def parse(
     timeout = runspec.project.job.timeout
     res: dict[str, tuple[str, Any]] = {"time": ("float", timeout)}
     for f in ["runsolver.solver", "runsolver.watcher"]:
-        with codecs.open(os.path.join(root, f), errors="ignore", encoding="utf-8") as file:
+        with open(os.path.join(root, f), errors="ignore", encoding="utf-8") as file:
             for line in file:
                 for val, reg in clasp_re.items():
                     m = reg[1].match(line)

@@ -119,6 +119,8 @@ nav:
   - Home: index.md
   - Getting Started:
     - getting_started/index.md
+    - Generic workflow:
+      - getting_started/workflow/index.md
     - init:
       - getting_started/init/index.md
     - gen:
