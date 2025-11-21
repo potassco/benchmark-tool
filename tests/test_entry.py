@@ -33,7 +33,7 @@ class TestParser(TestCase):
             "run-dist",
             "verify",
         ]:
-            self.assertIn(subcmd, self.parser._subparsers._actions[1].choices.keys())
+            self.assertIn(subcmd, self.parser._subparsers._actions[2].choices.keys())
 
     def test_conv(self):
         """
