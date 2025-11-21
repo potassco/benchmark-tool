@@ -40,7 +40,7 @@ The attributes are as follows:
 
 ### Folder Structure
 
-When running the `gen` sub command with a runscript, a folder structure is created.
+When running the `gen` subcommand with a runscript, a folder structure is created.
 
 ```text
 <output>
