@@ -2,11 +2,16 @@
 
 ## Installation
 
-The `setuptools` package is required to run the commands below. We recommend
-using conda, which includes `setuptools` in its default Python installation.
-Any python version newer than 3.10 is supported. To install the tool, either
-clone the [repository][btool] or download the latest release and run the
-following commands:
+The benchmark tool can be installed with any Python version newer than 3.10 using pip:
+
+```bash
+pip install potassco-benchmark-tool
+```
+
+To access the latest updates and fixes you can alternatively
+build the tool yourself, which requires the `setuptools` package.
+We recommend using conda, which includes `setuptools` in its default
+Python installation. To build the tool manually run the following commands:
 
 ```bash
 git clone https://github.com/potassco/benchmark-tool
@@ -20,18 +25,6 @@ The provided default templates use [runlim] to supervise benchmark execution.
 If you want to use them, make sure to build the latest version and copy (or
 symlink) the executable into the `./programs` directory.
 
-## Structure
-
-The repository is organized as follows:
-
-- `./benchmarks/`: Example benchmarks
-- `./docs/`: Documentation
-- `./output/`: Default output folder for the examples
-- `./programs/`: Place solver/tool executables here
-- `./runscripts/`: Contains [example run-scripts][runscript]
-- `./src/`: Python source files
-- `./templates/`: Contains [example script templates][script]
-
 ## Usage
 
 You can verify a successful installation by running:
@@ -42,11 +35,12 @@ btool -h
 
 Supported subcommands in order of use:
 
-- `gen`        Generate scripts from runscript
-- `run-dist`   Run distributed jobs
-- `verify`     Check for runlim errors
-- `eval`       Collect results
-- `conv`       Convert results to ODS or other formats
+- `init`: Prepare the benchmark environment
+- `gen`: Generate scripts from runscript
+- `run-dist`: Run distributed jobs
+- `verify`: Check for runlim errors
+- `eval`: Collect results
+- `conv`: Convert results to ODS or other formats
 
 
 Each subcommand has their own help page, which you can access using:
@@ -79,8 +73,8 @@ available via the sidebar.
 
 [btool]: https://github.com/potassco/benchmark-tool
 [runlim]: https://github.com/arminbiere/runlim
-[template]: ./gen/templates.md#run-templates
-[runscript]: ./gen/runscript.md
-[script]: ./gen/templates.md
+[resultparsers]: ../reference/resultparser.md
+[runscripts]: ./gen/runscript.md
+[templates]: ./gen/templates.md
 [issue]: https://github.com/arminbiere/runlim/issues/8
 [results]: https://github.com/potassco/benchmark-tool/blob/master/verify_results.sh

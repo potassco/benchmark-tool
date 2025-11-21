@@ -1,4 +1,8 @@
+benchmarks/*
 programs/*
+resultparsers/*
+runscripts/*
+templates/*
 /test.*
 
 # Editors

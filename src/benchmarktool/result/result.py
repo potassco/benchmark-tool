@@ -73,7 +73,6 @@ class Result:
         if export:
             # as_posix() for windows compatibility
             ex_file = Path(out).absolute().as_posix().replace(".ods", ".parquet")
-            print(out, ex_file)
             timeout_meta = {}
             for project in projects:
                 for runspec in project.runspecs:

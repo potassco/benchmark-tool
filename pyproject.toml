@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "benchmarktool"
+name = "potassco-benchmark-tool"
 authors = [{ name = "Roland Kaminski"},{name = "Tom Schmidt"}]
 description = "A benchmark-tool for ASP based systems."
 requires-python = ">=3.10"
@@ -17,6 +17,16 @@ dependencies = [
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
+keywords = [
+    "benchmarking",
+    "benchmarks",
+    "Potassco"
+]
+
+[project.urls]
+Homepage = "https://potassco.org"
+Repository = "https://github.com/potassco/benchmark-tool"
+Documentation = "https://potassco.org/benchmark-tool/"
 
 [project.optional-dependencies]
 format = ["black", "isort", "autoflake"]
@@ -32,6 +42,9 @@ btool = "benchmarktool.entry_points:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+benchmarktool = ["init/**/*"]
 
 [tool.setuptools_scm]
 version_scheme = "python-simplified-semver"

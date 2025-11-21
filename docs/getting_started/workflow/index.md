@@ -8,13 +8,27 @@ For more information regarding each subcommand and their options check the corre
 
 #### Generating  and running benchmarks
 
-After installation you do not have to run the benchmark-tool inside benchmark-tool directory, but it is
-recommended. If you do not, make sure that all mandatory folders are present. Those are `programs/` and `templates/`.
+After installation you can create the required directory structure for the benchmark tool using
+the [init] subcommand:
+
+```
+btool init
+```
+
+Afterwards you should see the following folders:
+
+- `programs/`: Place solver/tool executables here
+- `resultparsers/`: Place custom [resultparsers][resparser] here
+- `runscripts/`: Contains example [runscripts]
+- `templates/`: Contains example script [templates]
+
+If you want to create a new [resultparser][resparser] or want to modify the provided one, you can use
+`btool init --resultparser-template` to also create a copy of the clasp resultparser as `rp_tmp.py`.
 
 To start using the benchmark-tool create a new [runscript] or modify an existing one. Check that all
 files/folders referenced in the runscript exist. These are most likely your benchmark instances/encodings,
 templates and system-under-test. Also make sure, that the the `runlim` executable is inside the `programs/`
-folder and any [custom resultparser][resparser] is correctly installed.
+folder and any [custom resultparser][resparser] is placed inside the `resultparsers/` folder.
 If everything is setup you can generate you benchmarks using the [gen] subcommand:
 
 ```
@@ -51,8 +65,11 @@ Further measures can be selected using the -m option.
 btool conv -o <out.ods> <result.xml>
 ```
 
+[runscripts]: ./gen/runscript.md
+[templates]: ./gen/templates.md
 [dispatcher]: ../run_dist/index.md
 [verify]: ../verify/index.md
+[init]: ../init/index.md
 [gen]: ../gen/index.md
 [eval]: ../eval/index.md
 [conv]: ../conv/index.md
