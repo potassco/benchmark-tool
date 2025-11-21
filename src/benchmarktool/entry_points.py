@@ -178,10 +178,10 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
     Register init subcommand.
     """
 
-    def copy_dir_rec(src_dir: str, dst_dir: str, overwrite: bool = False) -> None:
+    def copy_dir(src_dir: str, dst_dir: str, overwrite: bool = False) -> None:
         """
-        Copy directory src_dir recursively to dst_dir.
-        By default exitisting files are not overwritten.
+        Copy directory src_dir to dst_dir.
+        By default existing files are not overwritten.
 
         Attributes:
             src_dir (str): Source directory path.
@@ -190,21 +190,20 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
         """
         if not os.path.isdir(src_dir) or not os.path.isdir(dst_dir):
             raise SystemExit("Source and target must be directories.")
-        for item in os.listdir(src_dir):
-            # Directory
-            if os.path.isdir(os.path.join(src_dir, item)):
-                # Create destination directory if needed
-                new_dst_dir = os.path.join(dst_dir, item)
-                if not os.path.isdir(new_dst_dir):
-                    os.mkdir(new_dst_dir)
+        for root, dirs, files in os.walk(src_dir):
+            rel_path = os.path.relpath(root, src_dir)
+            target_root = os.path.join(dst_dir, rel_path)
+            # Directories
+            for dir in dirs:
+                target_dir = os.path.join(target_root, dir)
+                if not os.path.isdir(target_dir):
+                    os.mkdir(target_dir)
                 else:
-                    sys.stderr.write(f"INFO: Directory already exists:\t{new_dst_dir}\n")
-                new_source_dir = os.path.join(src_dir, item)
-                copy_dir_rec(new_source_dir, new_dst_dir, overwrite)
-            # File
-            else:
-                source_name = os.path.join(src_dir, item)
-                target_name = os.path.join(dst_dir, item)
+                    sys.stderr.write(f"INFO: Directory already exists:\t{target_dir}\n")
+            # Files
+            for file in files:
+                source_name = os.path.join(root, file)
+                target_name = os.path.join(target_root, file)
                 if os.path.isfile(target_name):
                     sys.stderr.write(f"INFO: File already exists:\t{target_name}\n")
                     if not overwrite:
@@ -216,7 +215,7 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
         if not os.path.isdir(src_dir):
             raise SystemExit(f"Resources missing: '{src_dir}' does not exist.\nTry reinstalling the package.")
         cwd = os.getcwd()
-        copy_dir_rec(src_dir, cwd, args.overwrite)
+        copy_dir(src_dir, cwd, args.overwrite)
         rp_dir = os.path.join(cwd, "resultparsers")
         if not os.path.isdir(rp_dir):
             os.mkdir(rp_dir)
