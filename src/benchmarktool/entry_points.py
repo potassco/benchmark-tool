@@ -2,6 +2,7 @@
 Entry points for different components.
 """
 
+import importlib.metadata
 import os
 import shutil
 import subprocess
@@ -388,6 +389,12 @@ def get_parser() -> ArgumentParser:
         prog="btool",
         description="Benchmark Tool CLI",
         formatter_class=formatter,
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"potassco-benchmark-tool {importlib.metadata.version('potassco-benchmark-tool')}",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 

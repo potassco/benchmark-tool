@@ -2,11 +2,16 @@
 
 ## Installation
 
-The `setuptools` package is required to run the commands below. We recommend
-using conda, which includes `setuptools` in its default Python installation.
-Any python version newer than 3.10 is supported. To install the tool, either
-clone the [repository][btool] or download the latest release and run the
-following commands:
+The benchmark tool can be installed with any Python version newer than 3.10 using pip:
+
+```bash
+pip install potassco-benchmark-tool
+```
+
+To access the latest updates and fixes you can alternatively
+build the tool yourself, which requires the `setuptools` package.
+We recommend using conda, which includes `setuptools` in its default
+Python installation. To build the tool manually run the following commands:
 
 ```bash
 git clone https://github.com/potassco/benchmark-tool
@@ -45,14 +50,6 @@ btool <subcommand> -h
 
 A generic workflow and detailed descriptions on how to use each component is
 available via the sidebar.
-
-After using `btool init` in a directory of your choice, it will be structured as follows:
-
-- `programs/`: Place solver/tool executables here
-- `resultparsers/`: Place custom [resultparsers] here
-- `runscripts/`: Contains example [runscripts]
-- `templates/`: Contains example script [templates]
-
 
 !!! info
     When running benchmarks on a cluster, jobs may fail due to the following error:
