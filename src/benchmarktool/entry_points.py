@@ -194,8 +194,8 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
             rel_path = os.path.relpath(root, src_dir)
             target_root = os.path.join(dst_dir, rel_path)
             # Directories
-            for dir in dirs:
-                target_dir = os.path.join(target_root, dir)
+            for d in dirs:
+                target_dir = os.path.join(target_root, d)
                 if not os.path.isdir(target_dir):
                     os.mkdir(target_dir)
                 else:
