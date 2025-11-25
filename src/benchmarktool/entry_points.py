@@ -2,7 +2,9 @@
 Entry points for different components.
 """
 
+import importlib.metadata
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -171,6 +173,88 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     gen_parser.set_defaults(func=run)
 
 
+def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # nocoverage
+    """
+    Register init subcommand.
+    """
+
+    def copy_dir(src_dir: str, dst_dir: str, overwrite: bool = False) -> None:
+        """
+        Copy directory src_dir to dst_dir.
+        By default existing files are not overwritten.
+
+        Attributes:
+            src_dir (str): Source directory path.
+            dst_dir (str): Destination directory path.
+            overwrite (bool): Whether to overwrite existing files.
+        """
+        if not os.path.isdir(src_dir) or not os.path.isdir(dst_dir):
+            raise SystemExit("Source and target must be directories.")
+        for root, dirs, files in os.walk(src_dir):
+            rel_path = os.path.relpath(root, src_dir)
+            target_root = os.path.join(dst_dir, rel_path)
+            # Directories
+            for d in dirs:
+                target_dir = os.path.join(target_root, d)
+                if not os.path.isdir(target_dir):
+                    os.mkdir(target_dir)
+                else:
+                    sys.stderr.write(f"INFO: Directory already exists:\t{target_dir}\n")
+            # Files
+            for file in files:
+                source_name = os.path.join(root, file)
+                target_name = os.path.join(target_root, file)
+                if os.path.isfile(target_name):
+                    sys.stderr.write(f"INFO: File already exists:\t{target_name}\n")
+                    if not overwrite:
+                        continue
+                shutil.copy(source_name, target_name)
+
+    def run(args: Any) -> None:
+        src_dir = os.path.join(os.path.dirname(__file__), "init")
+        if not os.path.isdir(src_dir):
+            raise SystemExit(f"Resources missing: '{src_dir}' does not exist.\nTry reinstalling the package.")
+        cwd = os.getcwd()
+        copy_dir(src_dir, cwd, args.overwrite)
+        rp_dir = os.path.join(cwd, "resultparsers")
+        if not os.path.isdir(rp_dir):
+            os.mkdir(rp_dir)
+        else:
+            sys.stderr.write(f"INFO: Directory already exists:\t{rp_dir}\n")
+        if args.resultparser_template:
+            rp_tmp = os.path.join(rp_dir, "rp_tmp.py")
+            if os.path.isfile(rp_tmp):
+                sys.stderr.write(f"INFO: File already exists:\t{rp_tmp}\n")
+                if not args.overwrite:
+                    return
+            shutil.copy(os.path.join(os.path.dirname(__file__), "resultparser", "clasp.py"), rp_tmp)
+
+    parser = subparsers.add_parser(
+        "init",
+        help="Initialize benchmark environment",
+        description=dedent(
+            """\
+            Initialize the benchmark environment with the necessary directory structure
+            and example runscript and templates.
+            By default existing files are not overwritten; use --overwrite to change this behavior.
+            """
+        ),
+        formatter_class=formatter,
+    )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing files",
+    )
+    parser.add_argument(
+        "--resultparser-template",
+        action="store_true",
+        help="Also create a copy of the default 'clasp' resultparser as 'rp_tmp.py'",
+    )
+    parser.set_defaults(func=run)
+
+
 def btool_run_dist(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # nocoverage
     """
     Run distributed jobs from a folder.
@@ -305,11 +389,18 @@ def get_parser() -> ArgumentParser:
         description="Benchmark Tool CLI",
         formatter_class=formatter,
     )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"potassco-benchmark-tool {importlib.metadata.version('potassco-benchmark-tool')}",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     btool_conv(subparsers)
     btool_eval(subparsers)
     btool_gen(subparsers)
+    btool_init(subparsers)
     btool_run_dist(subparsers)
     btool_verify(subparsers)
 

@@ -121,6 +121,8 @@ nav:
     - getting_started/index.md
     - Generic workflow:
       - getting_started/workflow/index.md
+    - init:
+      - getting_started/init/index.md
     - gen:
       - getting_started/gen/index.md
       - Runscript: getting_started/gen/runscript.md
