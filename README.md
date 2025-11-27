@@ -4,16 +4,24 @@ A tool to easier generate, run and evaluate benchmarks.
 
 ## Installation
 
-The `setuptools` package is required to run the commands below. We recommend
-the usage of conda, which already includes `setuptools` in its default python
-installation. Any python version newer than 3.10 is supported.
+The benchmark tool can be installed with any Python version newer than 3.10
+using pip:
 
 ```bash
-$ git clone https://github.com/potassco/benchmark-tool
-$ cd benchmark-tool
-$ conda create -n <env-name> python=3.10
-$ conda activate <env-name>
-$ pip install .
+pip install potassco-benchmark-tool
+```
+
+To access the latest updates and fixes you can alternatively build the tool
+yourself, which requires the `setuptools` package. We recommend using conda,
+which includes `setuptools` in its default Python installation. To build the
+tool manually run the following commands:
+
+```bash
+git clone https://github.com/potassco/benchmark-tool
+cd benchmark-tool
+conda create -n <env-name> python=3.10
+conda activate <env-name>
+pip install .
 ```
 
 The documentation can be accessed [here](https://potassco.org/benchmark-tool/)
