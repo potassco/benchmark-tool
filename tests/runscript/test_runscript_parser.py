@@ -97,7 +97,7 @@ class TestParser(TestCase):
         self.assertEqual(len(system.settings), 7)
         self.assertIsInstance(system.config, runscript.Config)
         self.assertEqual(system.config.name, "seq-generic")
-        self.assertEqual(system.settings["default"].cmdline, "--stats 1")
+        self.assertEqual(system.settings["default"].cmdline, "--sys --stats 1 --sys_post --post")
         system = run.systems[("claspar", "2.1.0")]
         self.assertIsInstance(system, runscript.System)
         self.assertEqual(system.name, "claspar")

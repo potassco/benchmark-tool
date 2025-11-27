@@ -4,9 +4,9 @@
 	<machine name="zuse" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
 
 	<config name="seq-generic" template="templates/seq-generic.sh"/>
-	<system name="clasp" version="1.3.2" measures="clasp" config="seq-generic">
+	<system name="clasp" version="1.3.2" measures="clasp" config="seq-generic" cmdline="--sys" cmdline_post="--sys_post">
 		<!-- optionally allows for tagging settings -->
-		<setting name="default"  tag="seq" cmdline="--stats 1"/>
+		<setting name="default"  tag="seq" cmdline="--stats 1" cmdline_post="--post" />
 		<setting name="vsids"    tag="seq" cmdline="--stats --heu=vsids 1"/>
 		<setting name="progress" tag="seq" cmdline="--stats --save-progress 1"/>
 		<setting name="estimate" tag="seq" cmdline="--stats --estimate 1"/>
