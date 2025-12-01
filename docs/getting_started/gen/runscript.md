@@ -129,8 +129,8 @@ encodings used by the system.
 ```
 
 - The `cmdline` attribute can be any valid string, which will be passed to the
-system via the run template when this setting is selected.
-- The `cmdline_post` attribute is similar but is placed after `system.cmdline`
+system after `system.cmdline` via the run template when this setting is selected.
+- The `cmdline_post` attribute is similar but is placed after `system.cmdline_post`
 in the order of arguments.
 - The `tag` attribute is a space seperated identifier used within the runscript
 to select multiple settings at once.

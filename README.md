@@ -11,10 +11,15 @@ using pip:
 pip install potassco-benchmark-tool
 ```
 
-To access the latest updates and fixes you can alternatively build the tool
-yourself, which requires the `setuptools` package. We recommend using conda,
-which includes `setuptools` in its default Python installation. To build the
-tool manually run the following commands:
+To access the latest updates and fixes you can either use:
+
+```bash
+pip install git+https://github.com/potassco/benchmark-tool
+```
+
+Or alternatively build the tool yourself, which requires the `setuptools`
+package. We recommend using conda, which includes `setuptools` in its default
+Python installation. To build the tool manually run the following commands:
 
 ```bash
 git clone https://github.com/potassco/benchmark-tool

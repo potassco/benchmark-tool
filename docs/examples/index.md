@@ -21,7 +21,8 @@ Finally, open the file:
 
 ## Cluster Benchmark
 
-This example assumes that you want to run a benchmark on a cluster, i.g. on the [HPC][3] cluster at the university of Potsdam. Once again, call `btool init` and make sure, the two executables [clasp-3.4.0][1]
+This example assumes that you want to run a benchmark on a cluster. Once again,
+call `btool init` and make sure, the two executables [clasp-3.4.0][1]
 and [runlim][2] have been copied (or symlinked) into the `./programs` folder.  
 Now, run:  
 `$ btool gen ./runscripts/runscript-dist.xml`  
