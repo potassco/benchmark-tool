@@ -112,6 +112,7 @@ class Parser:
                     </xs:sequence>
                     <xs:attribute name="name" type="nameType" use="required"/>
                     <xs:attribute name="cmdline" type="xs:string"/>
+                    <xs:attribute name="cmdline_post" type="xs:string"/>
                     <xs:attribute name="tag">
                         <xs:simpleType>
                             <xs:list itemType="nameType"/>
@@ -128,6 +129,7 @@ class Parser:
         <xs:attribute name="measures" type="nameType" use="required"/>
         <xs:attribute name="config" type="nameType" use="required"/>
         <xs:attribute name="cmdline" type="xs:string"/>
+        <xs:attribute name="cmdline_post" type="xs:string"/>
     </xs:complexType>
 
     <!-- generic attributes for jobs-->
@@ -381,6 +383,7 @@ class Parser:
                 system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
                 setting_order = 0
                 sys_cmdline = node.get("cmdline")
+                sys_cmdline_post = node.get("cmdline_post")
                 for child in node.xpath("setting"):
                     attr = self._filter_attr(child, ["name", "cmdline", "tag", "distopts", "disttemplate"])
                     compound_settings[child.get("name")] = []
@@ -405,7 +408,9 @@ class Parser:
                                     encodings[t] = set()
                                 encodings[t].add(os.path.normpath(grandchild.get("file")))
 
-                    cmdline = " ".join(filter(None, [sys_cmdline, child.get("cmdline")]))
+                    cmdline = " ".join(
+                        filter(None, [sys_cmdline, child.get("cmdline"), sys_cmdline_post, child.get("cmdline_post")])
+                    )
                     name = child.get("name")
                     compound_settings[child.get("name")].append(name)
                     setting = Setting(name, cmdline, tag, setting_order, disttemplate, attr, dist_options, encodings)

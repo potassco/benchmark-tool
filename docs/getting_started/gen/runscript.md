@@ -103,6 +103,8 @@ benchmark result evaluation. This does not affect benchmark script generation.
 system.
 - The `cmdline` attribute is optional and can be any string, which will be passed
 to the system regardless of the setting.
+- The `cmdline_post` attribute is similar but is placed after `setting.cmdline`
+in the order of arguments.
 
 A runscript can contain any number of systems, each with any number of
 settings.
@@ -120,7 +122,9 @@ encodings used by the system.
 ```
 
 - The `cmdline` attribute can be any valid string, which will be passed to the
-system via the run template when this setting is selected.
+system after `system.cmdline` when this setting is selected.
+- The `cmdline_post` attribute is similar but is placed after `system.cmdline_post`
+in the order of arguments.
 - The `tag` attribute is a space seperated identifier used within the runscript
 to select multiple settings at once.
 - Each setting can contain any number of encoding elements.
@@ -147,6 +151,13 @@ templates can be found on the [templates] page.
 
     The default template for distributed jobs uses SLURM; a comprehensive list
     of available options is provided in the [SLURM documentation].
+
+To summarize, the commandline arguments will always be given to the
+system-under-test in the following order:
+
+```
+system.cmdline setting.cmdline system.cmdline_post setting.cmdline_post
+```
 
 ## Job
 
