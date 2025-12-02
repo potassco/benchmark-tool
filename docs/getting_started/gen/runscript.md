@@ -106,13 +106,6 @@ to the system regardless of the setting.
 - The `cmdline_post` attribute is similar but is placed after `setting.cmdline`
 in the order of arguments.
 
-The commandline arguments will always be given to the system-under-test
-in the following order:
-
-```
-system.cmdline setting.cmdline system.cmdline_post setting.cmdline_post
-```
-
 A runscript can contain any number of systems, each with any number of
 settings.
 
@@ -158,6 +151,13 @@ templates can be found on the [templates] page.
 
     The default template for distributed jobs uses SLURM; a comprehensive list
     of available options is provided in the [SLURM documentation].
+
+To summarize, the commandline arguments will always be given to the
+system-under-test in the following order:
+
+```
+system.cmdline setting.cmdline system.cmdline_post setting.cmdline_post
+```
 
 ## Job
 
