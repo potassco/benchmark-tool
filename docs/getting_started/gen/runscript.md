@@ -107,7 +107,7 @@ to the system regardless of the setting.
 in the order of arguments.
 
 The commandline arguments will always be given to the system-under-test
-sin the following order:
+in the following order:
 
 ```
 system.cmdline setting.cmdline system.cmdline_post setting.cmdline_post
@@ -129,7 +129,7 @@ encodings used by the system.
 ```
 
 - The `cmdline` attribute can be any valid string, which will be passed to the
-system after `system.cmdline` via the run template when this setting is selected.
+system after `system.cmdline` when this setting is selected.
 - The `cmdline_post` attribute is similar but is placed after `system.cmdline_post`
 in the order of arguments.
 - The `tag` attribute is a space seperated identifier used within the runscript
