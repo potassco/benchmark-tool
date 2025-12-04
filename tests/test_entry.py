@@ -43,7 +43,7 @@ class TestParser(TestCase):
         args = self.parser.parse_args(["conv"])
         self.assertEqual(args.command, "conv")
         self.assertIsNone(args.resultfile)
-        self.assertEqual(args.output, "out.ods")
+        self.assertEqual(args.output, "out.xlsx")
         self.assertSetEqual(args.projects, set())
         self.assertEqual(args.measures, [("time", "t"), ("timeout", "to")])
         self.assertFalse(args.export)
@@ -54,8 +54,8 @@ class TestParser(TestCase):
         args = self.parser.parse_args(["conv", "res.xml"])
         self.assertEqual(args.resultfile, "res.xml")
         # output
-        args = self.parser.parse_args(["conv", "-o", "test.ods"])
-        self.assertEqual(args.output, "test.ods")
+        args = self.parser.parse_args(["conv", "-o", "test.xlsx"])
+        self.assertEqual(args.output, "test.xlsx")
 
         # projects
         args = self.parser.parse_args(["conv", "-p", "p1,p2"])
@@ -89,24 +89,24 @@ class TestParser(TestCase):
             args = self.parser.parse_args(["conv"])
             args.func(args)
             parse_mock.assert_called_once_with(sys.stdin)
-            result_mock.gen_office.assert_called_once_with("out.ods", set(), [("time", "t"), ("timeout", "to")], False)
+            result_mock.gen_office.assert_called_once_with("out.xlsx", set(), [("time", "t"), ("timeout", "to")], False)
             gen_mock.assert_not_called()
 
             parse_mock.reset_mock()
             result_mock.gen_office.reset_mock()
             args = self.parser.parse_args(["conv", "-e"])
             args.func(args)
-            result_mock.gen_office.assert_called_once_with("out.ods", set(), [("time", "t"), ("timeout", "to")], True)
+            result_mock.gen_office.assert_called_once_with("out.xlsx", set(), [("time", "t"), ("timeout", "to")], True)
             gen_mock.assert_not_called()
 
             parse_mock.reset_mock()
             result_mock.gen_office.reset_mock()
             args = self.parser.parse_args(
-                ["conv", "res.xml", "-o", "test.ods", "-p", "p1,p2", "-m", "all", "-j", "notebook.ipynb"]
+                ["conv", "res.xml", "-o", "test.xlsx", "-p", "p1,p2", "-m", "all", "-j", "notebook.ipynb"]
             )
             args.func(args)
             parse_mock.assert_called_once()
-            result_mock.gen_office.assert_called_once_with("test.ods", {"p1", "p2"}, [], True)
+            result_mock.gen_office.assert_called_once_with("test.xlsx", {"p1", "p2"}, [], True)
             gen_mock.assert_not_called()
 
             ex_file = mock.Mock()

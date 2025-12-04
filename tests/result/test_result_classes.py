@@ -5,7 +5,7 @@ Test cases for result classes.
 from dataclasses import FrozenInstanceError
 from unittest import TestCase, mock
 
-from benchmarktool.result import ods_gen, result
+from benchmarktool.result import result, xlsx_gen
 
 
 class TestResult(TestCase):
@@ -53,26 +53,26 @@ class TestResult(TestCase):
         job.timeout = 10
         self.res.jobs = {"job": job}
 
-        ods_doc = mock.create_autospec(ods_gen.ODSDoc, instance=True)
-        ods_doc.inst_sheet = mock.create_autospec(ods_gen.Sheet, instance=True)
+        xlsx_doc = mock.create_autospec(xlsx_gen.XLSXDoc, instance=True)
+        xlsx_doc.inst_sheet = mock.create_autospec(xlsx_gen.Sheet, instance=True)
 
         with (
             mock.patch("benchmarktool.result.result.Result.merge", return_value="bench_merge") as bm,
-            mock.patch("benchmarktool.result.result.ODSDoc", return_value=ods_doc) as ods_init,
+            mock.patch("benchmarktool.result.result.XLSXDoc", return_value=xlsx_doc) as xlsx_init,
         ):
             ex_file = self.res.gen_office("out", "p1", [("time", "to")])
             self.assertIsNone(ex_file)
             bm.assert_called_once_with([p1])
-            ods_init.assert_called_once_with("bench_merge", [("time", "to")])
-            ods_doc.add_runspec.assert_called_once_with(run)
-            ods_doc.finish.assert_called_once()
-            ods_doc.make_ods.assert_called_once_with("out")
-            ods_doc.inst_sheet.export_values.assert_not_called()
+            xlsx_init.assert_called_once_with("bench_merge", [("time", "to")])
+            xlsx_doc.add_runspec.assert_called_once_with(run)
+            xlsx_doc.finish.assert_called_once()
+            xlsx_doc.make_xlsx.assert_called_once_with("out")
+            xlsx_doc.inst_sheet.export_values.assert_not_called()
 
-            ex_file = self.res.gen_office("out.ods", "p1", [("time", "to")], True)
+            ex_file = self.res.gen_office("out.xlsx", "p1", [("time", "to")], True)
             self.assertIn("out.parquet", ex_file)
-            ods_doc.inst_sheet.export_values.assert_called_once()
-            self.assertIn({"_to_test_system-1.0/test_setting": [10]}, ods_doc.inst_sheet.export_values.call_args.args)
+            xlsx_doc.inst_sheet.export_values.assert_called_once()
+            self.assertIn({"_to_test_system-1.0/test_setting": [10]}, xlsx_doc.inst_sheet.export_values.call_args.args)
 
 
 class TestBenchmarkMerge(TestCase):

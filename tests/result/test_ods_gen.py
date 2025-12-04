@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, Mock, patch
 import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 
-from benchmarktool.result import ods_gen, parser, result
+from benchmarktool.result import parser, result, xlsx_gen
 
 
 class TestFormula(TestCase):
@@ -22,17 +22,17 @@ class TestFormula(TestCase):
         Test formula initialization.
         """
         ref = "formula"
-        f = ods_gen.Formula(ref)
+        f = xlsx_gen.Formula(ref)
         self.assertEqual(f.formula_string, ref)
 
     def test_str(self) -> None:
         """
         Test __str__ method.
         """
-        f = ods_gen.Formula("=SUM($A23:AA$4)")
-        self.assertEqual(str(f), "of:=SUM([.$A23:.AA$4])")
-        f = ods_gen.Formula("SUM(test.A2:.A4)")
-        self.assertEqual(str(f), "of:=SUM([test.A2:.A4])")
+        f = xlsx_gen.Formula("=SUM($A23:AA$4)")
+        self.assertEqual(str(f), "=SUM($A23:AA$4)")
+        f = xlsx_gen.Formula("SUM(test!A2:A4)")
+        self.assertEqual(str(f), "=SUM(test!A2:A4)")
 
 
 class TestUtils(TestCase):
@@ -44,36 +44,36 @@ class TestUtils(TestCase):
         """
         Test try_float function.
         """
-        self.assertEqual(ods_gen.try_float("4"), 4.0)
-        self.assertEqual(ods_gen.try_float(int(4)), 4.0)
-        self.assertEqual(ods_gen.try_float("a"), "a")
-        x = ods_gen.Formula("f")
-        self.assertEqual(ods_gen.try_float(x), x)
+        self.assertEqual(xlsx_gen.try_float("4"), 4.0)
+        self.assertEqual(xlsx_gen.try_float(int(4)), 4.0)
+        self.assertEqual(xlsx_gen.try_float("a"), "a")
+        x = xlsx_gen.Formula("f")
+        self.assertEqual(xlsx_gen.try_float(x), x)
 
     def test_get_cell_index(self) -> None:
         """
         Test get_cell_index function.
         """
-        self.assertEqual(ods_gen.get_cell_index(1, 1), "B2")
-        self.assertEqual(ods_gen.get_cell_index(1, 2, True), "$B3")
-        self.assertEqual(ods_gen.get_cell_index(2, 1, abs_row=True), "C$2")
-        self.assertEqual(ods_gen.get_cell_index(2, 2, True, True), "$C$3")
+        self.assertEqual(xlsx_gen.get_cell_index(1, 1), "B2")
+        self.assertEqual(xlsx_gen.get_cell_index(1, 2, True), "$B3")
+        self.assertEqual(xlsx_gen.get_cell_index(2, 1, abs_row=True), "C$2")
+        self.assertEqual(xlsx_gen.get_cell_index(2, 2, True, True), "$C$3")
 
 
-class TestODSDoc(TestCase):
+class TestXLSXDoc(TestCase):
     """
-    Test cases for ODSDoc class.
+    Test cases for XLSXDoc class.
     """
 
     def setUp(self):
-        self.doc = ods_gen.ODSDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)])
+        self.doc = xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)])
 
     def test_init(self) -> None:
         """
         Test class initialization.
         """
-        self.assertIsInstance(self.doc.inst_sheet, ods_gen.Sheet)
-        self.assertIsInstance(self.doc.class_sheet, ods_gen.Sheet)
+        self.assertIsInstance(self.doc.inst_sheet, xlsx_gen.Sheet)
+        self.assertIsInstance(self.doc.class_sheet, xlsx_gen.Sheet)
 
     def test_add_runspec(self) -> None:
         """
@@ -98,13 +98,13 @@ class TestODSDoc(TestCase):
 
     def test_make_ods(self) -> None:
         """
-        Test make_ods method.
+        Test make_ods and write_row method.
         """
         self.doc.inst_sheet.content = pd.DataFrame([None, None, "test"])
         self.doc.class_sheet.content = pd.DataFrame([None, None, "test"])
-        self.doc.make_ods("./tests/ref/new_ods.ods")
-        self.assertTrue(os.path.isfile("./tests/ref/new_ods.ods"))
-        os.remove("./tests/ref/new_ods.ods")
+        self.doc.make_xlsx("./tests/ref/new_xlsx.xlsx")
+        self.assertTrue(os.path.isfile("./tests/ref/new_xlsx.xlsx"))
+        os.remove("./tests/ref/new_xlsx.xlsx")
 
 
 # pylint: disable=too-many-instance-attributes, too-many-statements
@@ -152,15 +152,15 @@ class TestInstSheet(TestCase):
         self.ref_res[3] = [None, "status", "UNSATISFIABLE"]
         self.ref_res[4] = [None, "models", 0]
         # row summary
-        self.ref_res[13] = ["min", "time", ods_gen.Formula("=MIN($B3;$F3;$J3)")]
-        self.ref_res[14] = [None, "timeout", ods_gen.Formula("=MIN($C3;$G3;$K3)")]
-        self.ref_res[15] = [None, "models", ods_gen.Formula("=MIN($E3;$I3;$M3)")]
-        self.ref_res[16] = ["median", "time", ods_gen.Formula("=MEDIAN($B3;$F3;$J3)")]
-        self.ref_res[17] = [None, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3;$K3)")]
-        self.ref_res[18] = [None, "models", ods_gen.Formula("=MEDIAN($E3;$I3;$M3)")]
-        self.ref_res[19] = ["max", "time", ods_gen.Formula("=MAX($B3;$F3;$J3)")]
-        self.ref_res[20] = [None, "timeout", ods_gen.Formula("=MAX($C3;$G3;$K3)")]
-        self.ref_res[21] = [None, "models", ods_gen.Formula("=MAX($E3;$I3;$M3)")]
+        self.ref_res[13] = ["min", "time", xlsx_gen.Formula("=MIN($B3,$F3,$J3)")]
+        self.ref_res[14] = [None, "timeout", xlsx_gen.Formula("=MIN($C3,$G3,$K3)")]
+        self.ref_res[15] = [None, "models", xlsx_gen.Formula("=MIN($E3,$I3,$M3)")]
+        self.ref_res[16] = ["median", "time", xlsx_gen.Formula("=MEDIAN($B3,$F3,$J3)")]
+        self.ref_res[17] = [None, "timeout", xlsx_gen.Formula("=MEDIAN($C3,$G3,$K3)")]
+        self.ref_res[18] = [None, "models", xlsx_gen.Formula("=MEDIAN($E3,$I3,$M3)")]
+        self.ref_res[19] = ["max", "time", xlsx_gen.Formula("=MAX($B3,$F3,$J3)")]
+        self.ref_res[20] = [None, "timeout", xlsx_gen.Formula("=MAX($C3,$G3,$K3)")]
+        self.ref_res[21] = [None, "models", xlsx_gen.Formula("=MAX($E3,$I3,$M3)")]
         # col summary
         self.ref_sum = pd.DataFrame()
         self.ref_sum[0] = [
@@ -192,14 +192,14 @@ class TestInstSheet(TestCase):
             2.0,
             0.1,
             None,
-            ods_gen.Formula("=SUM($B3:$B8)"),
-            ods_gen.Formula("=AVERAGE($B3:$B8)"),
-            ods_gen.Formula("=STDEV($B3:$B8)"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8-$N3:$N8)^2)^0.5"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8=$N3:$N8))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8<$Q3:$Q8))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8>$Q3:$Q8))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B8=$T3:$T8))"),
+            xlsx_gen.Formula("=SUM($B3:$B8)"),
+            xlsx_gen.Formula("=AVERAGE($B3:$B8)"),
+            xlsx_gen.Formula("=STDEV($B3:$B8)"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8-$N3:$N8)^2)^0.5"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8=$N3:$N8))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8<$Q3:$Q8))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8>$Q3:$Q8))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8=$T3:$T8))"),
         ]
         # values
         self.ref_val = pd.DataFrame()
@@ -267,7 +267,7 @@ class TestInstSheet(TestCase):
         ref_content = pd.DataFrame(
             [np.nan, np.nan] + self.ref_row_n + [np.nan, "SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"]
         )
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         pd.testing.assert_frame_equal(sheet.content, ref_content)
         self.assertEqual(sheet.name, self.name)
         self.assertEqual(sheet.benchmark, self.bench_merge)
@@ -287,12 +287,12 @@ class TestInstSheet(TestCase):
         More in-depth testing required.
         (add_instance_results, add_benchclass_summary)
         """
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         if sheet.ref_sheet is not None:
             sheet.ref_sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[0])
         self.assertIsInstance(
-            sheet.system_blocks[(self.run_specs[0].setting, self.run_specs[0].machine)], ods_gen.SystemBlock
+            sheet.system_blocks[(self.run_specs[0].setting, self.run_specs[0].machine)], xlsx_gen.SystemBlock
         )
         self.assertSetEqual(sheet.machines, set([self.run_specs[0].machine]))
         pd.testing.assert_frame_equal(
@@ -303,14 +303,14 @@ class TestInstSheet(TestCase):
         """
         Test finish method.
         """
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         if sheet.ref_sheet is not None:
             sheet.ref_sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[0])
         with (
-            patch.object(ods_gen.Sheet, "add_row_summary") as add_row_sum,
-            patch.object(ods_gen.Sheet, "add_col_summary") as add_col_sum,
-            patch.object(ods_gen.Sheet, "add_styles") as add_styles,
+            patch.object(xlsx_gen.Sheet, "add_row_summary") as add_row_sum,
+            patch.object(xlsx_gen.Sheet, "add_col_summary") as add_col_sum,
+            patch.object(xlsx_gen.Sheet, "add_styles") as add_styles,
         ):
             sheet.finish()
             add_row_sum.assert_called_once()
@@ -320,8 +320,8 @@ class TestInstSheet(TestCase):
             for col in range(5):
                 test, ref = sheet.content.at[row, col], self.ref_res.at[row, col]
                 test_val, ref_val = sheet.values.at[row, col], self.ref_val.at[row, col]
-                if isinstance(ref, ods_gen.Formula):
-                    self.assertIsInstance(test, ods_gen.Formula)
+                if isinstance(ref, xlsx_gen.Formula):
+                    self.assertIsInstance(test, xlsx_gen.Formula)
                     self.assertEqual(str(test), str(ref))
                 else:
                     self.assertEqual(test, ref)
@@ -334,19 +334,19 @@ class TestInstSheet(TestCase):
         """
         Test add_row_summary method.
         """
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         for run_spec in self.run_specs:
             if sheet.ref_sheet is not None:
                 sheet.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
-        with patch.object(ods_gen.Sheet, "add_styles"):
+        with patch.object(xlsx_gen.Sheet, "add_styles"):
             sheet.finish()
         for row in range(3):
             for col in range(13, 22):
                 test, ref = sheet.content.at[row, col], self.ref_res.at[row, col]
                 test_val, ref_val = sheet.values.at[row, col], self.ref_val.at[row, col]
-                if isinstance(ref, ods_gen.Formula):
-                    self.assertIsInstance(test, ods_gen.Formula)
+                if isinstance(ref, xlsx_gen.Formula):
+                    self.assertIsInstance(test, xlsx_gen.Formula)
                     self.assertEqual(str(test), str(ref))
                 else:
                     self.assertEqual(test, ref)
@@ -354,7 +354,7 @@ class TestInstSheet(TestCase):
                     self.assertTrue(pd.isna(test_val))
                 else:
                     self.assertEqual(test_val, ref_val)
-        sheet = ods_gen.Sheet(self.bench_merge, "", self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, "", self.name, self.ref_sheet)
         if sheet.ref_sheet is not None:
             sheet.ref_sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[0])
@@ -365,19 +365,19 @@ class TestInstSheet(TestCase):
         """
         Test add_col_summary method.
         """
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         for run_spec in self.run_specs:
             if sheet.ref_sheet is not None:
                 sheet.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
-        with patch.object(ods_gen.Sheet, "add_styles"):
+        with patch.object(xlsx_gen.Sheet, "add_styles"):
             sheet.finish()
         for row in range(len(sheet.content.index)):
             for col in range(2):
                 test, ref = sheet.content.at[row, col], self.ref_sum.at[row, col]
                 test_val, ref_val = sheet.values.at[row, col], self.ref_val_sum.at[row, col]
-                if isinstance(ref, ods_gen.Formula):
-                    self.assertIsInstance(test, ods_gen.Formula)
+                if isinstance(ref, xlsx_gen.Formula):
+                    self.assertIsInstance(test, xlsx_gen.Formula)
                     self.assertEqual(str(test), str(ref))
                 else:
                     self.assertEqual(test, ref)
@@ -393,7 +393,7 @@ class TestInstSheet(TestCase):
         """
         Test add_styles method.
         """
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[1])
         sheet.finish()
@@ -408,7 +408,7 @@ class TestInstSheet(TestCase):
         """
         Test export_values methods.
         """
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[1])
         sheet.finish()
@@ -432,7 +432,7 @@ class TestClassSheet(TestInstSheet):
         self.run_specs = self.project.runspecs + self.res.projects["test_proj1"].runspecs
         self.measures = [("time", "t"), ("timeout", "to"), ("status", None), ("models", None)]
         self.name = "Classes"
-        self.ref_sheet = ods_gen.Sheet(self.bench_merge, self.measures, "Instances")
+        self.ref_sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, "Instances")
         self.ref_row_n = ["test_class0", "test_class1"]
         self.ref_block = pd.DataFrame()
         # system block
@@ -459,22 +459,22 @@ class TestClassSheet(TestInstSheet):
         self.ref_res[1] = [
             "test_sys-1.0.0/test_setting0",
             "time",
-            ods_gen.Formula("=AVERAGE(Instances.B3:Instances.B4)"),
+            xlsx_gen.Formula("=AVERAGE(Instances!B3:Instances!B4)"),
         ]
-        self.ref_res[2] = [None, "timeout", ods_gen.Formula("=SUM(Instances.C3:Instances.C4)")]
+        self.ref_res[2] = [None, "timeout", xlsx_gen.Formula("=SUM(Instances!C3:Instances!C4)")]
         self.ref_res[3] = [None, "status", None]
-        self.ref_res[4] = [None, "models", ods_gen.Formula("=AVERAGE(Instances.E3:Instances.E4)")]
+        self.ref_res[4] = [None, "models", xlsx_gen.Formula("=AVERAGE(Instances!E3:Instances!E4)")]
         # row summary
         self.ref_row_sum = pd.DataFrame()
-        self.ref_res[13] = ["min", "time", ods_gen.Formula("=MIN($B3;$F3;$J3)")]
-        self.ref_res[14] = [None, "timeout", ods_gen.Formula("=MIN($C3;$G3;$K3)")]
-        self.ref_res[15] = [None, "models", ods_gen.Formula("=MIN($E3;$I3;$M3)")]
-        self.ref_res[16] = ["median", "time", ods_gen.Formula("=MEDIAN($B3;$F3;$J3)")]
-        self.ref_res[17] = [None, "timeout", ods_gen.Formula("=MEDIAN($C3;$G3;$K3)")]
-        self.ref_res[18] = [None, "models", ods_gen.Formula("=MEDIAN($E3;$I3;$M3)")]
-        self.ref_res[19] = ["max", "time", ods_gen.Formula("=MAX($B3;$F3;$J3)")]
-        self.ref_res[20] = [None, "timeout", ods_gen.Formula("=MAX($C3;$G3;$K3)")]
-        self.ref_res[21] = [None, "models", ods_gen.Formula("=MAX($E3;$I3;$M3)")]
+        self.ref_res[13] = ["min", "time", xlsx_gen.Formula("=MIN($B3,$F3,$J3)")]
+        self.ref_res[14] = [None, "timeout", xlsx_gen.Formula("=MIN($C3,$G3,$K3)")]
+        self.ref_res[15] = [None, "models", xlsx_gen.Formula("=MIN($E3,$I3,$M3)")]
+        self.ref_res[16] = ["median", "time", xlsx_gen.Formula("=MEDIAN($B3,$F3,$J3)")]
+        self.ref_res[17] = [None, "timeout", xlsx_gen.Formula("=MEDIAN($C3,$G3,$K3)")]
+        self.ref_res[18] = [None, "models", xlsx_gen.Formula("=MEDIAN($E3,$I3,$M3)")]
+        self.ref_res[19] = ["max", "time", xlsx_gen.Formula("=MAX($B3,$F3,$J3)")]
+        self.ref_res[20] = [None, "timeout", xlsx_gen.Formula("=MAX($C3,$G3,$K3)")]
+        self.ref_res[21] = [None, "models", xlsx_gen.Formula("=MAX($E3,$I3,$M3)")]
         # col summary
         self.ref_sum = pd.DataFrame()
         self.ref_sum[0] = [
@@ -495,17 +495,17 @@ class TestClassSheet(TestInstSheet):
         self.ref_sum[1] = [
             "test_sys-1.0.0/test_setting0",
             "time",
-            ods_gen.Formula("=AVERAGE(Instances.B3:Instances.B4)"),
-            ods_gen.Formula("=AVERAGE(Instances.B5:Instances.B8)"),
+            xlsx_gen.Formula("=AVERAGE(Instances!B3:Instances!B4)"),
+            xlsx_gen.Formula("=AVERAGE(Instances!B5:Instances!B8)"),
             None,
-            ods_gen.Formula("=SUM($B3:$B4)"),
-            ods_gen.Formula("=AVERAGE($B3:$B4)"),
-            ods_gen.Formula("=STDEV($B3:$B4)"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4-$N3:$N4)^2)^0.5"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4=$N3:$N4))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4<$Q3:$Q4))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4>$Q3:$Q4))"),
-            ods_gen.Formula("=SUMPRODUCT(--($B3:$B4=$T3:$T4))"),
+            xlsx_gen.Formula("=SUM($B3:$B4)"),
+            xlsx_gen.Formula("=AVERAGE($B3:$B4)"),
+            xlsx_gen.Formula("=STDEV($B3:$B4)"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4-$N3:$N4)^2)^0.5"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4=$N3:$N4))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4<$Q3:$Q4))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4>$Q3:$Q4))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4=$T3:$T4))"),
         ]
         # values
         self.ref_val = pd.DataFrame()
@@ -562,7 +562,7 @@ class TestClassSheet(TestInstSheet):
         """
         Test add_styles method.
         """
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         for run_spec in self.run_specs:
             self.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
@@ -578,7 +578,7 @@ class TestClassSheet(TestInstSheet):
         """
         Test export_values methods.
         """
-        sheet = ods_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
         for run_spec in self.run_specs:
             self.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
@@ -605,14 +605,14 @@ class TestSystemBlock(TestCase):
         """
         Test class initialization.
         """
-        block = ods_gen.SystemBlock(None, None)
+        block = xlsx_gen.SystemBlock(None, None)
         self.assertIsNone(block.setting)
         self.assertIsNone(block.machine)
         self.assertIsInstance(block.content, pd.DataFrame)
         self.assertDictEqual(block.columns, {})
         self.assertIsNone(block.offset)
 
-        block = ods_gen.SystemBlock(self.setting, self.machine)
+        block = xlsx_gen.SystemBlock(self.setting, self.machine)
         self.assertEqual(block.setting, self.setting)
         self.assertEqual(block.machine, self.machine)
 
@@ -620,13 +620,13 @@ class TestSystemBlock(TestCase):
         """
         Test gen_name method.
         """
-        block = ods_gen.SystemBlock(None, None)
+        block = xlsx_gen.SystemBlock(None, None)
         self.assertEqual(block.gen_name(False), "")
         self.sys.name = "test_sys"
         self.sys.version = "test_ver"
         self.setting.name = "test_setting"
         self.machine.name = "test_machine"
-        block = ods_gen.SystemBlock(self.setting, self.machine)
+        block = xlsx_gen.SystemBlock(self.setting, self.machine)
         self.assertEqual(block.gen_name(False), "test_sys-test_ver/test_setting")
         self.assertEqual(block.gen_name(True), "test_sys-test_ver/test_setting (test_machine)")
 
@@ -634,7 +634,7 @@ class TestSystemBlock(TestCase):
         """
         Test add_cell method.
         """
-        block = ods_gen.SystemBlock(None, None)
+        block = xlsx_gen.SystemBlock(None, None)
         pd.testing.assert_frame_equal(block.content, pd.DataFrame())
         block.add_cell(1, "test", "string", "val")
         ref = pd.DataFrame()
