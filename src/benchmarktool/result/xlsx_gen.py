@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 from xlsxwriter import Workbook  # type: ignore[import-untyped]
 from xlsxwriter.color import Color  # type: ignore[import-untyped]
+from xlsxwriter.utility import cell_autofit_width  # type: ignore[import-untyped]
 from xlsxwriter.worksheet import Format, Worksheet  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
@@ -89,7 +90,7 @@ class XLSXDoc:
     Class representing XLSX document.
     """
 
-    def __init__(self, benchmark: "result.BenchmarkMerge", measures: list[tuple[str, Any]]):
+    def __init__(self, benchmark: "result.BenchmarkMerge", measures: list[tuple[str, Any]], max_col_width: int = 300):
         """
         Setup Instance and Class sheet.
 
@@ -99,6 +100,7 @@ class XLSXDoc:
         """
         self.workbook: Optional[Workbook] = None
         self.styles: dict[str, Format] = {}
+        self.max_col_width = max_col_width
 
         self.inst_sheet = Sheet(benchmark, measures, "Instances")
         self.class_sheet = Sheet(benchmark, measures, "Classes", self.inst_sheet)
@@ -118,17 +120,17 @@ class XLSXDoc:
         self.inst_sheet.finish()
         self.class_sheet.finish()
 
-    def write_row(self, sheet: Worksheet, row: int, cells: list[Any]) -> None:  # pragma: no cover
+    def write_col(self, sheet: Worksheet, col: int, cells: list[Any]) -> None:  # pragma: no cover
         """
-        Write row to XLSX sheet.
+        Write column to XLSX sheet.
 
         Attributes:
             sheet (Worksheet): XLSX worksheet.
-            row (int):         Row index.
+            col (int):         Column index.
             cells (list[Any]): Row/cells to be written.
         """
-
-        for col, cell in enumerate(cells):
+        col_width = 80
+        for row, cell in enumerate(cells):
             val = cell
             style_ref = None
             if isinstance(cell, tuple):
@@ -136,12 +138,13 @@ class XLSXDoc:
                 style_ref = cell[1]
             if isinstance(val, Formula):
                 val = str(val)
+            elif isinstance(val, str):
+                col_width = min(self.max_col_width, max(col_width, cell_autofit_width(val)))
             if style_ref is not None:
                 sheet.write(row, col, val, self.styles[style_ref])
             else:
                 sheet.write(row, col, val)
-
-        sheet.autofit()
+        sheet.set_column_pixels(col, col, col_width)
 
     def make_xlsx(self, out: str) -> None:
         """
@@ -160,10 +163,10 @@ class XLSXDoc:
         inst_sheet = self.workbook.add_worksheet("Instances")
         class_sheet = self.workbook.add_worksheet("Classes")
 
-        for line in range(len(self.inst_sheet.content.index)):
-            self.write_row(inst_sheet, line, list(self.inst_sheet.content.iloc[line]))
-        for line in range(len(self.class_sheet.content.index)):
-            self.write_row(class_sheet, line, list(self.class_sheet.content.iloc[line]))
+        for col in range(len(self.inst_sheet.content.columns)):
+            self.write_col(inst_sheet, col, list(self.inst_sheet.content.iloc[:, col]))
+        for col in range(len(self.class_sheet.content.columns)):
+            self.write_col(class_sheet, col, list(self.class_sheet.content.iloc[:, col]))
 
         self.workbook.close()
 

@@ -45,8 +45,13 @@ class Result:
                 benchmarks.add(runspec.benchmark)
         return BenchmarkMerge(benchmarks)
 
-    def gen_office(
-        self, out: str, sel_projects: set[str], measures: list[tuple[str, Any]], export: bool = False
+    def gen_spreadsheet(
+        self,
+        out: str,
+        sel_projects: set[str],
+        measures: list[tuple[str, Any]],
+        export: bool = False,
+        max_col_width: int = 300,
     ) -> Optional[str]:
         """
         Prints the current result in an Excel spreadsheet format.
@@ -56,6 +61,8 @@ class Result:
             out (str):                        The output file to write to.
             sel_projects (set[str]):          The selected projects ("" for all).
             measures (list[tuple[str, Any]]): The measures to extract.
+            export (bool):                    Whether to export the raw values as parquet file.
+            max_col_width (int):              The maximum column width for spreadsheet.
         """
         projects: list[Project] = []
         for project in self.projects.values():
@@ -63,7 +70,7 @@ class Result:
                 projects.append(project)
         benchmark_merge = self.merge(projects)
 
-        doc = XLSXDoc(benchmark_merge, measures)
+        doc = XLSXDoc(benchmark_merge, measures, max_col_width)
         for project in projects:
             for runspec in project:
                 doc.add_runspec(runspec)

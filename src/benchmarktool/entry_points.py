@@ -42,7 +42,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         export: bool = args.export
         if args.jupyter_notebook is not None:
             export = True
-        ex_file = res.gen_office(args.output, args.projects, args.measures, export)
+        ex_file = res.gen_spreadsheet(args.output, args.projects, args.measures, export, args.max_col_width)
         if args.jupyter_notebook is not None and ex_file is not None:
             gen_ipynb(ex_file, args.jupyter_notebook)
 
@@ -81,6 +81,14 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         default="out.xlsx",
         help="Name of generated xlsx file (default: out.xlsx)",
         metavar="<file.xlsx>",
+    )
+    conv_parser.add_argument(
+        "--max-col-width",
+        type=int,
+        default=300,
+        help="Maximum column width for spreadsheet (default: 300)",
+        metavar="<n>",
+        dest="max_col_width",
     )
     conv_parser.add_argument(
         "-p",
