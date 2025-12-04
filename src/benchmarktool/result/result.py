@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from benchmarktool.result.ods_gen import ODSDoc
+from benchmarktool.result.xlsx_gen import XLSXDoc
 
 
 class Result:
@@ -49,7 +49,7 @@ class Result:
         self, out: str, sel_projects: set[str], measures: list[tuple[str, Any]], export: bool = False
     ) -> Optional[str]:
         """
-        Prints the current result in open office spreadsheet format.
+        Prints the current result in an Excel spreadsheet format.
         Returns the name of the export file if values are exported.
 
         Attributes:
@@ -63,16 +63,16 @@ class Result:
                 projects.append(project)
         benchmark_merge = self.merge(projects)
 
-        sheet = ODSDoc(benchmark_merge, measures)
+        doc = XLSXDoc(benchmark_merge, measures)
         for project in projects:
             for runspec in project:
-                sheet.add_runspec(runspec)
-        sheet.finish()
-        sheet.make_ods(out)
+                doc.add_runspec(runspec)
+        doc.finish()
+        doc.make_xlsx(out)
 
         if export:
             # as_posix() for windows compatibility
-            ex_file = Path(out).absolute().as_posix().replace(".ods", ".parquet")
+            ex_file = Path(out).absolute().as_posix().replace(".xlsx", ".parquet")
             timeout_meta = {}
             for project in projects:
                 for runspec in project.runspecs:
@@ -84,7 +84,7 @@ class Result:
                         + "/"
                         + runspec.setting.name
                     ] = [self.jobs[project.job].timeout]
-            sheet.inst_sheet.export_values(ex_file, timeout_meta)
+            doc.inst_sheet.export_values(ex_file, timeout_meta)
             return ex_file
         return None
 

@@ -54,7 +54,7 @@ Supported subcommands in order of use:
 - `run-dist` Run distributed jobs
 - `verify` Check for runlim errors and re-run failed instances
 - `eval` Collect results
-- `conv` Convert results to ODS or other formats
+- `conv` Convert results to spreadsheet and more
 
 For more information and examples check the documentation.
 

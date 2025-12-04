@@ -4,117 +4,43 @@ Created on Apr 14, 2025
 @author: Tom Schmidt
 """
 
-import re
 import warnings
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
-from unittest import mock
 
 import numpy as np
-import odswriter as ods  # type: ignore[import-untyped]
 import pandas as pd  # type: ignore[import-untyped]
-
-from benchmarktool.result import ods_config
+from xlsxwriter import Workbook  # type: ignore[import-untyped]
+from xlsxwriter.color import Color  # type: ignore[import-untyped]
+from xlsxwriter.worksheet import Format, Worksheet  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
 
-ods.ods_components.styles_xml = ods_config.STYLES_XML
 
-
-# pylint: disable=all
-def write_row(self: ods.Sheet, cells: list[Any]) -> None:  # pragma: no cover
+class Formula:
     """
-    Method to write ods row.
-    Replaces ods.Sheet.writerow
+    Helper class representing an spreadsheet formula.
     """
-    import decimal
 
-    row = self.dom.createElement("table:table-row")
-    content_cells = 0
+    def __init__(self, formula_string: str):
+        """
+        Initialize Formula.
 
-    for cell_data in cells:
-        cell = self.dom.createElement("table:table-cell")
-        text = None
-
-        if isinstance(cell_data, tuple):
-            value = cell_data[0]
-            style = cell_data[1]
-        else:
-            value = cell_data
-            style = None
-
-        if isinstance(value, bool):
-            # Bool condition must be checked before numeric because:
-            # isinstance(True, int): True
-            # isinstance(True, bool): True
-            cell.setAttribute("office:value-type", "boolean")
-            cell.setAttribute("office:boolean-value", "true" if value else "false")
-            cell.setAttribute("table:style-name", "cBool")
-            text = "TRUE" if value else "FALSE"
-
-        elif isinstance(value, (float, int, decimal.Decimal, int)):
-            cell.setAttribute("office:value-type", "float")
-            float_str = str(value)
-            cell.setAttribute("office:value", float_str)
-            if style is not None:
-                cell.setAttribute("table:style-name", style)
-            text = float_str
-
-        elif isinstance(value, Formula):
-            cell.setAttribute("table:formula", str(value))
-            if style is not None:
-                cell.setAttribute("table:style-name", style)
-
-        elif value is None:
-            pass  # Empty element
-
-        else:
-            # String and unknown types become string cells
-            cell.setAttribute("office:value-type", "string")
-            if style is not None:
-                cell.setAttribute("table:style-name", style)
-            text = str(value)
-
-        if text:
-            p = self.dom.createElement("text:p")
-            p.appendChild(self.dom.createTextNode(text))
-            cell.appendChild(p)
-
-        row.appendChild(cell)
-
-        content_cells += 1
-
-    if self.cols is not None:
-        if content_cells > self.cols:
-            raise Exception("More cells than cols.")
-
-        for _ in range(content_cells, self.cols):
-            cell = self.dom.createElement("table:table-cell")
-            row.appendChild(cell)
-
-    self.table.appendChild(row)
-
-
-class Formula(ods.Formula):  # type: ignore[misc]
-    """
-    Extending odswriter.Formula class with the ability to
-    handle sheet references and some minor fixes.
-    """
+        Attributes:
+            formula_string (str): Formula string.
+        """
+        self.formula_string = formula_string
 
     def __str__(self) -> str:
         """
-        Get ods string representation.
+        Get spreadsheet string representation.
         """
         s = self.formula_string
         # remove leading '='
         if s.startswith("="):
             s = s[1:]
-        # wrap references
-        s = re.sub(r"([\w\.]*\$?[A-Z]+\$?[0-9]+(:[\w\.]*\$?[A-Z]+\$?[0-9]+)?)", r"[\1]", s)
-        # add '.' before references if necessary
-        s = re.sub(r"(?<=[^$A-Z0-9\.])(\$?[A-Z]+\$?[0-9]+)(?![\(\.])", r".\1", s)
-        return f"of:={s}"
+        return f"={s}"
 
 
 def try_float(v: Any) -> Any:
@@ -133,7 +59,7 @@ def try_float(v: Any) -> Any:
 
 def get_cell_index(col: int, row: int, abs_col: bool = False, abs_row: bool = False) -> str:
     """
-    Calculate ODS cell index.
+    Calculate spreadsheet cell index.
 
     Attributes:
         col (int):      Column index.
@@ -158,9 +84,9 @@ def get_cell_index(col: int, row: int, abs_col: bool = False, abs_row: bool = Fa
     return pre_col + ret + pre_row + str(row + 1)
 
 
-class ODSDoc:
+class XLSXDoc:
     """
-    Class representing ODS document.
+    Class representing XLSX document.
     """
 
     def __init__(self, benchmark: "result.BenchmarkMerge", measures: list[tuple[str, Any]]):
@@ -171,6 +97,9 @@ class ODSDoc:
             benchmark (BenchmarkMerge):       BenchmarkMerge object.
             measures (list[tuple[str, Any]]): Measures to be displayed.
         """
+        self.workbook: Optional[Workbook] = None
+        self.styles: dict[str, Format] = {}
+
         self.inst_sheet = Sheet(benchmark, measures, "Instances")
         self.class_sheet = Sheet(benchmark, measures, "Classes", self.inst_sheet)
 
@@ -189,28 +118,60 @@ class ODSDoc:
         self.inst_sheet.finish()
         self.class_sheet.finish()
 
-    def make_ods(self, out: str) -> None:
+    def write_row(self, sheet: Worksheet, row: int, cells: list[Any]) -> None:  # pragma: no cover
         """
-        Write ODS file.
+        Write row to XLSX sheet.
 
         Attributes:
-            out (str): Name of the generated ODS file.
+            sheet (Worksheet): XLSX worksheet.
+            row (int):         Row index.
+            cells (list[Any]): Row/cells to be written.
         """
 
-        with mock.patch.object(ods.Sheet, "writerow", write_row):
-            with ods.writer(open(out, "wb")) as odsfile:
-                inst_sheet = odsfile.new_sheet("Instances")
-                for line in range(len(self.inst_sheet.content.index)):
-                    inst_sheet.writerow(list(self.inst_sheet.content.iloc[line]))
-                class_sheet = odsfile.new_sheet("Classes")
-                for line in range(len(self.class_sheet.content.index)):
-                    class_sheet.writerow(list(self.class_sheet.content.iloc[line]))
+        for col, cell in enumerate(cells):
+            val = cell
+            style_ref = None
+            if isinstance(cell, tuple):
+                val = cell[0]
+                style_ref = cell[1]
+            if isinstance(val, Formula):
+                val = str(val)
+            if style_ref is not None:
+                sheet.write(row, col, val, self.styles[style_ref])
+            else:
+                sheet.write(row, col, val)
+
+        sheet.autofit()
+
+    def make_xlsx(self, out: str) -> None:
+        """
+        Write XLSX file.
+
+        Attributes:
+            out (str): Name of the generated XLSX file.
+        """
+        self.workbook = Workbook(out)
+
+        self.styles = {
+            "cellBest": self.workbook.add_format({"bg_color": Color("#00ff00")}),
+            "cellWorst": self.workbook.add_format({"bg_color": Color("#ff0000")}),
+        }
+
+        inst_sheet = self.workbook.add_worksheet("Instances")
+        class_sheet = self.workbook.add_worksheet("Classes")
+
+        for line in range(len(self.inst_sheet.content.index)):
+            self.write_row(inst_sheet, line, list(self.inst_sheet.content.iloc[line]))
+        for line in range(len(self.class_sheet.content.index)):
+            self.write_row(class_sheet, line, list(self.class_sheet.content.iloc[line]))
+
+        self.workbook.close()
 
 
 # pylint: disable=too-many-instance-attributes
 class Sheet:
     """
-    Class representing an ODS sheet.
+    Class representing an XLSX sheet.
     """
 
     def __init__(
@@ -229,7 +190,7 @@ class Sheet:
             name (str):                       Name of the sheet.
             refSheet (Optional[Sheet]):       Reference sheet.
         """
-        # dataframe resembling almost final ods form
+        # dataframe resembling almost final xlsx form
         self.content = pd.DataFrame()
         # name of the sheet
         self.name = name
@@ -298,14 +259,17 @@ class Sheet:
             for instance_result in benchclass_result:
                 self.add_instance_results(block, instance_result, benchclass_summary)
                 for m in block.columns:
-                    if m not in self.types or self.types[m] in ["None", "empty"]:
+                    if m not in self.types or self.types[m] in {"None", "empty"}:
                         self.types[m] = block.columns[m]
                     # mixed measure
-                    elif block.columns[m] not in [self.types[m], "None", "empty"]:
+                    elif block.columns[m] not in {self.types[m], "None", "empty"}:
                         self.types[m] = "string"
             # classSheet
             if self.ref_sheet:
                 self.add_benchclass_summary(block, benchclass_result, benchclass_summary)
+                for m in block.columns:
+                    if m not in self.types or self.types[m] in {"None", "empty"}:
+                        self.types[m] = block.columns[m]
 
     def add_instance_results(
         self, block: "SystemBlock", instance_result: "result.InstanceResult", benchclass_summary: dict[str, Any]
@@ -322,7 +286,7 @@ class Sheet:
             for name, value_type, value in run.iter(self.measures):
                 if value_type == "int":
                     value_type = "float"
-                elif value_type != "float" and value_type != "None":
+                elif value_type not in {"float", "None"}:
                     value_type = "string"
                 if self.ref_sheet is None:
                     if value_type == "float":
@@ -379,7 +343,7 @@ class Sheet:
 
     def finish(self) -> None:
         """
-        Finish ODS content.
+        Finish XLSX content.
         """
         col = 1
         # join results of different blocks
@@ -405,7 +369,7 @@ class Sheet:
                         self.content.at[row, column] = Formula(
                             ""
                             + op
-                            + "(Instances.{0}:Instances.{1})".format(
+                            + "(Instances!{0}:Instances!{1})".format(
                                 get_cell_index(column, self.content.at[row, column]["inst_start"] + 2),
                                 get_cell_index(column, self.content.at[row, column]["inst_end"] + 2),
                             )
@@ -473,6 +437,7 @@ class Sheet:
             self.content.at[0, block.offset] = col_name
             self.values.at[0, block.offset] = col_name
 
+    # pylint: disable=too-many-positional-arguments
     def _add_summary_formula(
         self, block: "SystemBlock", operator: str, measure: str, float_occur: dict[str, Any], col: int
     ) -> None:
@@ -490,14 +455,14 @@ class Sheet:
             ref_range = ""
             for col_ref in sorted(float_occur[measure]):
                 if ref_range != "":
-                    ref_range += ";"
+                    ref_range += ","
                 ref_range += get_cell_index(col_ref, row + 2, True)
             values = np.array(self.values.loc[2 + row, sorted(float_occur[measure])], float)
             if np.isnan(values).all():
                 self.values.at[2 + row, col] = np.nan
             else:
                 # don't write formula if full row is nan
-                block.add_cell(row, measure, "formular", Formula("{1}({0})".format(ref_range, operator.upper())))
+                block.add_cell(row, measure, "formula", Formula("{1}({0})".format(ref_range, operator.upper())))
                 self.values.at[2 + row, col] = getattr(np, "nan" + operator)(values)
 
     def add_col_summary(self) -> None:
@@ -506,7 +471,7 @@ class Sheet:
         """
         for col in self.content:
             name = self.content.at[1, col]
-            if self.types.get(name, "") in ["float", "classresult"]:
+            if self.types.get(name, "") in {"float", "classresult"}:
                 ref_value = "{0}:{1}".format(
                     get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
                 )
@@ -706,7 +671,7 @@ class SystemBlock:
             self.content.at[1, name] = name
             self.columns[name] = value_type
         # mixed system column
-        elif value_type not in [self.columns[name], "None"]:
+        elif value_type not in {self.columns[name], "None"}:
             self.columns[name] = "string"
         # leave space for header and add new row if necessary
         if row + 2 not in self.content.index:

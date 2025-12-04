@@ -61,11 +61,11 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
 
     conv_parser = subparsers.add_parser(
         "conv",
-        help="Convert results to ODS or other formats",
+        help="Convert results to XLSX or other formats",
         description=dedent(
             """\
-            Convert previously collected benchmark results to ODS file
-            and optionally generate Jupyter notebook.
+            Convert previously collected benchmark results to XLSX
+            spreadsheet and optionally generate Jupyter notebook.
             """
         ),
         formatter_class=formatter,
@@ -76,7 +76,11 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
 
     conv_parser.add_argument("resultfile", nargs="?", type=str, help="Result file (default: stdin)")
     conv_parser.add_argument(
-        "-o", "--output", default="out.ods", help="Name of generated ods file (default: out.ods)", metavar="<file.ods>"
+        "-o",
+        "--output",
+        default="out.xlsx",
+        help="Name of generated xlsx file (default: out.xlsx)",
+        metavar="<file.xlsx>",
     )
     conv_parser.add_argument(
         "-p",
@@ -105,7 +109,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         "-e",
         "--export",
         action="store_true",
-        help="Export instance data to parquet file (same name as ods file)",
+        help="Export instance data to parquet file (same name as .xlsx file)",
     )
     conv_parser.add_argument(
         "-j",
