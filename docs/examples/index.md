@@ -15,9 +15,9 @@ This creates a set of start scripts in the `./output` folder.
 To start the benchmark, run:  
 `$ ./output/clasp-big/houat/start.py`  
 Once the benchmark is finished, run:  
-`$ btool eval ./runscripts/runscript-seq.xml | btool conv -o result.ods`  
+`$ btool eval ./runscripts/runscript-seq.xml | btool conv -o result.xlsx`  
 Finally, open the file:  
-`$ soffice result.ods`  
+`$ soffice result.xlsx`  
 
 ## Cluster Benchmark
 
@@ -30,9 +30,9 @@ This creates a set of start scripts in the `./output` folder.
 To start the benchmark, run (on the cluster):  
 `$ ./output/clasp-one-as/hpc/start.sh`  
 Once the benchmark is finished, run:  
-`$ btool eval ./runscripts/runscript-dist.xml | btool conv -o result.ods`  
+`$ btool eval ./runscripts/runscript-dist.xml | btool conv -o result.xlsx`  
 Finally, open the file:  
-`$ soffice result.ods`  
+`$ soffice result.xlsx`  
 
 ## Runscripts
 This tool comes with a [collection](https://github.com/potassco/benchmark-tool/blob/master/runscripts) of example runscripts to help you get started.
