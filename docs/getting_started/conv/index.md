@@ -19,10 +19,14 @@ Which benchmark projects to include in the output can be selected via the `-p, -
 option. By default all projects are selected.
 
 The `-m, --measures` option specifies which measures to include in the table (default: time:t,timeout:to;
-`-m all` selects all measures). Available measures depend on the [result parser] used during evaluation. Each measure can optionally include a formatting argument after a `:`. Currently,
+`-m all` selects all measures). Available measures depend on the [result parser] used during evaluation.
+Each measure can optionally include a formatting argument after a `:`. Currently,
 the supported formatting options are `t` and `to`. Both highlight best and worst values for
 float measures. Use `t` for most measures, and `to` for float measures representing booleans,
 such as `timeout`.
+
+The `--max-col-width` option can be used to set the maximum column with of the spreadsheet
+in terms of pixel. The default is 300.
 
 You can chose to export the instance data to a `.parquet` file using the `-e, --export`
 option. The name of the file will be the same as the specified output, i.e. `-o res.xlsx -e`
