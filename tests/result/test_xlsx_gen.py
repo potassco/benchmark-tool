@@ -1,5 +1,5 @@
 """
-Test cases for ods file generation.
+Test cases for xlsx file generation.
 """
 
 import os

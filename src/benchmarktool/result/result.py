@@ -45,6 +45,7 @@ class Result:
                 benchmarks.add(runspec.benchmark)
         return BenchmarkMerge(benchmarks)
 
+    # pylint: disable=too-many-positional-arguments
     def gen_spreadsheet(
         self,
         out: str,

@@ -36,9 +36,9 @@ class TestResult(TestCase):
             bm.assert_called_once_with({bench})
         self.assertEqual(ins.values["max_runs"], 2)
 
-    def test_gen_office(self):
+    def test_gen_spreadsheet(self):
         """
-        Test gen_office method.
+        Test gen_spreadsheet method.
         """
         run = mock.Mock(spec=result.Runspec)
         run.setting = mock.Mock(spec=result.Setting)
@@ -60,16 +60,16 @@ class TestResult(TestCase):
             mock.patch("benchmarktool.result.result.Result.merge", return_value="bench_merge") as bm,
             mock.patch("benchmarktool.result.result.XLSXDoc", return_value=xlsx_doc) as xlsx_init,
         ):
-            ex_file = self.res.gen_office("out", "p1", [("time", "to")])
+            ex_file = self.res.gen_spreadsheet("out", "p1", [("time", "to")])
             self.assertIsNone(ex_file)
             bm.assert_called_once_with([p1])
-            xlsx_init.assert_called_once_with("bench_merge", [("time", "to")])
+            xlsx_init.assert_called_once_with("bench_merge", [("time", "to")], 300)
             xlsx_doc.add_runspec.assert_called_once_with(run)
             xlsx_doc.finish.assert_called_once()
             xlsx_doc.make_xlsx.assert_called_once_with("out")
             xlsx_doc.inst_sheet.export_values.assert_not_called()
 
-            ex_file = self.res.gen_office("out.xlsx", "p1", [("time", "to")], True)
+            ex_file = self.res.gen_spreadsheet("out.xlsx", "p1", [("time", "to")], True)
             self.assertIn("out.parquet", ex_file)
             xlsx_doc.inst_sheet.export_values.assert_called_once()
             self.assertIn({"_to_test_system-1.0/test_setting": [10]}, xlsx_doc.inst_sheet.export_values.call_args.args)
