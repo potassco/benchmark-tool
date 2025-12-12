@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 class Formula:
     """
-    Helper class representing an spreadsheet formula.
+    Helper class representing a spreadsheet formula.
     """
 
     def __init__(self, formula_string: str):
@@ -777,9 +777,9 @@ class SystemBlock:
         """
         res: str = ""
         if self.setting:
-            res = self.setting.system.name + "-" + self.setting.system.version + "/" + self.setting.name
+            res = f"{self.setting.system.name}-{self.setting.system.version}/{self.setting.name}"
             if add_machine and self.machine:
-                res += " ({0})".format(self.machine.name)
+                res += f" ({self.machine.name})"
         return res
 
     def add_cell(self, row: int, name: str, value_type: str, value: Any) -> None:
@@ -795,8 +795,11 @@ class SystemBlock:
         if name not in self.columns:
             self.content.at[1, name] = name
             self.columns[name] = value_type
+        # first occurrence of column
+        elif self.columns[name] == "None":
+            self.columns[name] = value_type
         # mixed system column
-        elif value_type not in {self.columns[name], "None"}:
+        elif value_type not in (self.columns[name], "None"):
             self.columns[name] = "string"
         # leave space for header and add new row if necessary
         if row + 2 not in self.content.index:
