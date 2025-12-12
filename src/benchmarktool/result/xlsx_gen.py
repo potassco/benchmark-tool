@@ -41,7 +41,29 @@ class Formula:
         # remove leading '='
         if s.startswith("="):
             s = s[1:]
+        if s.startswith("{"):
+            return s
         return f"={s}"
+
+
+# pylint: disable=too-few-public-methods, dangerous-default-value
+class DataValidation:
+    """
+    Helper class representing a spreadsheet data validation.
+    """
+
+    def __init__(self, params: dict[str, Any] = {}, default: Any = None, style: Optional[str] = None):
+        """
+        Initialize DataValidation.
+
+        Attributes:
+            params (dict[str, Any]): Data validation parameters.
+            default (Any):           Default value.
+            style (Optional[str]):   Style reference.
+        """
+        self.params = params
+        self.default = default
+        self.style = style
 
 
 def try_float(v: Any) -> Any:
@@ -74,17 +96,12 @@ def get_cell_index(col: int, row: int, abs_col: bool = False, abs_row: bool = Fa
         rem = col % radix
         ret = chr(rem + ord("A")) + ret
         col = col // radix - 1
-    if abs_col:
-        pre_col = "$"
-    else:
-        pre_col = ""
-    if abs_row:
-        pre_row = "$"
-    else:
-        pre_row = ""
-    return pre_col + ret + pre_row + str(row + 1)
+    pre_col = "$" if abs_col else ""
+    pre_row = "$" if abs_row else ""
+    return f"{pre_col}{ret}{pre_row}{row + 1}"
 
 
+# pylint: disable=too-many-instance-attributes
 class XLSXDoc:
     """
     Class representing XLSX document.
@@ -105,7 +122,7 @@ class XLSXDoc:
         self.measure_count = len(measures)
 
         self.inst_sheet = Sheet(benchmark, measures, "Instances")
-        self.class_sheet = Sheet(benchmark, measures, "Classes", self.inst_sheet)
+        self.class_sheet = Sheet(benchmark, measures, "Classes", self.inst_sheet, "class")
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
@@ -122,6 +139,23 @@ class XLSXDoc:
         self.inst_sheet.finish()
         self.class_sheet.finish()
 
+    def write_data_validation(self, sheet: Worksheet, row: int, col: int, dv_obj: DataValidation) -> None:
+        """
+        Write data validation to XLSX sheet.
+
+        Attributes:
+            sheet (Worksheet):         XLSX worksheet.
+            row (int):                 Row index.
+            col (int):                 Column index.
+            data_validation (DataValidation): Data validation to be written.
+        """
+        if dv_obj.default is not None:
+            if dv_obj.style is not None:
+                sheet.write(row, col, dv_obj.default, self.styles[dv_obj.style])
+            else:
+                sheet.write(row, col, dv_obj.default)
+        sheet.data_validation(row, col, row, col, dv_obj.params)
+
     def write_col(self, sheet: Worksheet, col: int, cells: list[Any]) -> None:  # pragma: no cover
         """
         Write column to XLSX sheet.
@@ -136,8 +170,7 @@ class XLSXDoc:
             val = cell
             style_ref = None
             if isinstance(cell, tuple):
-                val = cell[0]
-                style_ref = cell[1]
+                val, style_ref = cell
             if isinstance(val, Formula):
                 val = str(val)
             elif isinstance(val, str):
@@ -155,6 +188,8 @@ class XLSXDoc:
                     sheet.write(row, col, val, self.styles[style_ref])
                 else:
                     sheet.write(row, col, val, self.styles["defaultNumber"])
+            elif isinstance(val, DataValidation):
+                self.write_data_validation(sheet, row, col, val)
         sheet.set_column_pixels(col, col, col_width)
 
     def make_xlsx(self, out: str) -> None:
@@ -184,18 +219,20 @@ class XLSXDoc:
         self.workbook.close()
 
 
-# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-instance-attributes, too-many-positional-arguments
 class Sheet:
     """
     Class representing an XLSX sheet.
     """
 
+    # pylint: disable=too-many-branches
     def __init__(
         self,
         benchmark: "result.BenchmarkMerge",
         measures: list[tuple[str, Any]],
         name: str,
         ref_sheet: Optional["Sheet"] = None,
+        sheet_type: str = "instance",
     ):
         """
         Initialize sheet.
@@ -205,6 +242,7 @@ class Sheet:
             measures (list[tuple[str, Any]]): Measures to be displayed.
             name (str):                       Name of the sheet.
             refSheet (Optional[Sheet]):       Reference sheet.
+            sheet_type (str):                 Type of the sheet.
         """
         # dataframe resembling almost final xlsx form
         self.content = pd.DataFrame()
@@ -222,37 +260,47 @@ class Sheet:
         self.machines: set["result.Machine"] = set()
         # sheet for references
         self.ref_sheet = ref_sheet
+        # sheet type
+        self.type = sheet_type
         # references for summary generation
         self.summary_refs: dict[str, Any] = {}
         # dataframe containing all results and stats
         self.values = pd.DataFrame()
         # columns containing floats
         self.float_occur: dict[str, set[Any]] = {}
+        # number of runs
+        self.runs: Optional[int] = None
+        # run summary only if same number of runs for all instances
+        run_summary = True
 
         # first column
         self.content[0] = None
         # setup rows for instances/benchmark classes
-        if self.ref_sheet is None:
+        if self.ref_sheet is None and sheet_type == "instance":
             row = 2
             for benchclass in benchmark:
                 for instance in benchclass:
                     self.content.loc[row] = instance.benchclass.name + "/" + instance.name
                     row += instance.values["max_runs"]
-        else:
+                    if self.runs is None:
+                        self.runs = instance.values["max_runs"]
+                    elif self.runs != instance.values["max_runs"]:
+                        run_summary = False
+        elif self.ref_sheet is not None and sheet_type == "class":
             row = 2
             for benchclass in benchmark:
                 self.content.loc[row] = benchclass.name
                 row += 1
 
         self.result_offset = row
-        self.content.loc[self.result_offset + 1] = "SUM"
-        self.content.loc[self.result_offset + 2] = "AVG"
-        self.content.loc[self.result_offset + 3] = "DEV"
-        self.content.loc[self.result_offset + 4] = "DST"
-        self.content.loc[self.result_offset + 5] = "BEST"
-        self.content.loc[self.result_offset + 6] = "BETTER"
-        self.content.loc[self.result_offset + 7] = "WORSE"
-        self.content.loc[self.result_offset + 8] = "WORST"
+        for idx, label in enumerate(["SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"], 1):
+            self.content.loc[self.result_offset + idx] = label
+
+        # run summary
+        if run_summary and self.runs and self.runs > 1 and self.ref_sheet is None:
+            for idx, label in enumerate(["RUN:", "SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"], 10):
+                self.content.loc[self.result_offset + idx] = label
+
         # fill missing rows
         self.content = self.content.reindex(list(range(self.content.index.max() + 1)))
 
@@ -264,9 +312,7 @@ class Sheet:
             runspec (Runspec): Run specification
         """
         key = (runspec.setting, runspec.machine)
-        if key not in self.system_blocks:
-            self.system_blocks[key] = SystemBlock(runspec.setting, runspec.machine)
-        block = self.system_blocks[key]
+        block = self.system_blocks.setdefault(key, SystemBlock(runspec.setting, runspec.machine))
         if block.machine:
             self.machines.add(block.machine)
 
@@ -346,13 +392,11 @@ class Sheet:
                     benchclass_result.benchclass.values["row"],
                     name,
                     "classresult",
-                    (
-                        {
-                            "inst_start": benchclass_result.benchclass.values["inst_start"],
-                            "inst_end": benchclass_result.benchclass.values["inst_end"],
-                            "value": temp_res,
-                        }
-                    ),
+                    {
+                        "inst_start": benchclass_result.benchclass.values["inst_start"],
+                        "inst_end": benchclass_result.benchclass.values["inst_end"],
+                        "value": temp_res,
+                    },
                 )
             else:
                 block.add_cell(benchclass_result.benchclass.values["row"], name, "empty", np.nan)
@@ -432,20 +476,15 @@ class Sheet:
             block = SystemBlock(None, None)
             block.offset = col
             self.summary_refs[col_name] = {"col": col}
-            measures: list[str]
-            if len(self.measures) == 0:
-                measures = sorted(self.float_occur.keys())
-            else:
-                measures = list(map(lambda x: x[0], self.measures))
+            measures = sorted(self.float_occur.keys()) if not self.measures else [m[0] for m in self.measures]
             for measure in measures:
                 if measure in self.float_occur:
                     self.values.at[1, col] = measure
                     self._add_summary_formula(block, col_name, measure, self.float_occur, col)
                     self.summary_refs[col_name][measure] = (
                         col,
-                        "{0}:{1}".format(
-                            get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
-                        ),
+                        f"{get_cell_index(col, 2, True, True)}:"
+                        f"{get_cell_index(col, self.result_offset - 1, True, True)}",
                     )
                     col += 1
             self.content = self.content.join(block.content)
@@ -468,53 +507,135 @@ class Sheet:
             col (int):                    Current column index.
         """
         for row in range(self.result_offset - 2):
-            ref_range = ""
-            for col_ref in sorted(float_occur[measure]):
-                if ref_range != "":
-                    ref_range += ","
-                ref_range += get_cell_index(col_ref, row + 2, True)
+            ref_range = ",".join(get_cell_index(col_ref, row + 2, True) for col_ref in sorted(float_occur[measure]))
             values = np.array(self.values.loc[2 + row, sorted(float_occur[measure])], float)
             if np.isnan(values).all():
                 self.values.at[2 + row, col] = np.nan
             else:
                 # don't write formula if full row is nan
-                block.add_cell(row, measure, "formula", Formula("{1}({0})".format(ref_range, operator.upper())))
+                block.add_cell(row, measure, "formula", Formula(f"{operator.upper()}({ref_range})"))
                 self.values.at[2 + row, col] = getattr(np, "nan" + operator)(values)
 
     def add_col_summary(self) -> None:
         """
         Add column summary if applicable to column type.
         """
+
+        def _get_run_select(ref: str, runs: int, col_idx: int, abs_col: bool = True) -> str:
+            """
+            Get run dependent row selection formula.
+
+            Attributes:
+                ref (str): Row range reference
+                runs (int): Number of runs
+                col_idx (int): Current column index
+                abs_col (bool): Set '$' for new column reference
+            """
+            return (
+                f"CHOOSE({ref},"
+                + ",".join([f"ROW({get_cell_index(col_idx, 2 + i, abs_col, True)})" for i in range(runs)])
+                + ")"
+            )
+
+        def _get_run_filter(base_range: str, choose_rows: str) -> str:
+            """
+            Get formula for filtered rows by run.
+
+            Attributes:
+                base_range (str): Row range to filter
+                choose_rows (str): Run selection formula
+            """
+            return f"FILTER({base_range},MOD(ROW({base_range})-{choose_rows},{self.runs})=0)"
+
+        run_select_cell = f"{get_cell_index(1, self.result_offset + 10, True, True)}"
         for col in self.content:
             name = self.content.at[1, col]
-            if self.types.get(name, "") in {"float", "classresult"}:
-                ref_value = "{0}:{1}".format(
-                    get_cell_index(col, 2, True), get_cell_index(col, self.result_offset - 1, True)
-                )
+            if self.types.get(name, "") in {"float", "classresult", "merged_runs"}:
+
+                # skip empty columns
                 values = np.array(self.values.loc[2 : self.result_offset - 1, col], dtype=float)
                 if np.isnan(values).all():
                     continue
+
+                ref_value = (
+                    f"{get_cell_index(col, 2, False, True)}:{get_cell_index(col, self.result_offset - 1, False, True)}"
+                )
+                min_rows = self.summary_refs["min"][name][1]
+                med_rows = self.summary_refs["median"][name][1]
+                max_rows = self.summary_refs["max"][name][1]
+                summaries = [(0, ref_value, min_rows, med_rows, max_rows)]
+
+                # Add run summary formulas if applicable
+                if self.ref_sheet is None and self.runs is not None and self.runs > 1:
+                    self.content.at[self.result_offset + 10, 1] = DataValidation(
+                        {
+                            "validate": "list",
+                            "source": list(range(1, self.runs + 1)),
+                            "input_message": "Select run number",
+                        },
+                        1,
+                        "cellInput",
+                    )
+                    sel_runs = _get_run_select(run_select_cell, self.runs, col, False)
+                    ref_runs = _get_run_filter(ref_value, sel_runs)
+                    min_runs = _get_run_filter(
+                        min_rows, _get_run_select(run_select_cell, self.runs, self.summary_refs["min"][name][0])
+                    )
+                    med_runs = _get_run_filter(
+                        med_rows, _get_run_select(run_select_cell, self.runs, self.summary_refs["median"][name][0])
+                    )
+                    max_runs = _get_run_filter(
+                        max_rows, _get_run_select(run_select_cell, self.runs, self.summary_refs["max"][name][0])
+                    )
+                    summaries.append((10, ref_runs, min_runs, med_runs, max_runs))
+
+                for offset, ref, min_ref, med_ref, max_ref in summaries:
+                    # SUM
+                    self.content.at[self.result_offset + offset + 1, col] = Formula(f"SUM({ref})")
+                    # AVG
+                    self.content.at[self.result_offset + offset + 2, col] = Formula(f"AVERAGE({ref})")
+                    # DEV
+                    self.content.at[self.result_offset + offset + 3, col] = Formula(f"STDEV({ref})")
+                    if col < self.summary_refs["min"]["col"]:
+                        with np.errstate(invalid="ignore"):
+                            # DST
+                            self.content.at[self.result_offset + offset + 4, col] = Formula(
+                                f"SUMPRODUCT(--({ref}-{min_ref})^2)^0.5"
+                            )
+                            # BEST
+                            self.content.at[self.result_offset + offset + 5, col] = Formula(
+                                f"SUMPRODUCT(NOT(ISBLANK({ref}))*({ref}={min_ref}))"
+                            )
+                            # f"SUMPRODUCT(--({ref}={min_ref}))"
+                            # BETTER
+                            self.content.at[self.result_offset + offset + 6, col] = Formula(
+                                f"SUMPRODUCT(NOT(ISBLANK({ref}))*({ref}<{med_ref}))"
+                            )
+                            # WORSE
+                            self.content.at[self.result_offset + offset + 7, col] = Formula(
+                                f"SUMPRODUCT(NOT(ISBLANK({ref}))*({ref}>{med_ref}))"
+                            )
+                            # WORST
+                            self.content.at[self.result_offset + offset + 8, col] = Formula(
+                                f"SUMPRODUCT(NOT(ISBLANK({ref}))*({ref}={max_ref}))"
+                            )
+                if self.type == "merge":
+                    continue
+                # values
                 # SUM
-                self.content.at[self.result_offset + 1, col] = Formula("SUM({0})".format(ref_value))
                 self.values.at[self.result_offset + 1, col] = np.nansum(values)
                 # AVG
-                self.content.at[self.result_offset + 2, col] = Formula("AVERAGE({0})".format(ref_value))
                 self.values.at[self.result_offset + 2, col] = np.nanmean(values)
                 # DEV
-                self.content.at[self.result_offset + 3, col] = Formula("STDEV({0})".format(ref_value))
                 # catch warnings caused by missing values (nan)
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore", "Degrees of freedom <= 0 for slice", RuntimeWarning)
-                    if len(values) != 1:
-                        self.values.at[self.result_offset + 3, col] = np.nanstd(values, ddof=1)
-                    else:  # only one value
-                        self.values.at[self.result_offset + 3, col] = np.nan  # nocoverage
+                    self.values.at[self.result_offset + 3, col] = (
+                        np.nanstd(values, ddof=1) if len(values) != 1 else np.nan
+                    )
                 if col < self.summary_refs["min"]["col"]:
                     with np.errstate(invalid="ignore"):
                         # DST
-                        self.content.at[self.result_offset + 4, col] = Formula(
-                            "SUMPRODUCT(--({0}-{1})^2)^0.5".format(ref_value, self.summary_refs["min"][name][1])
-                        )
                         self.values.at[self.result_offset + 4, col] = (
                             np.nansum(
                                 (
@@ -528,17 +649,11 @@ class Sheet:
                             ** 0.5
                         )
                         # BEST (values * -1, since higher better)
-                        self.content.at[self.result_offset + 5, col] = Formula(
-                            "SUMPRODUCT(--({0}={1}))".format(ref_value, self.summary_refs["min"][name][1])
-                        )
                         self.values.at[self.result_offset + 5, col] = -1 * np.nansum(
                             values
                             == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["min"][name][0]])
                         )
                         # BETTER (values * -1, since higher better)
-                        self.content.at[self.result_offset + 6, col] = Formula(
-                            "SUMPRODUCT(--({0}<{1}))".format(ref_value, self.summary_refs["median"][name][1])
-                        )
                         self.values.at[self.result_offset + 6, col] = -1 * np.nansum(
                             values
                             < np.array(
@@ -546,23 +661,17 @@ class Sheet:
                             )
                         )
                         # WORSE
-                        self.content.at[self.result_offset + 7, col] = Formula(
-                            "SUMPRODUCT(--({0}>{1}))".format(ref_value, self.summary_refs["median"][name][1])
-                        )
                         self.values.at[self.result_offset + 7, col] = np.nansum(
                             values
                             > np.array(
                                 self.values.loc[2 : self.result_offset - 1, self.summary_refs["median"][name][0]]
                             )
-                        )
+                        ) + np.sum(np.isnan(values))
                         # WORST
-                        self.content.at[self.result_offset + 8, col] = Formula(
-                            "SUMPRODUCT(--({0}={1}))".format(ref_value, self.summary_refs["max"][name][1])
-                        )
                         self.values.at[self.result_offset + 8, col] = np.nansum(
                             values
                             == np.array(self.values.loc[2 : self.result_offset - 1, self.summary_refs["max"][name][0]])
-                        )
+                        ) + np.sum(np.isnan(values))
 
     def add_styles(self) -> None:
         """
