@@ -122,6 +122,7 @@ class XLSXDoc:
         self.measure_count = len(measures)
 
         self.inst_sheet = Sheet(benchmark, measures, "Instances")
+        self.merged_sheet = Sheet(benchmark, measures, "Merged Runs", self.inst_sheet, "merge")
         self.class_sheet = Sheet(benchmark, measures, "Classes", self.inst_sheet, "class")
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
@@ -130,6 +131,7 @@ class XLSXDoc:
             runspec (Runspec): Run specification.
         """
         self.inst_sheet.add_runspec(runspec)
+        self.merged_sheet.add_runspec(runspec)
         self.class_sheet.add_runspec(runspec)
 
     def finish(self) -> None:
@@ -137,6 +139,7 @@ class XLSXDoc:
         Complete sheets by adding formulas and summaries.
         """
         self.inst_sheet.finish()
+        self.merged_sheet.finish()
         self.class_sheet.finish()
 
     def write_data_validation(self, sheet: Worksheet, row: int, col: int, dv_obj: DataValidation) -> None:
@@ -208,11 +211,14 @@ class XLSXDoc:
             "cellInput": self.workbook.add_format({"bg_color": Color("#ffcc99"), "num_format": "0.00"}),
         }
 
-        inst_sheet = self.workbook.add_worksheet("Instances")
-        class_sheet = self.workbook.add_worksheet("Classes")
+        inst_sheet = self.workbook.add_worksheet(self.inst_sheet.name)
+        run_sheet = self.workbook.add_worksheet(self.merged_sheet.name)
+        class_sheet = self.workbook.add_worksheet(self.class_sheet.name)
 
         for col in range(len(self.inst_sheet.content.columns)):
             self.write_col(inst_sheet, col, list(self.inst_sheet.content.iloc[:, col]))
+        for col in range(len(self.merged_sheet.content.columns)):
+            self.write_col(run_sheet, col, list(self.merged_sheet.content.iloc[:, col]))
         for col in range(len(self.class_sheet.content.columns)):
             self.write_col(class_sheet, col, list(self.class_sheet.content.iloc[:, col]))
 
@@ -291,6 +297,29 @@ class Sheet:
             for benchclass in benchmark:
                 self.content.loc[row] = benchclass.name
                 row += 1
+        elif self.ref_sheet is not None and sheet_type == "merge":
+            self.content.loc[0] = "Merge criteria:"
+            # selection
+            self.content.loc[1] = DataValidation(
+                {
+                    "validate": "list",
+                    "source": ["average", "median", "min", "max"],
+                    "input_message": "Select merge criteria",
+                },
+                "median",
+                "cellInput",
+            )
+            row = 2
+            for benchclass in benchmark:
+                for instance in benchclass:
+                    self.content.loc[row] = instance.benchclass.name + "/" + instance.name
+                    row += 1
+                    if self.runs is None:
+                        self.runs = instance.values["max_runs"]
+                    elif self.runs != instance.values["max_runs"]:
+                        run_summary = False
+        else:
+            raise ValueError("Invalid sheet parameters.")
 
         self.result_offset = row
         for idx, label in enumerate(["SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"], 1):
@@ -316,25 +345,37 @@ class Sheet:
         if block.machine:
             self.machines.add(block.machine)
 
+        row = 0
         for benchclass_result in runspec:
             benchclass_summary: dict[str, Any] = {}
+            instance_summary: dict[result.InstanceResult, dict[str, Any]] = {}
             for instance_result in benchclass_result:
-                self.add_instance_results(block, instance_result, benchclass_summary)
+                self.add_instance_results(block, instance_result, benchclass_summary, instance_summary)
                 for m in block.columns:
                     if m not in self.types or self.types[m] in {"None", "empty"}:
                         self.types[m] = block.columns[m]
                     # mixed measure
                     elif block.columns[m] not in {self.types[m], "None", "empty"}:
                         self.types[m] = "string"
-            # classSheet
             if self.ref_sheet:
-                self.add_benchclass_summary(block, benchclass_result, benchclass_summary)
+                # mergeSheet
+                if self.type == "merge":
+                    for instance_result in benchclass_result:
+                        self.add_merged_instance_results(block, instance_result, instance_summary, row)
+                        row += 1
+                # classSheet
+                elif self.type == "class":
+                    self.add_benchclass_summary(block, benchclass_result, benchclass_summary)
                 for m in block.columns:
                     if m not in self.types or self.types[m] in {"None", "empty"}:
                         self.types[m] = block.columns[m]
 
     def add_instance_results(
-        self, block: "SystemBlock", instance_result: "result.InstanceResult", benchclass_summary: dict[str, Any]
+        self,
+        block: "SystemBlock",
+        instance_result: "result.InstanceResult",
+        benchclass_summary: dict[str, Any],
+        instance_summary: dict["result.InstanceResult", dict[str, Any]],
     ) -> None:
         """
         Add instance results to SystemBlock and add values to summary if necessary.
@@ -343,9 +384,12 @@ class Sheet:
             block (SystemBlock):                 SystemBlock to which results are added.
             instance_result (InstanceResult):    InstanceResult.
             benchclass_summary (dict[str, Any]): Summary of benchmark class.
+            instance_summary (dict[InstanceResult, dict[str, Any]]): Summary of instance results.
         """
+        instance_summary[instance_result] = {}
         for run in instance_result:
             for name, value_type, value in run.iter(self.measures):
+                instance_summary[instance_result].setdefault(name, False)
                 if value_type == "int":
                     value_type = "float"
                 elif value_type not in {"float", "None"}:
@@ -362,15 +406,51 @@ class Sheet:
                     else:
                         block.add_cell(instance_result.instance.values["row"] + run.number - 1, name, value_type, value)
                 elif value_type == "float" and self.ref_sheet.types.get(name, "") == "float":
-                    if benchclass_summary.get(name, None) is None:
+                    instance_summary[instance_result][name] = True
+                    if benchclass_summary.get(name) is None:
                         benchclass_summary[name] = (0.0, 0)
                     benchclass_summary[name] = (
                         float(value) + benchclass_summary[name][0],
                         1 + benchclass_summary[name][1],
                     )
                 else:
-                    if not name in benchclass_summary:
+                    if name not in benchclass_summary:
                         benchclass_summary[name] = None
+
+    def add_merged_instance_results(
+        self,
+        block: "SystemBlock",
+        instance_result: "result.InstanceResult",
+        instance_summary: dict["result.InstanceResult", dict[str, Any]],
+        row: int,
+    ) -> None:
+        """
+        Add merged instance results to SystemBlock and add values to summary if necessary.
+
+        Attributes:
+            block (SystemBlock):                 SystemBlock to which results are added.
+            instance_result (InstanceResult):    InstanceResult.
+            instance_summary (dict[result.InstanceResult, dict[str, Any]]): Summary of benchmark class.
+            row (int):                           Current row index.
+        """
+        for name, value in instance_summary[instance_result].items():
+            # check if any run has a float value
+            if value:
+                # value just to signal non empty cell
+                block.add_cell(
+                    row,
+                    name,
+                    "merged_runs",
+                    {
+                        "inst_start": instance_result.instance.values["row"],
+                        "inst_end": instance_result.instance.values["row"]
+                        + instance_result.instance.values["max_runs"]
+                        - 1,
+                        "value": 1,
+                    },
+                )
+            else:
+                block.add_cell(row, name, "empty", np.nan)
 
     def add_benchclass_summary(
         self, block: "SystemBlock", benchclass_result: "result.ClassResult", benchclass_summary: dict[str, Any]
@@ -417,27 +497,34 @@ class Sheet:
         # add formulas for results of classSheet
         for column in self.content:
             name = self.content.at[1, column]
-            if self.types.get(name, "") == "classresult":
+            if self.types.get(name, "") == "merged_runs":
                 for row in range(2, self.result_offset):
-                    op = "AVERAGE"
-                    if name == "timeout":
-                        op = "SUM"
-
-                    # avoid missing measures
+                    if isinstance(self.content.at[row, column], dict):
+                        # value just to signal non empty cell
+                        self.values.at[row, column] = self.content.at[row, column]["value"]
+                        cell_range = "(Instances!{0}:Instances!{1})".format(
+                            get_cell_index(column, self.content.at[row, column]["inst_start"] + 2),
+                            get_cell_index(column, self.content.at[row, column]["inst_end"] + 2),
+                        )
+                        self.content.at[row, column] = Formula(
+                            f"SWITCH($A$2,"
+                            f'"average", AVERAGE{cell_range},'
+                            f'"median", MEDIAN{cell_range},'
+                            f'"min", MIN{cell_range},'
+                            f'"max", MAX{cell_range}'
+                            ")"
+                        )
+            elif self.types.get(name, "") == "classresult":
+                for row in range(2, self.result_offset):
+                    op = "SUM" if name == "timeout" else "AVERAGE"
                     if isinstance(self.content.at[row, column], dict):
                         self.values.at[row, column] = self.content.at[row, column]["value"]
                         self.content.at[row, column] = Formula(
-                            ""
-                            + op
-                            + "(Instances!{0}:Instances!{1})".format(
-                                get_cell_index(column, self.content.at[row, column]["inst_start"] + 2),
-                                get_cell_index(column, self.content.at[row, column]["inst_end"] + 2),
-                            )
+                            f"{op}(Instances!{get_cell_index(column, self.content.at[row, column]['inst_start'] + 2)}:"
+                            f"Instances!{get_cell_index(column, self.content.at[row, column]['inst_end'] + 2)})"
                         )
-            if self.types.get(name, "") in ["float", "classresult"]:
-                if not name in self.float_occur:
-                    self.float_occur[name] = set()
-                self.float_occur[name].add(column)
+            if self.types.get(name, "") in ["float", "classresult", "merged_runs"]:
+                self.float_occur.setdefault(name, set()).add(column)
             # defragmentation (temporary workaround)
             self.content = self.content.copy()
             self.values = self.values.copy()

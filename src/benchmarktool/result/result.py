@@ -405,7 +405,7 @@ class ClassResult:
         yield from self.instresults
 
 
-@dataclass(order=True, frozen=True)
+@dataclass(order=True, frozen=True, eq=True)
 class InstanceResult:
     """
     Represents the result of an individual instance (with possibly multiple runs).
