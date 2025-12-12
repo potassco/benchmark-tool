@@ -101,6 +101,8 @@ class XLSXDoc:
         self.workbook: Optional[Workbook] = None
         self.styles: dict[str, Format] = {}
         self.max_col_width = max_col_width
+        self.header_width = 80
+        self.measure_count = len(measures)
 
         self.inst_sheet = Sheet(benchmark, measures, "Instances")
         self.class_sheet = Sheet(benchmark, measures, "Classes", self.inst_sheet)
@@ -129,7 +131,7 @@ class XLSXDoc:
             col (int):         Column index.
             cells (list[Any]): Row/cells to be written.
         """
-        col_width = 80
+        col_width = self.header_width
         for row, cell in enumerate(cells):
             val = cell
             style_ref = None
@@ -139,11 +141,20 @@ class XLSXDoc:
             if isinstance(val, Formula):
                 val = str(val)
             elif isinstance(val, str):
-                col_width = min(self.max_col_width, max(col_width, cell_autofit_width(val)))
-            if style_ref is not None:
-                sheet.write(row, col, val, self.styles[style_ref])
-            else:
-                sheet.write(row, col, val)
+                # header
+                if row == 0:
+                    if self.measure_count > 0:
+                        self.header_width = max(80, cell_autofit_width(val) // self.measure_count)
+                    else:
+                        self.header_width = 80
+                    col_width = self.header_width
+                else:
+                    col_width = min(self.max_col_width, max(col_width, cell_autofit_width(val)))
+            if isinstance(val, (int, float, str, bool)) or val is None:
+                if style_ref is not None:
+                    sheet.write(row, col, val, self.styles[style_ref])
+                else:
+                    sheet.write(row, col, val, self.styles["defaultNumber"])
         sheet.set_column_pixels(col, col, col_width)
 
     def make_xlsx(self, out: str) -> None:
@@ -156,8 +167,10 @@ class XLSXDoc:
         self.workbook = Workbook(out)
 
         self.styles = {
-            "cellBest": self.workbook.add_format({"bg_color": Color("#00ff00")}),
-            "cellWorst": self.workbook.add_format({"bg_color": Color("#ff0000")}),
+            "defaultNumber": self.workbook.add_format({"num_format": "0.00"}),
+            "cellBest": self.workbook.add_format({"bg_color": Color("#00ff00"), "num_format": "0.00"}),
+            "cellWorst": self.workbook.add_format({"bg_color": Color("#ff0000"), "num_format": "0.00"}),
+            "cellInput": self.workbook.add_format({"bg_color": Color("#ffcc99"), "num_format": "0.00"}),
         }
 
         inst_sheet = self.workbook.add_worksheet("Instances")
