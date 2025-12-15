@@ -13,7 +13,7 @@ import pandas as pd  # type: ignore[import-untyped]
 from xlsxwriter import Workbook  # type: ignore[import-untyped]
 from xlsxwriter.color import Color  # type: ignore[import-untyped]
 from xlsxwriter.utility import cell_autofit_width  # type: ignore[import-untyped]
-from xlsxwriter.worksheet import Format, Worksheet  # type: ignore[import-untyped]
+from xlsxwriter.worksheet import Worksheet  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
@@ -52,18 +52,40 @@ class DataValidation:
     Helper class representing a spreadsheet data validation.
     """
 
-    def __init__(self, params: dict[str, Any] = {}, default: Any = None, style: Optional[str] = None):
+    def __init__(self, params: dict[str, Any] = {}, default: Any = None, color: Optional[str] = None):
         """
         Initialize DataValidation.
 
         Attributes:
             params (dict[str, Any]): Data validation parameters.
             default (Any):           Default value.
-            style (Optional[str]):   Style reference.
+            color (Optional[str]):   Color reference.
         """
         self.params = params
         self.default = default
-        self.style = style
+        self.color = color
+
+    def write(self, xlsxdoc: "XLSXDoc", sheet: Worksheet, row: int, col: int) -> None:
+        """
+        Write to XLSX document sheet.
+
+        Attributes:
+            xlsxdoc (XLSXDoc): XLSX document.
+            sheet (Worksheet): XLSX worksheet.
+            row (int):         Row index.
+            col (int):         Column index.
+        """
+        if isinstance(xlsxdoc.workbook, Workbook):
+            if self.default is not None:
+                if self.color is not None:
+                    sheet.write(
+                        row, col, self.default, xlsxdoc.workbook.add_format({"bg_color": xlsxdoc.colors[self.color]})
+                    )
+                else:
+                    sheet.write(row, col, self.default)
+            sheet.data_validation(row, col, row, col, self.params)
+        else:
+            raise ValueError("Trying to write to uninitialized workbook.")
 
 
 def try_float(v: Any) -> Any:
@@ -116,10 +138,22 @@ class XLSXDoc:
             measures (list[tuple[str, Any]]): Measures to be displayed.
         """
         self.workbook: Optional[Workbook] = None
-        self.styles: dict[str, Format] = {}
         self.max_col_width = max_col_width
         self.header_width = 80
         self.measure_count = len(measures)
+
+        self.colors: dict[str, Color] = {
+            "best": Color("#00ff00"),
+            "worst": Color("#ff0000"),
+            "input": Color("#ffcc99"),
+            "none": Color("#ffffff"),
+        }
+
+        self.num_formats: dict[str, str] = {
+            "defaultNumber": "0.00",
+            "formula": "0.00",
+            "to": "0",
+        }
 
         self.inst_sheet = Sheet(benchmark, measures, "Instances")
         self.merged_sheet = Sheet(benchmark, measures, "Merged Runs", self.inst_sheet, "merge")
@@ -142,59 +176,6 @@ class XLSXDoc:
         self.merged_sheet.finish()
         self.class_sheet.finish()
 
-    def write_data_validation(self, sheet: Worksheet, row: int, col: int, dv_obj: DataValidation) -> None:
-        """
-        Write data validation to XLSX sheet.
-
-        Attributes:
-            sheet (Worksheet):         XLSX worksheet.
-            row (int):                 Row index.
-            col (int):                 Column index.
-            data_validation (DataValidation): Data validation to be written.
-        """
-        if dv_obj.default is not None:
-            if dv_obj.style is not None:
-                sheet.write(row, col, dv_obj.default, self.styles[dv_obj.style])
-            else:
-                sheet.write(row, col, dv_obj.default)
-        sheet.data_validation(row, col, row, col, dv_obj.params)
-
-    def write_col(self, sheet: Worksheet, col: int, cells: list[Any]) -> None:  # pragma: no cover
-        """
-        Write column to XLSX sheet.
-
-        Attributes:
-            sheet (Worksheet): XLSX worksheet.
-            col (int):         Column index.
-            cells (list[Any]): Row/cells to be written.
-        """
-        col_width = self.header_width
-        for row, cell in enumerate(cells):
-            val = cell
-            style_ref = None
-            if isinstance(cell, tuple):
-                val, style_ref = cell
-            if isinstance(val, Formula):
-                val = str(val)
-            elif isinstance(val, str):
-                # header
-                if row == 0:
-                    if self.measure_count > 0:
-                        self.header_width = max(80, cell_autofit_width(val) // self.measure_count)
-                    else:
-                        self.header_width = 80
-                    col_width = self.header_width
-                else:
-                    col_width = min(self.max_col_width, max(col_width, cell_autofit_width(val)))
-            if isinstance(val, (int, float, str, bool)) or val is None:
-                if style_ref is not None:
-                    sheet.write(row, col, val, self.styles[style_ref])
-                else:
-                    sheet.write(row, col, val, self.styles["defaultNumber"])
-            elif isinstance(val, DataValidation):
-                self.write_data_validation(sheet, row, col, val)
-        sheet.set_column_pixels(col, col, col_width)
-
     def make_xlsx(self, out: str) -> None:
         """
         Write XLSX file.
@@ -204,24 +185,8 @@ class XLSXDoc:
         """
         self.workbook = Workbook(out)
 
-        self.styles = {
-            "defaultNumber": self.workbook.add_format({"num_format": "0.00"}),
-            "cellBest": self.workbook.add_format({"bg_color": Color("#00ff00"), "num_format": "0.00"}),
-            "cellWorst": self.workbook.add_format({"bg_color": Color("#ff0000"), "num_format": "0.00"}),
-            "cellInput": self.workbook.add_format({"bg_color": Color("#ffcc99"), "num_format": "0.00"}),
-        }
-
-        inst_sheet = self.workbook.add_worksheet(self.inst_sheet.name)
-        run_sheet = self.workbook.add_worksheet(self.merged_sheet.name)
-        class_sheet = self.workbook.add_worksheet(self.class_sheet.name)
-
-        for col in range(len(self.inst_sheet.content.columns)):
-            self.write_col(inst_sheet, col, list(self.inst_sheet.content.iloc[:, col]))
-        for col in range(len(self.merged_sheet.content.columns)):
-            self.write_col(run_sheet, col, list(self.merged_sheet.content.iloc[:, col]))
-        for col in range(len(self.class_sheet.content.columns)):
-            self.write_col(class_sheet, col, list(self.class_sheet.content.iloc[:, col]))
-
+        for sheet in (self.inst_sheet, self.merged_sheet, self.class_sheet):
+            sheet.write_sheet(self)
         self.workbook.close()
 
 
@@ -274,6 +239,8 @@ class Sheet:
         self.values = pd.DataFrame()
         # columns containing floats
         self.float_occur: dict[str, set[Any]] = {}
+        # formats for columns
+        self.formats: dict[int, str] = {}
         # number of runs
         self.runs: Optional[int] = None
         # run summary only if same number of runs for all instances
@@ -307,7 +274,7 @@ class Sheet:
                     "input_message": "Select merge criteria",
                 },
                 "median",
-                "cellInput",
+                "input",
             )
             row = 2
             for benchclass in benchmark:
@@ -661,7 +628,7 @@ class Sheet:
                             "input_message": "Select run number",
                         },
                         1,
-                        "cellInput",
+                        "input",
                     )
                     sel_runs = _get_run_select(run_select_cell, self.runs, col, False)
                     ref_runs = _get_run_filter(ref_value, sel_runs)
@@ -767,17 +734,20 @@ class Sheet:
         # remove header
         results = self.values.loc[2:, 1:]
 
+        # might be better to move to write_sheet in the future
         for measure in self.measures:
             if measure[0] in self.float_occur:
+                cols = sorted(self.float_occur[measure[0]])
                 func = measure[1]
                 if func == "t":
                     diff = 2
                 elif func == "to":
                     diff = 0
+                    for c in cols:
+                        self.formats[c] = "to"
                 else:
                     return
 
-                cols = sorted(self.float_occur[measure[0]])
                 # filter empty rows
                 values_df = results.loc[:, cols].dropna(how="all")
                 rows = values_df.index
@@ -793,7 +763,7 @@ class Sheet:
                     self.content.loc[rows, cols]
                     .mask(
                         (values == min_values) & (values < median_values) & max_min_diff,
-                        self.content.loc[rows].map(lambda x: (x, "cellBest")),
+                        self.content.loc[rows].map(lambda x: (x, "best")),
                     )
                     .combine_first(self.content)
                 )
@@ -801,7 +771,7 @@ class Sheet:
                     self.content.loc[rows, cols]
                     .mask(
                         (values == max_values) & (values > median_values) & max_med_diff,
-                        self.content.loc[rows].map(lambda x: (x, "cellWorst")),
+                        self.content.loc[rows].map(lambda x: (x, "worst")),
                     )
                     .combine_first(self.content)
                 )
@@ -834,6 +804,56 @@ class Sheet:
         self.values = df.join(metadf)
         #! min,med,max no longer included
         self.values.astype(str).to_parquet(file_name)
+
+    def write_sheet(self, xlsxdoc: XLSXDoc) -> None:
+        """
+        Write sheet to XLSX document.
+
+        Attributes:
+            xlsxdoc (XLSXDoc): XLSX document.
+        """
+        if isinstance(xlsxdoc.workbook, Workbook):
+            sheet = xlsxdoc.workbook.add_worksheet(self.name)
+            for col in range(len(self.content.columns)):
+                num_format = xlsxdoc.num_formats.get(self.formats.get(col, "defaultNumber"), "0.00")
+                col_width = xlsxdoc.header_width
+                for row, cell in enumerate(list(self.content.iloc[:, col])):
+                    val = cell
+                    color: Optional[str] = None
+                    if isinstance(cell, tuple):
+                        val, color = cell
+                    if isinstance(val, Formula):
+                        val = str(val)
+                        num_format = xlsxdoc.num_formats.get("formula", "0.00")
+                    elif isinstance(val, str):
+                        # header
+                        if row == 0:
+                            if xlsxdoc.measure_count > 0:
+                                xlsxdoc.header_width = min(
+                                    xlsxdoc.max_col_width, max(80, cell_autofit_width(val) // xlsxdoc.measure_count)
+                                )
+                            else:
+                                xlsxdoc.header_width = min(xlsxdoc.max_col_width, 80)
+                            col_width = xlsxdoc.header_width
+                        else:
+                            col_width = min(xlsxdoc.max_col_width, max(col_width, cell_autofit_width(val)))
+                    if isinstance(val, (int, float, str, bool)) or val is None:
+                        if isinstance(color, str):
+                            sheet.write(
+                                row,
+                                col,
+                                val,
+                                xlsxdoc.workbook.add_format(
+                                    {"bg_color": xlsxdoc.colors[color], "num_format": num_format}
+                                ),
+                            )
+                        else:
+                            sheet.write(row, col, val, xlsxdoc.workbook.add_format({"num_format": num_format}))
+                    elif isinstance(val, DataValidation):
+                        val.write(xlsxdoc, sheet, row, col)
+                sheet.set_column_pixels(col, col, col_width)
+        else:
+            raise ValueError("Trying to write to uninitialized workbook.")
 
 
 @dataclass(order=True, unsafe_hash=True)
