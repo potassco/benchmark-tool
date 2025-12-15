@@ -693,18 +693,18 @@ class Sheet:
                             self.content.at[self.result_offset + offset + 5, col] = Formula(
                                 f"SUMPRODUCT(NOT(ISBLANK({ref}))*({ref}={min_ref}))"
                             )
-                            # f"SUMPRODUCT(--({ref}={min_ref}))"
                             # BETTER
                             self.content.at[self.result_offset + offset + 6, col] = Formula(
                                 f"SUMPRODUCT(NOT(ISBLANK({ref}))*({ref}<{med_ref}))"
                             )
+                            # blank values are counted as worse/worst
                             # WORSE
                             self.content.at[self.result_offset + offset + 7, col] = Formula(
-                                f"SUMPRODUCT(NOT(ISBLANK({ref}))*({ref}>{med_ref}))"
+                                f"SUMPRODUCT((NOT(ISBLANK({ref}))*({ref}>{med_ref}))+ISBLANK({ref}))"
                             )
                             # WORST
                             self.content.at[self.result_offset + offset + 8, col] = Formula(
-                                f"SUMPRODUCT(NOT(ISBLANK({ref}))*({ref}={max_ref}))"
+                                f"SUMPRODUCT((NOT(ISBLANK({ref}))*({ref}={max_ref}))+ISBLANK({ref}))"
                             )
                 if self.type == "merge":
                     continue
