@@ -129,18 +129,18 @@ class XLSXDoc:
     Class representing XLSX document.
     """
 
-    def __init__(self, benchmark: "result.BenchmarkMerge", measures: list[tuple[str, Any]], max_col_width: int = 300):
+    def __init__(self, benchmark: "result.BenchmarkMerge", measures: dict[str, Any], max_col_width: int = 300):
         """
         Setup Instance and Class sheet.
 
         Attributes:
             benchmark (BenchmarkMerge):       BenchmarkMerge object.
-            measures (list[tuple[str, Any]]): Measures to be displayed.
+            measures (dict[str, Any]): Measures to be displayed.
         """
         self.workbook: Optional[Workbook] = None
         self.max_col_width = max_col_width
         self.header_width = 80
-        self.measure_count = len(measures)
+        self.measure_count = len(measures.keys())
 
         self.colors: dict[str, Color] = {
             "best": Color("#00ff00"),
@@ -200,7 +200,7 @@ class Sheet:
     def __init__(
         self,
         benchmark: "result.BenchmarkMerge",
-        measures: list[tuple[str, Any]],
+        measures: dict[str, Any],
         name: str,
         ref_sheet: Optional["Sheet"] = None,
         sheet_type: str = "instance",
@@ -210,7 +210,7 @@ class Sheet:
 
         Attributes:
             benchmark (BenchmarkMerge):       Benchmark.
-            measures (list[tuple[str, Any]]): Measures to be displayed.
+            measures (dict[str, Any]):        Measures to be displayed.
             name (str):                       Name of the sheet.
             refSheet (Optional[Sheet]):       Reference sheet.
             sheet_type (str):                 Type of the sheet.
@@ -530,7 +530,7 @@ class Sheet:
             block = SystemBlock(None, None)
             block.offset = col
             self.summary_refs[col_name] = {"col": col}
-            measures = sorted(self.float_occur.keys()) if not self.measures else [m[0] for m in self.measures]
+            measures = sorted(self.float_occur.keys()) if not self.measures else list(self.measures.keys())
             for measure in measures:
                 if measure in self.float_occur:
                     self.values.at[1, col] = measure
@@ -735,10 +735,9 @@ class Sheet:
         results = self.values.loc[2:, 1:]
 
         # might be better to move to write_sheet in the future
-        for measure in self.measures:
-            if measure[0] in self.float_occur:
-                cols = sorted(self.float_occur[measure[0]])
-                func = measure[1]
+        for measure, func in self.measures.items():
+            if measure in self.float_occur:
+                cols = sorted(self.float_occur[measure])
                 if func == "t":
                     diff = 2
                 elif func == "to":
@@ -805,6 +804,7 @@ class Sheet:
         #! min,med,max no longer included
         self.values.astype(str).to_parquet(file_name)
 
+    # pylint: disable=too-many-nested-blocks
     def write_sheet(self, xlsxdoc: XLSXDoc) -> None:
         """
         Write sheet to XLSX document.

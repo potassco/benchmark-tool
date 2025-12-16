@@ -49,14 +49,14 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     def parse_set(s: str) -> set[str]:
         return set(filter(None, (x.strip() for x in s.split(","))))
 
-    def parse_measures(s: str) -> list[tuple[str, str | None]]:
-        measures = []
+    def parse_measures(s: str) -> dict[str, Any]:
+        measures = {}
         if s != "all":  # empty list = select all measures
             for x in s.split(","):
                 parts = x.split(":", 1)
                 if not parts[0]:
                     raise ArgumentTypeError(f"Invalid measure: '{x}'")
-                measures.append((parts[0], parts[1] if len(parts) > 1 else None))
+                measures[parts[0]] = parts[1] if len(parts) > 1 else None
         return measures
 
     conv_parser = subparsers.add_parser(

@@ -50,7 +50,7 @@ class Result:
         self,
         out: str,
         sel_projects: set[str],
-        measures: list[tuple[str, Any]],
+        measures: dict[str, Any],
         export: bool = False,
         max_col_width: int = 300,
     ) -> Optional[str]:
@@ -61,7 +61,7 @@ class Result:
         Attributes:
             out (str):                        The output file to write to.
             sel_projects (set[str]):          The selected projects ("" for all).
-            measures (list[tuple[str, Any]]): The measures to extract.
+            measures (dict[str, Any]):        The measures to extract.
             export (bool):                    Whether to export the raw values as parquet file.
             max_col_width (int):              The maximum column width for spreadsheet.
         """
@@ -440,7 +440,7 @@ class Run:
     number: int
     measures: dict[str, tuple[str, str]] = field(default_factory=dict, compare=False)
 
-    def iter(self, measures: list[tuple[str, Any]]) -> Iterator[tuple[str, str, str]]:
+    def iter(self, measures: dict[str, Any]) -> Iterator[tuple[str, str, str]]:
         """
         Creates an iterator over all measures captured during the run.
         Measures can be filter by giving a string set of measure names.
@@ -448,13 +448,13 @@ class Run:
         will be returned.
 
         Attributes:
-            measures (list[tuple[str, Any]]): Selected measures.
+            measures (dict[str, Any]): Selected measures.
         """
-        if len(measures) == 0:
+        if len(measures.keys()) == 0:
             for name in sorted(self.measures.keys()):
                 yield name, self.measures[name][0], self.measures[name][1]
         else:
-            for name, _ in measures:
+            for name in measures.keys():
                 if name in self.measures:
                     yield name, self.measures[name][0], self.measures[name][1]
                 else:
