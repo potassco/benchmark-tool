@@ -140,7 +140,6 @@ class XLSXDoc:
         self.workbook: Optional[Workbook] = None
         self.max_col_width = max_col_width
         self.header_width = 80
-        self.measure_count = len(measures.keys())
 
         self.colors: dict[str, Color] = {
             "best": Color("#00ff00"),
@@ -356,6 +355,7 @@ class Sheet:
         instance_summary[instance_result] = {}
         for run in instance_result:
             for name, value_type, value in run.iter(self.measures):
+                self.measures.setdefault(name, None)
                 instance_summary[instance_result].setdefault(name, False)
                 if value_type == "int":
                     value_type = "float"
@@ -814,6 +814,7 @@ class Sheet:
         """
         if isinstance(xlsxdoc.workbook, Workbook):
             sheet = xlsxdoc.workbook.add_worksheet(self.name)
+            measure_count = len(self.measures.keys())
             for col in range(len(self.content.columns)):
                 num_format = xlsxdoc.num_formats.get(self.formats.get(col, "defaultNumber"), "0.00")
                 col_width = xlsxdoc.header_width
@@ -828,9 +829,9 @@ class Sheet:
                     elif isinstance(val, str):
                         # header
                         if row == 0:
-                            if xlsxdoc.measure_count > 0:
+                            if measure_count > 0:
                                 xlsxdoc.header_width = min(
-                                    xlsxdoc.max_col_width, max(80, cell_autofit_width(val) // xlsxdoc.measure_count)
+                                    xlsxdoc.max_col_width, max(80, cell_autofit_width(val) // measure_count)
                                 )
                             else:
                                 xlsxdoc.header_width = min(xlsxdoc.max_col_width, 80)
