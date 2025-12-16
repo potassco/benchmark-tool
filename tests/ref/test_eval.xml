@@ -113,7 +113,7 @@
 						<!--Mixed measure type-->
 						<measure name="status" type="float" val="5"/>
 						<measure name="time" type="float" val="0.1"/>
-						<measure name="timeout" type="float" val="0"/>
+						<!--Missing value: <measure name="timeout" type="float" val="1"/>-->
 					</run>
 					<run number="2">
 						<measure name="choices" type="float" val="38695.0"/>
@@ -225,6 +225,7 @@
 						<measure name="restarts" type="float" val="0.0"/>
 						<measure name="status" type="string" val="SATISFIABLE"/>
 						<measure name="timeout" type="float" val="0"/>
+						<measure name="time" type="float" val="1.55"/>
 					</run>
 				</instance>
 				<instance id="1">

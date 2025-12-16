@@ -2,12 +2,12 @@
 Test cases for xlsx file generation.
 """
 
-import os
 from unittest import TestCase
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
+import xlsxwriter
 
 from benchmarktool.result import parser, result, xlsx_gen
 
@@ -82,9 +82,11 @@ class TestXLSXDoc(TestCase):
         runspec = Mock(spec=result.Runspec)
         self.doc.inst_sheet.add_runspec = Mock()
         self.doc.class_sheet.add_runspec = Mock()
+        self.doc.merged_sheet.add_runspec = Mock()
         self.doc.add_runspec(runspec)
         self.doc.inst_sheet.add_runspec.assert_called_once_with(runspec)
         self.doc.class_sheet.add_runspec.assert_called_once_with(runspec)
+        self.doc.merged_sheet.add_runspec.assert_called_once_with(runspec)
 
     def test_finish(self) -> None:
         """
@@ -92,19 +94,29 @@ class TestXLSXDoc(TestCase):
         """
         self.doc.inst_sheet.finish = Mock()
         self.doc.class_sheet.finish = Mock()
+        self.doc.merged_sheet.finish = Mock()
         self.doc.finish()
         self.doc.inst_sheet.finish.assert_called_once()
         self.doc.class_sheet.finish.assert_called_once()
+        self.doc.merged_sheet.finish.assert_called_once()
 
-    def test_make_ods(self) -> None:
+    def test_make_xlsx(self) -> None:
         """
-        Test make_ods and write_row method.
+        Test make_xlsx and write_col method.
         """
         self.doc.inst_sheet.content = pd.DataFrame([None, None, "test"])
+        self.doc.merged_sheet.content = pd.DataFrame([None, None, "test"])
         self.doc.class_sheet.content = pd.DataFrame([None, None, "test"])
-        self.doc.make_xlsx("./tests/ref/new_xlsx.xlsx")
-        self.assertTrue(os.path.isfile("./tests/ref/new_xlsx.xlsx"))
-        os.remove("./tests/ref/new_xlsx.xlsx")
+
+        with patch.object(xlsx_gen.Sheet, "write_sheet", autospec=True) as write_sheet:
+            self.doc.make_xlsx("./tests/ref/new_xlsx.xlsx")
+            write_sheet.assert_has_calls(
+                [
+                    (call(self.doc.inst_sheet, self.doc)),
+                    (call(self.doc.merged_sheet, self.doc)),
+                    (call(self.doc.class_sheet, self.doc)),
+                ]
+            )
 
 
 # pylint: disable=too-many-instance-attributes, too-many-statements
@@ -118,7 +130,8 @@ class TestInstSheet(TestCase):
         self.bench_merge = self.res.merge(self.res.projects.values())
         self.project = self.res.projects["test_proj0"]
         self.run_specs = self.project.runspecs + self.res.projects["test_proj1"].runspecs
-        self.measures = [("time", "t"), ("timeout", "to"), ("status", None), ("models", None)]
+        self.measures = {"time": "t", "timeout": "to", "status": None, "models": None}
+        self.runs = self.res.jobs["test_seq"].runs
         self.name = "Instances"
         self.ref_sheet = None
         self.ref_row_n = [
@@ -181,6 +194,16 @@ class TestInstSheet(TestCase):
             "BETTER",
             "WORSE",
             "WORST",
+            None,
+            "RUN:",
+            "SUM",
+            "AVG",
+            "DEV",
+            "DST",
+            "BEST",
+            "BETTER",
+            "WORSE",
+            "WORST",
         ]
         self.ref_sum[1] = [
             "test_sys-1.0.0/test_setting0",
@@ -192,14 +215,42 @@ class TestInstSheet(TestCase):
             2.0,
             0.1,
             None,
-            xlsx_gen.Formula("=SUM($B3:$B8)"),
-            xlsx_gen.Formula("=AVERAGE($B3:$B8)"),
-            xlsx_gen.Formula("=STDEV($B3:$B8)"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8-$N3:$N8)^2)^0.5"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8=$N3:$N8))"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8<$Q3:$Q8))"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8>$Q3:$Q8))"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B8=$T3:$T8))"),
+            xlsx_gen.Formula("=SUM(B$3:B$8)"),
+            xlsx_gen.Formula("=AVERAGE(B$3:B$8)"),
+            xlsx_gen.Formula("=STDEV(B$3:B$8)"),
+            xlsx_gen.Formula("=SUMPRODUCT(--(B$3:B$8-$N$3:$N$8)^2)^0.5"),
+            xlsx_gen.Formula("=SUMPRODUCT(NOT(ISBLANK(B$3:B$8))*(B$3:B$8=$N$3:$N$8))"),
+            xlsx_gen.Formula("=SUMPRODUCT(NOT(ISBLANK(B$3:B$8))*(B$3:B$8<$Q$3:$Q$8))"),
+            xlsx_gen.Formula("=SUMPRODUCT((NOT(ISBLANK(B$3:B$8))*(B$3:B$8>$Q$3:$Q$8))+ISBLANK(B$3:B$8))"),
+            xlsx_gen.Formula("=SUMPRODUCT((NOT(ISBLANK(B$3:B$8))*(B$3:B$8=$T$3:$T$8))+ISBLANK(B$3:B$8))"),
+            None,
+            xlsx_gen.DataValidation(
+                {
+                    "validate": "list",
+                    "source": list(range(1, self.runs + 1)),
+                    "input_message": "Select run number",
+                },
+                1,
+                "cellInput",
+            ),
+            xlsx_gen.Formula("=SUM(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0))"),
+            xlsx_gen.Formula("=AVERAGE(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0))"),
+            xlsx_gen.Formula("=STDEV(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0))"),
+            xlsx_gen.Formula(
+                "=SUMPRODUCT(--(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)-FILTER($N$3:$N$8,MOD(ROW($N$3:$N$8)-CHOOSE($B$19,ROW($N$3),ROW($N$4)),2)=0))^2)^0.5"
+            ),
+            xlsx_gen.Formula(
+                "=SUMPRODUCT(NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)=FILTER($N$3:$N$8,MOD(ROW($N$3:$N$8)-CHOOSE($B$19,ROW($N$3),ROW($N$4)),2)=0)))"
+            ),
+            xlsx_gen.Formula(
+                "=SUMPRODUCT(NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)<FILTER($Q$3:$Q$8,MOD(ROW($Q$3:$Q$8)-CHOOSE($B$19,ROW($Q$3),ROW($Q$4)),2)=0)))"
+            ),
+            xlsx_gen.Formula(
+                "=SUMPRODUCT((NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)>FILTER($Q$3:$Q$8,MOD(ROW($Q$3:$Q$8)-CHOOSE($B$19,ROW($Q$3),ROW($Q$4)),2)=0)))+ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))"
+            ),
+            xlsx_gen.Formula(
+                "=SUMPRODUCT((NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)=FILTER($T$3:$T$8,MOD(ROW($T$3:$T$8)-CHOOSE($B$19,ROW($T$3),ROW($T$4)),2)=0)))+ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))"
+            ),
         ]
         # values
         self.ref_val = pd.DataFrame()
@@ -238,6 +289,16 @@ class TestInstSheet(TestCase):
             "BETTER",
             "WORSE",
             "WORST",
+            np.nan,
+            "RUN:",
+            "SUM",
+            "AVG",
+            "DEV",
+            "DST",
+            "BEST",
+            "BETTER",
+            "WORSE",
+            "WORST",
         ]
         self.ref_val_sum[1] = [
             "test_sys-1.0.0/test_setting0",
@@ -257,18 +318,15 @@ class TestInstSheet(TestCase):
             -2,
             4,
             4,
-        ]
+        ] + [np.nan] * 10
         self.all_measure_size = 34
 
     def test_init(self) -> None:
         """
         Test class initialization.
         """
-        ref_content = pd.DataFrame(
-            [np.nan, np.nan] + self.ref_row_n + [np.nan, "SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"]
-        )
         sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
-        pd.testing.assert_frame_equal(sheet.content, ref_content)
+        pd.testing.assert_frame_equal(sheet.content, self.ref_sum[0].to_frame())
         self.assertEqual(sheet.name, self.name)
         self.assertEqual(sheet.benchmark, self.bench_merge)
         self.assertDictEqual(sheet.system_blocks, {})
@@ -279,6 +337,8 @@ class TestInstSheet(TestCase):
         self.assertDictEqual(sheet.summary_refs, {})
         pd.testing.assert_frame_equal(sheet.values, pd.DataFrame())
         self.assertDictEqual(sheet.float_occur, {})
+        self.assertDictEqual(sheet.formats, {})
+        self.assertEqual(sheet.runs, 2)
 
     def test_add_runspec(self) -> None:
         """
@@ -354,7 +414,7 @@ class TestInstSheet(TestCase):
                     self.assertTrue(pd.isna(test_val))
                 else:
                     self.assertEqual(test_val, ref_val)
-        sheet = xlsx_gen.Sheet(self.bench_merge, "", self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, {}, self.name, self.ref_sheet)
         if sheet.ref_sheet is not None:
             sheet.ref_sheet.add_runspec(self.run_specs[0])
         sheet.add_runspec(self.run_specs[0])
@@ -379,6 +439,9 @@ class TestInstSheet(TestCase):
                 if isinstance(ref, xlsx_gen.Formula):
                     self.assertIsInstance(test, xlsx_gen.Formula)
                     self.assertEqual(str(test), str(ref))
+                elif isinstance(ref, xlsx_gen.DataValidation):
+                    self.assertIsInstance(test, xlsx_gen.DataValidation)
+                    self.assertDictEqual(test.params, ref.params)
                 else:
                     self.assertEqual(test, ref)
                 if pd.isna(ref_val):
@@ -387,7 +450,7 @@ class TestInstSheet(TestCase):
                     self.assertEqual(test_val, ref_val)
         # dont gen summary for empty columns while other settings have results
         for row in range(2, len(sheet.content.index)):
-            self.assertTrue(pd.isna(sheet.content.at[row, 9]))
+            self.assertTrue(pd.isna(sheet.content.at[row, 6]))
 
     def test_add_styles(self) -> None:
         """
@@ -398,11 +461,12 @@ class TestInstSheet(TestCase):
         sheet.add_runspec(self.run_specs[1])
         sheet.finish()
         # selective testing
-        self.assertEqual(sheet.content.at[2, 1][1], "cellWorst")
+        self.assertEqual(sheet.content.at[2, 1][1], "worst")
         self.assertNotIsInstance(sheet.content.at[2, 2], tuple)
-        self.assertEqual(sheet.content.at[2, 5][1], "cellBest")
-        self.assertEqual(sheet.content.at[9, 1][1], "cellWorst")
-        self.assertEqual(sheet.content.at[9, 5][1], "cellBest")
+        self.assertEqual(sheet.content.at[2, 5][1], "best")
+        self.assertEqual(sheet.content.at[9, 1][1], "worst")
+        self.assertEqual(sheet.content.at[9, 5][1], "best")
+        self.assertDictEqual(sheet.formats, {2: "to", 6: "to"})
 
     def test_export_values(self) -> None:
         """
@@ -418,6 +482,39 @@ class TestInstSheet(TestCase):
             sheet.export_values(name, md)
             tp.assert_called_once_with(name)
 
+    def test_write_sheet(self) -> None:
+        """
+        Test write_sheet method.
+        """
+        doc = xlsx_gen.XLSXDoc(self.bench_merge, self.measures)
+        doc.workbook = MagicMock(spec=xlsxwriter.Workbook)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_specs[0])
+        sheet.add_runspec(self.run_specs[1])
+        sheet.finish()
+        mock_worksheet = MagicMock(spec=xlsxwriter.worksheet.Worksheet)
+        doc.workbook.add_worksheet.return_value = mock_worksheet
+        sheet.write_sheet(doc)
+
+        # all measures
+        doc = xlsx_gen.XLSXDoc(self.bench_merge, {})
+        doc.workbook = MagicMock(spec=xlsxwriter.Workbook)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_specs[0])
+        sheet.add_runspec(self.run_specs[1])
+        sheet.finish()
+        mock_worksheet = MagicMock(spec=xlsxwriter.worksheet.Worksheet)
+        doc.workbook.add_worksheet.return_value = mock_worksheet
+        sheet.write_sheet(doc)
+
+        doc = xlsx_gen.XLSXDoc(self.bench_merge, self.measures)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet.add_runspec(self.run_specs[0])
+        sheet.add_runspec(self.run_specs[1])
+        sheet.finish()
+        with self.assertRaises(ValueError):
+            sheet.write_sheet(doc)
+
 
 # pylint: disable=too-many-instance-attributes,too-many-statements
 class TestClassSheet(TestInstSheet):
@@ -430,7 +527,7 @@ class TestClassSheet(TestInstSheet):
         self.bench_merge = self.res.merge(self.res.projects.values())
         self.project = self.res.projects["test_proj0"]
         self.run_specs = self.project.runspecs + self.res.projects["test_proj1"].runspecs
-        self.measures = [("time", "t"), ("timeout", "to"), ("status", None), ("models", None)]
+        self.measures = {"time": "t", "timeout": "to", "status": None, "models": None}
         self.name = "Classes"
         self.ref_sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, "Instances")
         self.ref_row_n = ["test_class0", "test_class1"]
@@ -498,14 +595,14 @@ class TestClassSheet(TestInstSheet):
             xlsx_gen.Formula("=AVERAGE(Instances!B3:Instances!B4)"),
             xlsx_gen.Formula("=AVERAGE(Instances!B5:Instances!B8)"),
             None,
-            xlsx_gen.Formula("=SUM($B3:$B4)"),
-            xlsx_gen.Formula("=AVERAGE($B3:$B4)"),
-            xlsx_gen.Formula("=STDEV($B3:$B4)"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4-$N3:$N4)^2)^0.5"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4=$N3:$N4))"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4<$Q3:$Q4))"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4>$Q3:$Q4))"),
-            xlsx_gen.Formula("=SUMPRODUCT(--($B3:$B4=$T3:$T4))"),
+            xlsx_gen.Formula("=SUM(B$3:B$4)"),
+            xlsx_gen.Formula("=AVERAGE(B$3:B$4)"),
+            xlsx_gen.Formula("=STDEV(B$3:B$4)"),
+            xlsx_gen.Formula("=SUMPRODUCT(--(B$3:B$4-$N$3:$N$4)^2)^0.5"),
+            xlsx_gen.Formula("=SUMPRODUCT(--(B$3:B$4=$N$3:$N$4))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--(B$3:B$4<$Q$3:$Q$4))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--(B$3:B$4>$Q$3:$Q$4))"),
+            xlsx_gen.Formula("=SUMPRODUCT(--(B$3:B$4=$T$3:$T$4))"),
         ]
         # values
         self.ref_val = pd.DataFrame()
@@ -562,7 +659,7 @@ class TestClassSheet(TestInstSheet):
         """
         Test add_styles method.
         """
-        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet, "class")
         for run_spec in self.run_specs:
             self.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
@@ -578,7 +675,7 @@ class TestClassSheet(TestInstSheet):
         """
         Test export_values methods.
         """
-        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet)
+        sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet, "class")
         for run_spec in self.run_specs:
             self.ref_sheet.add_runspec(run_spec)
             sheet.add_runspec(run_spec)
