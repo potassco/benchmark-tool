@@ -41,8 +41,6 @@ class Formula:
         # remove leading '='
         if s.startswith("="):
             s = s[1:]
-        if s.startswith("{"):
-            return s
         return f"={s}"
 
 
@@ -86,6 +84,23 @@ class DataValidation:
             sheet.data_validation(row, col, row, col, self.params)
         else:
             raise ValueError("Trying to write to uninitialized workbook.")
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Equality operator.
+
+        Attributes:
+            other (object): Other DataValidation object.
+        """
+        if not isinstance(other, DataValidation):
+            raise TypeError("Comparison with non DataValidation object.")
+        return hash(self) == hash(other)
+
+    def __hash__(self) -> int:
+        """
+        Hash function.
+        """
+        return hash((repr(sorted(self.params.items())), self.default, self.color))
 
 
 def try_float(v: Any) -> Any:
@@ -256,7 +271,7 @@ class Sheet:
                     row += instance.values["max_runs"]
                     if self.runs is None:
                         self.runs = instance.values["max_runs"]
-                    elif self.runs != instance.values["max_runs"]:
+                    elif self.runs != instance.values["max_runs"]:  # nocoverage
                         run_summary = False
         elif self.ref_sheet is not None and sheet_type == "class":
             row = 2
@@ -282,7 +297,7 @@ class Sheet:
                     row += 1
                     if self.runs is None:
                         self.runs = instance.values["max_runs"]
-                    elif self.runs != instance.values["max_runs"]:
+                    elif self.runs != instance.values["max_runs"]:  # nocoverage
                         run_summary = False
         else:
             raise ValueError("Invalid sheet parameters.")
@@ -297,7 +312,7 @@ class Sheet:
                 self.content.loc[self.result_offset + idx] = label
 
         # fill missing rows
-        self.content = self.content.reindex(list(range(self.content.index.max() + 1)))
+        self.content = self.content.reindex(list(range(self.content.index.max() + 1))).replace(np.nan, None)
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
@@ -516,7 +531,7 @@ class Sheet:
         self.add_styles()
 
         # replace all undefined cells with None (empty cell)
-        self.content = self.content.fillna(np.nan).replace([np.nan], [None])
+        self.content = self.content.fillna(np.nan).replace(np.nan, None)
 
     def add_row_summary(self, offset: int) -> None:
         """
@@ -730,6 +745,7 @@ class Sheet:
     def add_styles(self) -> None:
         """
         Color float results and their summaries.
+        Get column formats.
         """
         # remove header
         results = self.values.loc[2:, 1:]
@@ -745,7 +761,11 @@ class Sheet:
                     for c in cols:
                         self.formats[c] = "to"
                 else:
-                    return
+                    continue
+
+                # no coloring for merge sheet
+                if self.type == "merge":
+                    continue
 
                 # filter empty rows
                 values_df = results.loc[:, cols].dropna(how="all")
