@@ -45,7 +45,7 @@ class TestParser(TestCase):
         self.assertIsNone(args.resultfile)
         self.assertEqual(args.output, "out.xlsx")
         self.assertSetEqual(args.projects, set())
-        self.assertEqual(args.measures, [("time", "t"), ("timeout", "to")])
+        self.assertEqual(args.measures, {"time": "t", "timeout": "to"})
         self.assertFalse(args.export)
         self.assertIsNone(args.jupyter_notebook)
         self.assertIsInstance(args.func, Callable)
@@ -63,9 +63,9 @@ class TestParser(TestCase):
 
         # measures
         args = self.parser.parse_args(["conv", "-m", "all"])
-        self.assertEqual(args.measures, [])
+        self.assertEqual(args.measures, {})
         args = self.parser.parse_args(["conv", "-m", "test:to,other"])
-        self.assertEqual(args.measures, [("test", "to"), ("other", None)])
+        self.assertEqual(args.measures, {"test": "to", "other": None})
         with self.assertRaises(SystemExit), mock.patch("sys.stderr", new=StringIO()):
             self.parser.parse_args(["conv", "-m", ":to"])
 
@@ -90,7 +90,7 @@ class TestParser(TestCase):
             args.func(args)
             parse_mock.assert_called_once_with(sys.stdin)
             result_mock.gen_spreadsheet.assert_called_once_with(
-                "out.xlsx", set(), [("time", "t"), ("timeout", "to")], False, 300
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300
             )
             gen_mock.assert_not_called()
 
@@ -99,7 +99,7 @@ class TestParser(TestCase):
             args = self.parser.parse_args(["conv", "-e"])
             args.func(args)
             result_mock.gen_spreadsheet.assert_called_once_with(
-                "out.xlsx", set(), [("time", "t"), ("timeout", "to")], True, 300
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, True, 300
             )
             gen_mock.assert_not_called()
 
@@ -122,7 +122,7 @@ class TestParser(TestCase):
             )
             args.func(args)
             parse_mock.assert_called_once()
-            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, [], True, 50)
+            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, {}, True, 50)
             gen_mock.assert_not_called()
 
             ex_file = mock.Mock()

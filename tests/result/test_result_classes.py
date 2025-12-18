@@ -447,9 +447,9 @@ class TestRun(TestCase):
         ires = mock.Mock(spec=result.InstanceResult)
         number = 1
         r = result.Run(ires, number, {"a": ("string", "b"), "c": ("int", "5")})
-        res = r.iter([])
+        res = r.iter({})
         self.assertListEqual(list(res), [("a", "string", "b"), ("c", "int", "5")])
-        res = r.iter([("c", "to")])
+        res = r.iter({"c": "to"})
         self.assertListEqual(list(res), [("c", "int", "5")])
-        res = r.iter([("d", "t")])
+        res = r.iter({"d": "t"})
         self.assertListEqual(list(res), [("d", "None", "NaN")])
