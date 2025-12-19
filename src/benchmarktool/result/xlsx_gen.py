@@ -326,7 +326,6 @@ class Sheet:
         if block.machine:
             self.machines.add(block.machine)
 
-        row = 0
         for benchclass_result in runspec:
             benchclass_summary: dict[str, Any] = {}
             instance_summary: dict[result.InstanceResult, dict[str, Any]] = {}
@@ -342,8 +341,7 @@ class Sheet:
                 # mergeSheet
                 if self.type == "merge":
                     for instance_result in benchclass_result:
-                        self.add_merged_instance_results(block, instance_result, instance_summary, row)
-                        row += 1
+                        self.add_merged_instance_results(block, instance_result, instance_summary)
                 # classSheet
                 elif self.type == "class":
                     self.add_benchclass_summary(block, benchclass_result, benchclass_summary)
@@ -404,7 +402,6 @@ class Sheet:
         block: "SystemBlock",
         instance_result: "result.InstanceResult",
         instance_summary: dict["result.InstanceResult", dict[str, Any]],
-        row: int,
     ) -> None:
         """
         Add merged instance results to SystemBlock and add values to summary if necessary.
@@ -413,26 +410,26 @@ class Sheet:
             block (SystemBlock):                 SystemBlock to which results are added.
             instance_result (InstanceResult):    InstanceResult.
             instance_summary (dict[result.InstanceResult, dict[str, Any]]): Summary of benchmark class.
-            row (int):                           Current row index.
         """
         for name, value in instance_summary[instance_result].items():
+            inst_val = instance_result.instance.values
             # check if any run has a float value
             if value:
                 # value just to signal non empty cell
                 block.add_cell(
-                    row,
+                    (inst_val["row"] + inst_val["max_runs"]) // inst_val["max_runs"] - 1,
                     name,
                     "merged_runs",
                     {
-                        "inst_start": instance_result.instance.values["row"],
-                        "inst_end": instance_result.instance.values["row"]
-                        + instance_result.instance.values["max_runs"]
-                        - 1,
+                        "inst_start": inst_val["row"],
+                        "inst_end": inst_val["row"] + inst_val["max_runs"] - 1,
                         "value": 1,
                     },
                 )
             else:
-                block.add_cell(row, name, "empty", np.nan)
+                block.add_cell(
+                    (inst_val["row"] + inst_val["max_runs"]) // inst_val["max_runs"] - 1, name, "empty", np.nan
+                )
 
     def add_benchclass_summary(
         self, block: "SystemBlock", benchclass_result: "result.ClassResult", benchclass_summary: dict[str, Any]
