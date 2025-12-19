@@ -13,6 +13,7 @@ from benchmarktool.result import parser, result, xlsx_gen
 
 # pylint: disable=too-many-lines
 
+
 class TestFormula(TestCase):
     """
     Test cases for main application functionality.
@@ -115,7 +116,7 @@ class TestDataValidation(TestCase):
         self.assertNotEqual(dv1, dv2)
 
         with self.assertRaises(TypeError):
-            dv1 == "not a DataValidation object" # pylint: disable=pointless-statement
+            dv1 == "not a DataValidation object"  # pylint: disable=pointless-statement
 
 
 class TestUtils(TestCase):
@@ -436,7 +437,7 @@ class TestInstSheet(TestCase):
         Test add_runspec method.
 
         More in-depth testing required.
-        (add_instance_results, add_benchclass_summary)
+        (add_instance_results, add_merged_instance_result, add_benchclass_summary)
         """
         sheet = xlsx_gen.Sheet(self.bench_merge, self.measures, self.name, self.ref_sheet, self.sheet_type)
         if sheet.ref_sheet is not None:
@@ -656,14 +657,14 @@ class TestMergedSheet(TestInstSheet):
         self.ref_block.index = [1, 2, 3, 4]
         # results
         select_criteria = xlsx_gen.DataValidation(
-                {
-                    "validate": "list",
-                    "source": ["average", "median", "min", "max"],
-                    "input_message": "Select merge criteria",
-                },
-                "median",
-                "input",
-            )
+            {
+                "validate": "list",
+                "source": ["average", "median", "min", "max", "diff"],
+                "input_message": "Select merge criteria",
+            },
+            "median",
+            "input",
+        )
         self.ref_res = pd.DataFrame()
         self.ref_res[0] = [
             "Merge criteria:",
@@ -674,22 +675,24 @@ class TestMergedSheet(TestInstSheet):
             "test_sys-1.0.0/test_setting0",
             "time",
             xlsx_gen.Formula(
-                '=SWITCH($A$2,'
+                "=SWITCH($A$2,"
                 '"average", AVERAGE(Instances!B3:Instances!B4),'
                 '"median", MEDIAN(Instances!B3:Instances!B4),'
                 '"min", MIN(Instances!B3:Instances!B4),'
-                '"max", MAX(Instances!B3:Instances!B4))'
+                '"max", MAX(Instances!B3:Instances!B4),'
+                '"diff", MAX(Instances!B3:Instances!B4)-MIN(Instances!B3:Instances!B4))'
             ),
         ]
         self.ref_res[2] = [
             None,
             "timeout",
             xlsx_gen.Formula(
-                '=SWITCH($A$2,'
+                "=SWITCH($A$2,"
                 '"average", AVERAGE(Instances!C3:Instances!C4),'
                 '"median", MEDIAN(Instances!C3:Instances!C4),'
                 '"min", MIN(Instances!C3:Instances!C4),'
-                '"max", MAX(Instances!C3:Instances!C4))'
+                '"max", MAX(Instances!C3:Instances!C4),'
+                '"diff", MAX(Instances!C3:Instances!C4)-MIN(Instances!C3:Instances!C4))'
             ),
         ]
         self.ref_res[3] = [None, "status", None]
@@ -697,11 +700,12 @@ class TestMergedSheet(TestInstSheet):
             None,
             "models",
             xlsx_gen.Formula(
-                '=SWITCH($A$2,'
+                "=SWITCH($A$2,"
                 '"average", AVERAGE(Instances!E3:Instances!E4),'
                 '"median", MEDIAN(Instances!E3:Instances!E4),'
                 '"min", MIN(Instances!E3:Instances!E4),'
-                '"max", MAX(Instances!E3:Instances!E4))'
+                '"max", MAX(Instances!E3:Instances!E4),'
+                '"diff", MAX(Instances!E3:Instances!E4)-MIN(Instances!E3:Instances!E4))'
             ),
         ]
         # row summary
@@ -737,26 +741,29 @@ class TestMergedSheet(TestInstSheet):
             "test_sys-1.0.0/test_setting0",
             "time",
             xlsx_gen.Formula(
-                '=SWITCH($A$2,'
+                "=SWITCH($A$2,"
                 '"average", AVERAGE(Instances!B3:Instances!B4),'
                 '"median", MEDIAN(Instances!B3:Instances!B4),'
                 '"min", MIN(Instances!B3:Instances!B4),'
-                '"max", MAX(Instances!B3:Instances!B4))'
-                ),
+                '"max", MAX(Instances!B3:Instances!B4),'
+                '"diff", MAX(Instances!B3:Instances!B4)-MIN(Instances!B3:Instances!B4))'
+            ),
             xlsx_gen.Formula(
-                '=SWITCH($A$2,'
+                "=SWITCH($A$2,"
                 '"average", AVERAGE(Instances!B5:Instances!B6),'
                 '"median", MEDIAN(Instances!B5:Instances!B6),'
                 '"min", MIN(Instances!B5:Instances!B6),'
-                '"max", MAX(Instances!B5:Instances!B6))'
-                ),
+                '"max", MAX(Instances!B5:Instances!B6),'
+                '"diff", MAX(Instances!B5:Instances!B6)-MIN(Instances!B5:Instances!B6))'
+            ),
             xlsx_gen.Formula(
-                '=SWITCH($A$2,'
+                "=SWITCH($A$2,"
                 '"average", AVERAGE(Instances!B7:Instances!B8),'
                 '"median", MEDIAN(Instances!B7:Instances!B8),'
                 '"min", MIN(Instances!B7:Instances!B8),'
-                '"max", MAX(Instances!B7:Instances!B8))'
-                ),
+                '"max", MAX(Instances!B7:Instances!B8),'
+                '"diff", MAX(Instances!B7:Instances!B8)-MIN(Instances!B7:Instances!B8))'
+            ),
             None,
             xlsx_gen.Formula("=SUM(B$3:B$5)"),
             xlsx_gen.Formula("=AVERAGE(B$3:B$5)"),

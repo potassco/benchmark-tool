@@ -284,7 +284,7 @@ class Sheet:
             self.content.loc[1] = DataValidation(
                 {
                     "validate": "list",
-                    "source": ["average", "median", "min", "max"],
+                    "source": ["average", "median", "min", "max", "diff"],
                     "input_message": "Select merge criteria",
                 },
                 "median",
@@ -490,7 +490,8 @@ class Sheet:
                             f'"average", AVERAGE{cell_range},'
                             f'"median", MEDIAN{cell_range},'
                             f'"min", MIN{cell_range},'
-                            f'"max", MAX{cell_range}'
+                            f'"max", MAX{cell_range},'
+                            f'"diff", MAX{cell_range}-MIN{cell_range}'
                             ")"
                         )
             elif self.types.get(name, "") == "classresult":
