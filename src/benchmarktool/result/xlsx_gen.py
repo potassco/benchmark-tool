@@ -871,6 +871,7 @@ class Sheet:
                     elif isinstance(val, DataValidation):
                         val.write(xlsxdoc, sheet, row, col)
                 sheet.set_column_pixels(col, col, col_width)
+                sheet.freeze_panes(2, 1)
         else:
             raise ValueError("Trying to write to uninitialized workbook.")
 
