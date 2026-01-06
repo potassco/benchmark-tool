@@ -308,7 +308,19 @@ class Sheet:
 
         # run summary
         if run_summary and self.runs and self.runs > 1 and self.ref_sheet is None:
-            for idx, label in enumerate(["RUN:", "SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"], 10):
+            selection = DataValidation(
+                {
+                    "validate": "list",
+                    "source": list(range(1, self.runs + 1)),
+                    "input_message": "Select run number",
+                },
+                1,
+                "input",
+            )
+
+            for idx, label in enumerate(  # type: ignore[assignment]
+                ["Select run:", selection, "SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"], 10
+            ):
                 self.content.loc[self.result_offset + idx] = label
 
         # fill missing rows
@@ -614,7 +626,7 @@ class Sheet:
             """
             return f"FILTER({base_range},MOD(ROW({base_range})-{choose_rows},{self.runs})=0)"
 
-        run_select_cell = f"{get_cell_index(1, self.result_offset + 10, True, True)}"
+        run_select_cell = f"{get_cell_index(0, self.result_offset + 11, True, True)}"
         for col in self.content:
             name = self.content.at[1, col]
             if self.types.get(name, "") in {"float", "classresult", "merged_runs"}:
@@ -634,15 +646,6 @@ class Sheet:
 
                 # Add run summary formulas if applicable
                 if self.ref_sheet is None and self.runs is not None and self.runs > 1:
-                    self.content.at[self.result_offset + 10, 1] = DataValidation(
-                        {
-                            "validate": "list",
-                            "source": list(range(1, self.runs + 1)),
-                            "input_message": "Select run number",
-                        },
-                        1,
-                        "input",
-                    )
                     sel_runs = _get_run_select(run_select_cell, self.runs, col, False)
                     ref_runs = _get_run_filter(ref_value, sel_runs)
                     min_runs = _get_run_filter(
@@ -654,7 +657,7 @@ class Sheet:
                     max_runs = _get_run_filter(
                         max_rows, _get_run_select(run_select_cell, self.runs, self.summary_refs["max"][name][0])
                     )
-                    summaries.append((10, ref_runs, min_runs, med_runs, max_runs))
+                    summaries.append((11, ref_runs, min_runs, med_runs, max_runs))
 
                 for offset, ref, min_ref, med_ref, max_ref in summaries:
                     # SUM

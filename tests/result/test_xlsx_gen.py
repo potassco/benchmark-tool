@@ -252,6 +252,15 @@ class TestInstSheet(TestCase):
         self.ref_res[20] = [None, "timeout", xlsx_gen.Formula("=MAX($C3,$G3,$K3)")]
         self.ref_res[21] = [None, "models", xlsx_gen.Formula("=MAX($E3,$I3,$M3)")]
         # col summary
+        select_run = xlsx_gen.DataValidation(
+            {
+                "validate": "list",
+                "source": list(range(1, self.runs + 1)),
+                "input_message": "Select run number",
+            },
+            1,
+            "input",
+        )
         self.ref_sum = pd.DataFrame()
         self.ref_sum[0] = [
             None,
@@ -272,7 +281,8 @@ class TestInstSheet(TestCase):
             "WORSE",
             "WORST",
             None,
-            "RUN:",
+            "Select run:",
+            select_run,
             "SUM",
             "AVG",
             "DEV",
@@ -301,43 +311,36 @@ class TestInstSheet(TestCase):
             xlsx_gen.Formula("=SUMPRODUCT((NOT(ISBLANK(B$3:B$8))*(B$3:B$8>$Q$3:$Q$8))+ISBLANK(B$3:B$8))"),
             xlsx_gen.Formula("=SUMPRODUCT((NOT(ISBLANK(B$3:B$8))*(B$3:B$8=$T$3:$T$8))+ISBLANK(B$3:B$8))"),
             None,
-            xlsx_gen.DataValidation(
-                {
-                    "validate": "list",
-                    "source": list(range(1, self.runs + 1)),
-                    "input_message": "Select run number",
-                },
-                1,
-                "cellInput",
-            ),
-            xlsx_gen.Formula("=SUM(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0))"),
-            xlsx_gen.Formula("=AVERAGE(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0))"),
-            xlsx_gen.Formula("=STDEV(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0))"),
+            None,
+            None,
+            xlsx_gen.Formula("=SUM(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0))"),
+            xlsx_gen.Formula("=AVERAGE(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0))"),
+            xlsx_gen.Formula("=STDEV(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0))"),
             xlsx_gen.Formula(
-                "=SUMPRODUCT(--(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)"
-                "-FILTER($N$3:$N$8,MOD(ROW($N$3:$N$8)-CHOOSE($B$19,ROW($N$3),ROW($N$4)),2)=0))^2)^0.5"
+                "=SUMPRODUCT(--(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)"
+                "-FILTER($N$3:$N$8,MOD(ROW($N$3:$N$8)-CHOOSE($A$20,ROW($N$3),ROW($N$4)),2)=0))^2)^0.5"
             ),
             xlsx_gen.Formula(
-                "=SUMPRODUCT(NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))"
-                "*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)"
-                "=FILTER($N$3:$N$8,MOD(ROW($N$3:$N$8)-CHOOSE($B$19,ROW($N$3),ROW($N$4)),2)=0)))"
+                "=SUMPRODUCT(NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)))"
+                "*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)"
+                "=FILTER($N$3:$N$8,MOD(ROW($N$3:$N$8)-CHOOSE($A$20,ROW($N$3),ROW($N$4)),2)=0)))"
             ),
             xlsx_gen.Formula(
-                "=SUMPRODUCT(NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))"
-                "*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)"
-                "<FILTER($Q$3:$Q$8,MOD(ROW($Q$3:$Q$8)-CHOOSE($B$19,ROW($Q$3),ROW($Q$4)),2)=0)))"
+                "=SUMPRODUCT(NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)))"
+                "*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)"
+                "<FILTER($Q$3:$Q$8,MOD(ROW($Q$3:$Q$8)-CHOOSE($A$20,ROW($Q$3),ROW($Q$4)),2)=0)))"
             ),
             xlsx_gen.Formula(
-                "=SUMPRODUCT((NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))"
-                "*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)"
-                ">FILTER($Q$3:$Q$8,MOD(ROW($Q$3:$Q$8)-CHOOSE($B$19,ROW($Q$3),ROW($Q$4)),2)=0)))"
-                "+ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))"
+                "=SUMPRODUCT((NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)))"
+                "*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)"
+                ">FILTER($Q$3:$Q$8,MOD(ROW($Q$3:$Q$8)-CHOOSE($A$20,ROW($Q$3),ROW($Q$4)),2)=0)))"
+                "+ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)))"
             ),
             xlsx_gen.Formula(
-                "=SUMPRODUCT((NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))"
-                "*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)"
-                "=FILTER($T$3:$T$8,MOD(ROW($T$3:$T$8)-CHOOSE($B$19,ROW($T$3),ROW($T$4)),2)=0)))"
-                "+ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($B$19,ROW(B$3),ROW(B$4)),2)=0)))"
+                "=SUMPRODUCT((NOT(ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)))"
+                "*(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)"
+                "=FILTER($T$3:$T$8,MOD(ROW($T$3:$T$8)-CHOOSE($A$20,ROW($T$3),ROW($T$4)),2)=0)))"
+                "+ISBLANK(FILTER(B$3:B$8,MOD(ROW(B$3:B$8)-CHOOSE($A$20,ROW(B$3),ROW(B$4)),2)=0)))"
             ),
         ]
         # values
@@ -378,7 +381,8 @@ class TestInstSheet(TestCase):
             "WORSE",
             "WORST",
             np.nan,
-            "RUN:",
+            "Select run:",
+            select_run,
             "SUM",
             "AVG",
             "DEV",
@@ -406,7 +410,7 @@ class TestInstSheet(TestCase):
             -2,
             4,
             4,
-        ] + [np.nan] * 10
+        ] + [np.nan] * 11
         # all measures for runspec 0
         self.all_measure_size = 30
 
