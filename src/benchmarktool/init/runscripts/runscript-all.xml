@@ -21,7 +21,7 @@
 	</system>
 
 	<seqjob name="seq-generic" timeout="120s" runs="1" memout="1000" parallel="8"/>
-	<distjob name="dist-generic" timeout="120s" runs="1" memout="1000" script_mode="timeout" walltime="23h 59m 59s" cpt="4" partition="short"/>
+	<distjob name="dist-generic" timeout="120s" runs="1" memout="1000" jobopts="--single" script_mode="timeout" walltime="23h 59m 59s" cpt="4" partition="short"/>
 
 	<benchmark name="seq-suite">
 		<folder path="benchmarks/clasp" group="true">
