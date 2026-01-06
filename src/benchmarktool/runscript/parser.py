@@ -138,6 +138,7 @@ class Parser:
         <xs:attribute name="timeout" type="timeType" use="required"/>
         <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
         <xs:attribute name="memout" type="xs:positiveInteger"/>
+        <xs:attribute name="jobopts" type="xs:string"/>
         <xs:anyAttribute processContents="lax"/>
     </xs:attributeGroup>
 
@@ -335,38 +336,11 @@ class Parser:
             root = doc.getroot()
             run = Runscript(root.get("output"))
 
-            job: DistJob | SeqJob
-
             for node in root.xpath("./distjob"):
-                attr = self._filter_attr(
-                    node, ["name", "timeout", "runs", "script_mode", "walltime", "cpt", "partition"]
-                )
-
-                partition = node.get("partition")
-                if partition is None:
-                    partition = "kr"
-                job = DistJob(
-                    node.get("name"),
-                    tools.xml_to_seconds_time(node.get("timeout")),
-                    int(node.get("runs")),
-                    attr,
-                    node.get("script_mode"),
-                    tools.xml_to_seconds_time(node.get("walltime")),
-                    int(node.get("cpt")),
-                    partition,
-                )
-                run.add_job(job)
+                run.add_job(self._parse_job(node, "distjob"))
 
             for node in root.xpath("./seqjob"):
-                attr = self._filter_attr(node, ["name", "timeout", "runs", "parallel"])
-                job = SeqJob(
-                    node.get("name"),
-                    tools.xml_to_seconds_time(node.get("timeout")),
-                    int(node.get("runs")),
-                    attr,
-                    int(node.get("parallel")),
-                )
-                run.add_job(job)
+                run.add_job(self._parse_job(node, "seqjob"))
 
             for node in root.xpath("./machine"):
                 machine = Machine(node.get("name"), node.get("cpu"), node.get("memory"))
@@ -413,7 +387,16 @@ class Parser:
                     )
                     name = child.get("name")
                     compound_settings[child.get("name")].append(name)
-                    setting = Setting(name, cmdline, tag, setting_order, disttemplate, attr, dist_options, encodings)
+                    setting = Setting(
+                        name=name,
+                        cmdline=cmdline,
+                        tag=tag,
+                        order=setting_order,
+                        dist_template=disttemplate,
+                        attr=attr,
+                        dist_options=dist_options,
+                        encodings=encodings,
+                    )
                     system.add_setting(setting)
                     setting_order += 1
 
@@ -459,11 +442,11 @@ class Parser:
                 for child in node.xpath("./runspec"):
                     for setting_name in compound_settings[child.get("setting")]:
                         project.add_runspec(
-                            child.get("machine"),
-                            child.get("system"),
-                            child.get("version"),
-                            setting_name,
-                            child.get("benchmark"),
+                            machine_name=child.get("machine"),
+                            system_name=child.get("system"),
+                            version=child.get("version"),
+                            setting_name=setting_name,
+                            benchmark_name=child.get("benchmark"),
                         )
 
                 for child in node.xpath("./runtag"):
@@ -480,3 +463,46 @@ class Parser:
             if not key in skip:
                 attr[key] = val
         return attr
+
+    def _parse_job(self, node: etree._Element, job_type: str) -> DistJob | SeqJob:
+        """
+        Parses a job node and returns the corresponding job instance.
+        """
+        attr_filter = ["name", "timeout", "memout", "runs", "jobopts"]
+        kwargs = {
+            "name": node.get("name"),
+            "timeout": tools.xml_to_seconds_time(node.get("timeout")),
+            "runs": int(node.get("runs")),
+        }
+        memout = node.get("memout")
+        if memout is not None:
+            kwargs["memout"] = int(memout)
+        job_options = node.get("jobopts")
+        if job_options is None:
+            job_options = ""
+        kwargs["options"] = job_options
+
+        if job_type == "distjob":
+            attr = self._filter_attr(node, attr_filter + ["script_mode", "walltime", "cpt", "partition"])
+            kwargs.update(
+                {
+                    "attr": attr,
+                    "script_mode": node.get("script_mode"),
+                    "walltime": tools.xml_to_seconds_time(node.get("walltime")),
+                    "cpt": int(node.get("cpt")),
+                }
+            )
+            partition = node.get("partition")
+            if partition is not None:
+                kwargs["partition"] = partition
+            return DistJob(**kwargs)  # pylint: disable=missing-kwoa
+        if job_type == "seqjob":
+            attr = self._filter_attr(node, attr_filter + ["parallel"])
+            kwargs.update(
+                {
+                    "attr": attr,
+                    "parallel": int(node.get("parallel")),
+                }
+            )
+            return SeqJob(**kwargs)  # pylint: disable=missing-kwoa
+        raise ValueError(f"Unknown job type: {job_type}")

@@ -102,8 +102,8 @@ class System:
         out.write("{0}</system>\n".format(indent))
 
 
-# pylint: disable=too-many-instance-attributes, too-many-positional-arguments
-@dataclass(order=True, frozen=True)
+# pylint: disable=too-many-instance-attributes
+@dataclass(order=True, frozen=True, kw_only=True)
 class Setting:
     """
     Describes a setting for a system. This are command line options
@@ -117,7 +117,7 @@ class Setting:
         order (int):    An integer specifying the order of settings.
                         (This should denote the occurrence in the job specification.
                         Again in the scope of a system.)
-        disttemplate (str):              Path to dist-template file. (dist only, related to mpi-version)
+        dist_template (str):             Path to dist-template file. (dist only, related to mpi-version)
         attr (dict[str, Any]):           A dictionary of additional optional attributes.
         dist_options (Optional[str]):    Additional dist options for this setting.
         encodings (dict[str, set[str]]): Encodings used with this setting, keyed with tags.
@@ -127,7 +127,7 @@ class Setting:
     cmdline: str = field(compare=False)
     tag: set[str] = field(compare=False)
     order: int = field(compare=False)
-    disttemplate: str = field(compare=False)
+    dist_template: str = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
 
     dist_options: str = field(default="", compare=False)
@@ -143,8 +143,8 @@ class Setting:
         """
         tag = " ".join(sorted(self.tag))
         out.write('{1}<setting name="{0.name}" cmdline="{0.cmdline}" tag="{2}"'.format(self, indent, tag))
-        if self.disttemplate is not None:
-            out.write(' {0}="{1}"'.format("disttemplate", self.disttemplate))
+        if self.dist_template is not None:
+            out.write(' {0}="{1}"'.format("disttemplate", self.dist_template))
         for key, val in self.attr.items():
             out.write(' {0}="{1}"'.format(key, val))
         if self.dist_options != "":
@@ -160,7 +160,7 @@ class Setting:
 
 
 @total_ordering
-@dataclass(eq=False, frozen=True)
+@dataclass(eq=False, frozen=True, kw_only=True)
 class Job:
     """
     Base class for all jobs.
@@ -168,7 +168,9 @@ class Job:
     Attributes:
         name (str):    A unique name for a job.
         timeout (int): A timeout in seconds for individual benchmark runs.
+        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
         runs (int):    The number of runs per benchmark.
+        options (str): Job options.
         attr (dict[str, Any]): A dictionary of arbitrary attributes.
     """
 
@@ -176,6 +178,8 @@ class Job:
     timeout: int = field(compare=False)
     runs: int = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
+    memout: int = field(compare=False, default=20000)
+    options: str = field(compare=False, default="")
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Job):
@@ -201,7 +205,9 @@ class Job:
             extra (str):  Additional arguments for the job.
         """
         out.write(
-            '{1}<{2} name="{0.name}" timeout="{0.timeout}" runs="{0.runs}"{3}'.format(self, indent, xmltag, extra)
+            '{1}<{2} name="{0.name}" timeout="{0.timeout}" memout="{0.memout}" runs="{0.runs}"{3} jobopts="{0.options}"'.format(
+                self, indent, xmltag, extra
+            )
         )
         for key, val in self.attr.items():
             out.write(' {0}="{1}"'.format(key, val))
@@ -212,74 +218,6 @@ class Job:
         Has to be overwritten by subclasses.
         """
         raise NotImplementedError
-
-
-# pylint: disable=too-few-public-methods
-@dataclass
-class Run:
-    """
-    Base class for all runs.
-
-    Attributes:
-        path (str): Path that holds the target location for start scripts.
-        root (str): directory relative to the location of the run's path.
-    """
-
-    path: str
-
-    root: str = field(init=False)
-
-    def __post_init__(self) -> None:
-        self.root = os.path.relpath(".", self.path)
-
-
-# pylint: disable=too-many-instance-attributes, too-many-positional-arguments, too-few-public-methods
-@dataclass
-class SeqRun(Run):
-    """
-    Describes a sequential run.
-
-    Attributes:
-        path (str):        Path that holds the target location for start scripts.
-        run (int):         The number of the run.
-        job (Job):         A reference to the job description.
-        runspec (Runspec): A reference to the run description.
-        instance (Benchmark.Instance): A reference to the instance to benchmark.
-        root (str):        Directory relative to the location of the run's path.
-        files (str):       Relative paths to all instances.
-        encodings (str):   Relative paths to all encodings.
-        args (str):        The command line arguments for this run.
-        solver (str):      The solver for this run.
-        timeout (int):     The timeout of this run.
-        memout (int):      The memory limit of this run.
-    """
-
-    run: int
-    job: "Job"
-    runspec: "Runspec"
-    instance: "Benchmark.Instance"
-
-    files: str = field(init=False)
-    encodings: str = field(init=False)
-    args: str = field(init=False)
-    solver: str = field(init=False)
-    timeout: int = field(init=False)
-    memout: int = field(init=False)
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        self.files = " ".join([f'"{os.path.relpath(i, self.path)}"' for i in sorted(self.instance.paths())])
-
-        encodings = self.instance.encodings
-        encodings = encodings.union(self.runspec.setting.encodings.get("_default_", set()))
-        for i in self.instance.enctags:
-            encodings = encodings.union(self.runspec.setting.encodings.get(i, set()))
-        self.encodings = " ".join([f'"{os.path.relpath(e, self.path)}"' for e in sorted(encodings)])
-
-        self.args = self.runspec.setting.cmdline
-        self.solver = self.runspec.system.name + "-" + self.runspec.system.version
-        self.timeout = self.job.timeout
-        self.memout = int(self.job.attr.get("memout", 20000))
 
 
 class ScriptGen:
@@ -338,13 +276,36 @@ class ScriptGen:
                     continue
                 with open(runspec.system.config.template, "r", encoding="utf8") as f:
                     template = f.read()
+
+                job_options = self.job.options
+                if job_options != "":
+                    job_options = " \\\n\t".join(job_options.split(","))
+                else:
+                    job_options = ""
+                encodings = instance.encodings
+                encodings = encodings.union(runspec.setting.encodings.get("_default_", set()))
+                for i in instance.enctags:
+                    encodings = encodings.union(runspec.setting.encodings.get(i, set()))
+                encodings_str = " ".join([f'"{os.path.relpath(e, path)}"' for e in sorted(encodings)])
+
                 with open(startpath, "w", encoding="utf8") as startfile:
-                    startfile.write(template.format(run=SeqRun(path, run, self.job, runspec, instance)))
+                    startfile.write(
+                        template.format(
+                            root=os.path.relpath(".", path),
+                            options=job_options,
+                            memout=self.job.memout,
+                            timeout=self.job.timeout,
+                            solver=runspec.system.name + "-" + runspec.system.version,
+                            args=runspec.setting.cmdline,
+                            files=" ".join([f'"{os.path.relpath(i, path)}"' for i in sorted(instance.paths())]),
+                            encodings=encodings_str,
+                        )
+                    )
                 self.startfiles.append((runspec, path, "start.sh"))
                 tools.set_executable(startpath)
 
     def eval_results(
-        self, out: Any, indent: str, runspec: "Runspec", instance: "Benchmark.Instance", parx: int = 2
+        self, *, out: Any, indent: str, runspec: "Runspec", instance: "Benchmark.Instance", parx: int = 2
     ) -> None:
         """
         Parses the results of a given benchmark instance and outputs them as XML.
@@ -638,7 +599,7 @@ class DistScriptGen(ScriptGen):
                 assert isinstance(self.runspec.project, Project)
                 assert isinstance(self.runspec.project.job, DistJob)
                 self.num = 0
-                with open(self.runspec.setting.disttemplate, "r", encoding="utf8") as f:
+                with open(self.runspec.setting.dist_template, "r", encoding="utf8") as f:
                     template = f.read()
                 script = os.path.join(self.path, "start{0:04}.dist".format(len(self.queue)))
                 if self.runspec.setting.dist_options != "":
@@ -703,7 +664,7 @@ class DistScriptGen(ScriptGen):
             relpath = os.path.relpath(instpath, path)
             job_script = os.path.join(relpath, instname)
             dist_key = (
-                runspec.setting.disttemplate,
+                runspec.setting.dist_template,
                 runspec.setting.dist_options,
                 runspec.project.job.walltime,
                 runspec.project.job.cpt,
@@ -737,7 +698,7 @@ class DistScriptGen(ScriptGen):
         tools.set_executable(os.path.join(path, "start.sh"))
 
 
-@dataclass(eq=False, frozen=True)
+@dataclass(eq=False, frozen=True, kw_only=True)
 class SeqJob(Job):
     """
     Describes a sequential job.
@@ -771,7 +732,7 @@ class SeqJob(Job):
         Job._to_xml(self, out, indent, "seqjob", extra)
 
 
-@dataclass(eq=False, frozen=True)
+@dataclass(eq=False, frozen=True, kw_only=True)
 class DistJob(Job):
     """
     Describes a dist job.
@@ -790,7 +751,7 @@ class DistJob(Job):
     script_mode: str = field(compare=False)
     walltime: int = field(compare=False)
     cpt: int = field(compare=False)
-    partition: str = field(compare=False)
+    partition: str = field(compare=False, default="kr")
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
@@ -1007,7 +968,13 @@ class Benchmark:
                         instances[group] = set()
                     instances[group].add(filename)
                 for group, instfiles in instances.items():
-                    benchmark.add_instance(self.path, relroot, (group, instfiles), self.encodings, self.enctags)
+                    benchmark.add_instance(
+                        root=self.path,
+                        relroot=relroot,
+                        files=(group, instfiles),
+                        encodings=self.encodings,
+                        enctags=self.enctags,
+                    )
 
     class Files:
         """
@@ -1081,7 +1048,11 @@ class Benchmark:
                     raise RuntimeError("Instances of the same group must be in the same directory.")
                 relroot = paths[0][0]
                 benchmark.add_instance(
-                    self.path, relroot, (group, set(map(lambda x: x[1], paths))), self.encodings, self.enctags
+                    root=self.path,
+                    relroot=relroot,
+                    files=(group, set(map(lambda x: x[1], paths))),
+                    encodings=self.encodings,
+                    enctags=self.enctags,
                 )
 
     def add_element(self, element: Any) -> None:
@@ -1094,7 +1065,7 @@ class Benchmark:
         self.elements.append(element)
 
     def add_instance(
-        self, root: str, relroot: str, files: tuple[str, set[str]], encodings: set[str], enctags: set[str]
+        self, *, root: str, relroot: str, files: tuple[str, set[str]], encodings: set[str], enctags: set[str]
     ) -> None:
         """
         Adds an instance to the benchmark set. (This function
@@ -1237,10 +1208,16 @@ class Project:
         for system in self.runscript.systems.values():
             for setting in system.settings.values():
                 if disj.match(setting.tag):
-                    self.add_runspec(machine_name, system.name, system.version, setting.name, benchmark_name)
+                    self.add_runspec(
+                        machine_name=machine_name,
+                        system_name=system.name,
+                        version=system.version,
+                        setting_name=setting.name,
+                        benchmark_name=benchmark_name,
+                    )
 
     def add_runspec(
-        self, machine_name: str, system_name: str, version: str, setting_name: str, benchmark_name: str
+        self, *, machine_name: str, system_name: str, version: str, setting_name: str, benchmark_name: str
     ) -> None:
         """
         Adds a run specification, described by machine, system+settings, and benchmark set,
@@ -1433,7 +1410,9 @@ class Runscript:
                         instances = runspec.benchmark.instances[classname]
                         for instance in instances:
                             out.write('\t\t\t\t<instance id="{0.id}">\n'.format(instance))
-                            job_gen.eval_results(out, "\t\t\t\t\t", runspec, instance, parx)
+                            job_gen.eval_results(
+                                out=out, indent="\t\t\t\t\t", runspec=runspec, instance=instance, parx=parx
+                            )
                             out.write("\t\t\t\t</instance>\n")
                         out.write("\t\t\t</class>\n")
                     out.write("\t\t</runspec>\n")
