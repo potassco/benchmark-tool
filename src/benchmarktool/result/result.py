@@ -55,7 +55,7 @@ class Result:
         max_col_width: int = 300,
     ) -> Optional[str]:
         """
-        Prints the current result in an Excel spreadsheet format.
+        Prints the current result in Microsoft Excel Spreadsheet format (XLSX).
         Returns the name of the export file if values are exported.
 
         Attributes:
@@ -76,6 +76,8 @@ class Result:
             for runspec in project:
                 doc.add_runspec(runspec)
         doc.finish()
+        if not out.lower().endswith(".xlsx"):
+            out += ".xlsx"
         doc.make_xlsx(out)
 
         if export:
