@@ -79,14 +79,14 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         "-o",
         "--output",
         default="out.xlsx",
-        help="Name of generated xlsx file (default: out.xlsx)",
+        help="Name of generated xlsx file (default: %(default)s)",
         metavar="<file.xlsx>",
     )
     conv_parser.add_argument(
         "--max-col-width",
         type=int,
         default=300,
-        help="Maximum column width for spreadsheet (default: 300)",
+        help="Maximum column width for spreadsheet (default: %(default)d)",
         metavar="<n>",
         dest="max_col_width",
     )
@@ -108,7 +108,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
             Measures to display
             Comma separated list of form 'name[:{t,to,-}]' (optional argument determines coloring)
             Use '-m all' to display all measures
-            (default: time:t,timeout:to)
+            (default: %(default)s)
             """
         ),
         metavar="<measure[:{t,to,-}][,measure[:{t,to,-}],...]>",
@@ -158,7 +158,7 @@ def btool_eval(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         type=int,
         default=2,
         dest="par_x",
-        help="Add penalized-average-runtime score factor as measure (default: 2)",
+        help="Add penalized-average-runtime score factor as measure (default: %(default)d)",
         metavar="<n>",
     )
     eval_parser.set_defaults(func=run)
@@ -323,17 +323,17 @@ def btool_run_dist(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # 
     parser.add_argument(
         "-j",
         "--jobs",
-        help="Maximum number of jobs running at once (default: 100)",
         type=int,
         default=100,
+        help="Maximum number of jobs running at once (default: %(default)d)",
         metavar="<n>",
     )
     parser.add_argument(
         "-w",
         "--wait",
-        help="Time to wait between checks in seconds (default: 1)",
         type=int,
         default=1,
+        help="Time to wait between checks in seconds (default: %(default)d)",
         metavar="<n>",
     )
     parser.set_defaults(func=run)
