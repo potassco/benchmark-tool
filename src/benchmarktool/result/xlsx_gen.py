@@ -1,5 +1,5 @@
 """
-Created on Apr 14, 2025
+Created on Dec 2, 2025
 
 @author: Tom Schmidt
 """
@@ -37,10 +37,8 @@ class Formula:
         """
         Get spreadsheet string representation.
         """
-        s = self.formula_string
         # remove leading '='
-        if s.startswith("="):
-            s = s[1:]
+        s = self.formula_string.lstrip("=")
         return f"={s}"
 
 
@@ -328,7 +326,7 @@ class Sheet:
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
-        Add results to the their respective blocks.
+        Add results to their respective blocks.
 
         Attributes:
             runspec (Runspec): Run specification
