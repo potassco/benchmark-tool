@@ -955,11 +955,12 @@ class Benchmark:
                 for filename in files:
                     if self._skip(relroot, filename):
                         continue
-                    m = re.match(r"^(([^\.]+).*)\.[^.]+$", filename)
+                    m = re.match(r"^(([^.]+(?:\.[^.]+)*?)(?:\.[^.]+)?)\.[^.]+$", filename)
                     if m is None:
-                        raise RuntimeError("Invalid file name.")
+                        sys.stderr.write(f"*** WARNING: skipping invalid file name: {filename}\n")
+                        continue
                     if self.group:
-                        # remove file extension, file.1.txt -> file
+                        # remove last 2 file extensions, file.1.txt -> file
                         group = m.group(2)
                     else:
                         # remove last file extension, file.1.txt -> file.1
@@ -1002,9 +1003,10 @@ class Benchmark:
                 group (Optional[str]): Instance group.
             """
             if group is None:
-                m = re.match(r"^(([^\.]+).*)\.[^.]+$", os.path.basename(path))
+                m = re.match(r"^([^.]+(?:\.[^.]+)*)\.[^.]+$", os.path.basename(path))
                 if m is None:
-                    raise RuntimeError("Invalid file name.")
+                    sys.stderr.write(f"*** WARNING: skipping invalid file name: {path}\n")
+                    return
                 # remove file extension, file.1.txt -> file.1
                 group = m.group(1)
             if group not in self.files:
@@ -1040,12 +1042,16 @@ class Benchmark:
                 benchmark (Benchmark): The benchmark to be populated.
             """
             for group, files in self.files.items():
-                for file in files:
-                    if not os.path.exists(os.path.join(self.path, file)):
-                        raise FileNotFoundError("Specified instance file does not exist.")
+                if not all(os.path.exists(os.path.join(self.path, file)) for file in files):
+                    sys.stderr.write(f"*** WARNING: skipping instance '{group}' due to missing files!\n")
+                    continue
                 paths = list(map(os.path.split, sorted(files)))
                 if len(set(map(lambda x: x[0], paths))) != 1:
-                    raise RuntimeError("Instances of the same group must be in the same directory.")
+                    sys.stderr.write(
+                        f"*** WARNING: skipping instance '{group}' due to inconsistent file paths!\n"
+                        "Grouped files must be located in the same folder.\n"
+                    )
+                    continue
                 relroot = paths[0][0]
                 benchmark.add_instance(
                     root=self.path,
