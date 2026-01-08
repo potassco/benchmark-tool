@@ -6,6 +6,7 @@ representation in form of python classes.
 
 __author__ = "Roland Kaminski"
 import os
+import sys
 from typing import Any
 
 from lxml import etree  # type: ignore[import-untyped]
@@ -329,129 +330,177 @@ class Parser:
         )
         schema = etree.XMLSchema(schemadoc)
 
-        with open(file_name, "r", encoding="utf8") as file:
-            doc = etree.parse(file)
+        try:
+            doc = etree.parse(file_name)
+        except etree.XMLSyntaxError as e:
+            sys.stderr.write(f"*** ERROR: XML Syntax Error in runscript: {e}\n")
+            sys.exit(1)
+
+        try:
             schema.assertValid(doc)
+        except etree.DocumentInvalid as e:
+            sys.stderr.write(f"*** ERROR: Invalid runscript file: {e}\n")
+            sys.exit(1)
 
-            root = doc.getroot()
-            run = Runscript(root.get("output"))
+        root = doc.getroot()
+        run = Runscript(root.get("output"))
 
-            for node in root.xpath("./distjob"):
-                run.add_job(self._parse_job(node, "distjob"))
+        for node in root.xpath("./distjob"):
+            run.add_job(self._parse_job(node, "distjob"))
 
-            for node in root.xpath("./seqjob"):
-                run.add_job(self._parse_job(node, "seqjob"))
+        for node in root.xpath("./seqjob"):
+            run.add_job(self._parse_job(node, "seqjob"))
 
-            for node in root.xpath("./machine"):
-                machine = Machine(node.get("name"), node.get("cpu"), node.get("memory"))
-                run.add_machine(machine)
+        for node in root.xpath("./machine"):
+            machine = Machine(node.get("name"), node.get("cpu"), node.get("memory"))
+            run.add_machine(machine)
 
-            for node in root.xpath("./config"):
-                config = Config(node.get("name"), node.get("template"))
-                run.add_config(config)
+        for node in root.xpath("./config"):
+            config = Config(node.get("name"), node.get("template"))
+            run.add_config(config)
 
-            compound_settings: dict[str, list[str]] = {}
-            system_order = 0
-            for node in root.xpath("./system"):
-                config = run.configs[node.get("config")]
-                system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
-                setting_order = 0
-                sys_cmdline = node.get("cmdline")
-                sys_cmdline_post = node.get("cmdline_post")
-                for child in node.xpath("setting"):
-                    attr = self._filter_attr(child, ["name", "cmdline", "tag", "distopts", "disttemplate"])
-                    compound_settings[child.get("name")] = []
-                    disttemplate = child.get("disttemplate")
-                    if disttemplate is None:
-                        disttemplate = "templates/single.dist"
-                    if child.get("tag") is None:
-                        tag = set()
+        compound_settings: dict[str, list[str]] = {}
+        system_order = 0
+        for node in root.xpath("./system"):
+            config = run.configs[node.get("config")]
+            system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
+            setting_order = 0
+            sys_cmdline = node.get("cmdline")
+            sys_cmdline_post = node.get("cmdline_post")
+            for child in node.xpath("setting"):
+                attr = self._filter_attr(child, ["name", "cmdline", "tag", "distopts", "disttemplate"])
+                compound_settings[child.get("name")] = []
+                disttemplate = child.get("disttemplate")
+                if disttemplate is None:
+                    disttemplate = "templates/single.dist"
+                if child.get("tag") is None:
+                    tag = set()
+                else:
+                    tag = set(child.get("tag").split(None))
+                dist_options = child.get("distopts")
+                if dist_options is None:
+                    dist_options = ""
+                encodings: dict[str, set[str]] = {"_default_": set()}
+                for grandchild in child.xpath("./encoding"):
+                    if grandchild.get("enctag") is None:
+                        encodings["_default_"].add(os.path.normpath(grandchild.get("file")))
                     else:
-                        tag = set(child.get("tag").split(None))
-                    dist_options = child.get("distopts")
-                    if dist_options is None:
-                        dist_options = ""
-                    encodings: dict[str, set[str]] = {"_default_": set()}
-                    for grandchild in child.xpath("./encoding"):
-                        if grandchild.get("enctag") is None:
-                            encodings["_default_"].add(os.path.normpath(grandchild.get("file")))
-                        else:
-                            enctags = set(grandchild.get("enctag").split(None))
-                            for t in enctags:
-                                if t not in encodings:
-                                    encodings[t] = set()
-                                encodings[t].add(os.path.normpath(grandchild.get("file")))
+                        enctags = set(grandchild.get("enctag").split(None))
+                        for t in enctags:
+                            if t not in encodings:
+                                encodings[t] = set()
+                            encodings[t].add(os.path.normpath(grandchild.get("file")))
 
-                    cmdline = " ".join(
-                        filter(None, [sys_cmdline, child.get("cmdline"), sys_cmdline_post, child.get("cmdline_post")])
+                cmdline = " ".join(
+                    filter(None, [sys_cmdline, child.get("cmdline"), sys_cmdline_post, child.get("cmdline_post")])
+                )
+                name = child.get("name")
+                compound_settings[child.get("name")].append(name)
+                setting = Setting(
+                    name=name,
+                    cmdline=cmdline,
+                    tag=tag,
+                    order=setting_order,
+                    dist_template=disttemplate,
+                    attr=attr,
+                    dist_options=dist_options,
+                    encodings=encodings,
+                )
+                system.add_setting(setting)
+                setting_order += 1
+
+            run.systems[(system.name, system.version)] = system
+            system_order += 1
+
+        element: Any
+        for node in root.xpath("./benchmark"):
+            benchmark = Benchmark(node.get("name"))
+            for child in node.xpath("./folder"):
+                if child.get("group") is not None:
+                    group = child.get("group").lower() == "true"
+                else:
+                    group = False
+                element = Benchmark.Folder(child.get("path"), group)
+                if child.get("enctag") is None:
+                    tag = set()
+                else:
+                    tag = set(child.get("enctag").split(None))
+                element.add_enctags(tag)
+                for grandchild in child.xpath("./encoding"):
+                    element.add_encoding(grandchild.get("file"))
+                for grandchild in child.xpath("./ignore"):
+                    element.add_ignore(grandchild.get("prefix"))
+                benchmark.add_element(element)
+            for child in node.xpath("./files"):
+                element = Benchmark.Files(child.get("path"))
+                if child.get("enctag") is None:
+                    tag = set()
+                else:
+                    tag = set(child.get("enctag").split(None))
+                element.add_enctags(tag)
+                for grandchild in child.xpath("./encoding"):
+                    element.add_encoding(grandchild.get("file"))
+                for grandchild in child.xpath("./add"):
+                    element.add_file(grandchild.get("file"), grandchild.get("group"))
+                benchmark.add_element(element)
+            run.add_benchmark(benchmark)
+
+        for node in root.xpath("./project"):
+            project = Project(node.get("name"), run, run.jobs[node.get("job")])
+            run.add_project(project)
+            for child in node.xpath("./runspec"):
+                for setting_name in compound_settings[child.get("setting")]:
+                    project.add_runspec(
+                        machine_name=child.get("machine"),
+                        system_name=child.get("system"),
+                        version=child.get("version"),
+                        setting_name=setting_name,
+                        benchmark_name=child.get("benchmark"),
                     )
-                    name = child.get("name")
-                    compound_settings[child.get("name")].append(name)
-                    setting = Setting(
-                        name=name,
-                        cmdline=cmdline,
-                        tag=tag,
-                        order=setting_order,
-                        dist_template=disttemplate,
-                        attr=attr,
-                        dist_options=dist_options,
-                        encodings=encodings,
-                    )
-                    system.add_setting(setting)
-                    setting_order += 1
 
-                run.systems[(system.name, system.version)] = system
-                system_order += 1
+            for child in node.xpath("./runtag"):
+                project.add_runtag(child.get("machine"), child.get("benchmark"), child.get("tag"))
 
-            element: Any
-            for node in root.xpath("./benchmark"):
-                benchmark = Benchmark(node.get("name"))
-                for child in node.xpath("./folder"):
-                    if child.get("group") is not None:
-                        group = child.get("group").lower() == "true"
-                    else:
-                        group = False
-                    element = Benchmark.Folder(child.get("path"), group)
-                    if child.get("enctag") is None:
-                        tag = set()
-                    else:
-                        tag = set(child.get("enctag").split(None))
-                    element.add_enctags(tag)
-                    for grandchild in child.xpath("./encoding"):
-                        element.add_encoding(grandchild.get("file"))
-                    for grandchild in child.xpath("./ignore"):
-                        element.add_ignore(grandchild.get("prefix"))
-                    benchmark.add_element(element)
-                for child in node.xpath("./files"):
-                    element = Benchmark.Files(child.get("path"))
-                    if child.get("enctag") is None:
-                        tag = set()
-                    else:
-                        tag = set(child.get("enctag").split(None))
-                    element.add_enctags(tag)
-                    for grandchild in child.xpath("./encoding"):
-                        element.add_encoding(grandchild.get("file"))
-                    for grandchild in child.xpath("./add"):
-                        element.add_file(grandchild.get("file"), grandchild.get("group"))
-                    benchmark.add_element(element)
-                run.add_benchmark(benchmark)
-
-            for node in root.xpath("./project"):
-                project = Project(node.get("name"), run, run.jobs[node.get("job")])
-                run.add_project(project)
-                for child in node.xpath("./runspec"):
-                    for setting_name in compound_settings[child.get("setting")]:
-                        project.add_runspec(
-                            machine_name=child.get("machine"),
-                            system_name=child.get("system"),
-                            version=child.get("version"),
-                            setting_name=setting_name,
-                            benchmark_name=child.get("benchmark"),
-                        )
-
-                for child in node.xpath("./runtag"):
-                    project.add_runtag(child.get("machine"), child.get("benchmark"), child.get("tag"))
+        self.validate_components(run)
         return run
+
+    def validate_components(self, run: Runscript) -> None:
+        """
+        Check runscript for the existence of all required components.
+        """
+        # machine
+        if not run.machines:
+            sys.stderr.write("*** WARNING: No machine defined in runscript.\n")
+
+        # config
+        if not run.configs:
+            sys.stderr.write("*** WARNING: No config defined in runscript.\n")
+
+        # system
+        if not run.systems:
+            sys.stderr.write("*** WARNING: No system defined in runscript.\n")
+
+        # setting
+        for system in run.systems.values():
+            if not system.settings:
+                sys.stderr.write(f"*** WARNING: No setting defined for system '{system.name}-{system.version}'.\n")
+
+        # job
+        if not run.jobs:
+            sys.stderr.write("*** WARNING: No job defined in runscript.\n")
+
+        # benchmark
+        if not run.benchmarks:
+            sys.stderr.write("*** WARNING: No benchmark defined in runscript.\n")
+
+        # instances
+        for benchmark in run.benchmarks.values():
+            if not benchmark.elements:
+                sys.stderr.write(f"*** WARNING: No instance folder/files defined for benchmark '{benchmark.name}'.\n")
+
+        # project
+        if not run.projects:
+            sys.stderr.write("*** WARNING: No project defined in runscript.\n")
 
     def _filter_attr(self, node: etree._Element, skip: list[str]) -> dict[str, Any]:
         """
