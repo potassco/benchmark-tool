@@ -10,6 +10,7 @@ import importlib
 import importlib.util
 import os
 import re
+import shutil
 import sys
 from dataclasses import dataclass, field
 from functools import total_ordering
@@ -1341,11 +1342,17 @@ class Runscript:
         """
         self.projects[project.name] = project
 
-    def gen_scripts(self, skip: bool) -> None:
+    def gen_scripts(self, skip: bool, overwrite: bool) -> None:
         """
         Generates the start scripts for all benchmarks described by
         this run script.
         """
+        if os.path.isdir(self.output):
+            if overwrite:
+                shutil.rmtree(self.output)
+            else:
+                sys.stderr.write("*** ERROR: Output directory already exists.\n")
+                sys.exit(1)
         for project in self.projects.values():
             project.gen_scripts(skip)
 

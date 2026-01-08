@@ -172,7 +172,7 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     def run(args: Any) -> None:
         p = RunParser()
         run = p.parse(args.runscript)
-        run.gen_scripts(args.exclude)
+        run.gen_scripts(args.exclude, args.overwrite)
 
     gen_parser = subparsers.add_parser(
         "gen",
@@ -182,6 +182,12 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     )
     gen_parser.add_argument("runscript", type=str, help="Runscript file", metavar="<runscript.xml>")
     gen_parser.add_argument("-e", "--exclude", action="store_true", help="Exclude finished runs")
+    gen_parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing files",
+    )
     gen_parser.set_defaults(func=run)
 
 
