@@ -162,16 +162,21 @@ class TestParser(TestCase):
         self.assertEqual(args.command, "gen")
         self.assertEqual(args.runscript, "rs.xml")
         self.assertFalse(args.exclude)
+        self.assertFalse(args.overwrite)
         self.assertIsInstance(args.func, Callable)
 
         # exclude
         args = self.parser.parse_args(["gen", "rs.xml", "-e"])
         self.assertTrue(args.exclude)
 
+        # overwrite
+        args = self.parser.parse_args(["gen", "rs.xml", "-o"])
+        self.assertTrue(args.overwrite)
+
         # run function
         run_mock = mock.MagicMock()
         with (mock.patch("benchmarktool.entry_points.RunParser.parse", return_value=run_mock) as parse_mock,):
-            args = self.parser.parse_args(["gen", "rs.xml", "-e"])
+            args = self.parser.parse_args(["gen", "rs.xml", "-e", "-o"])
             args.func(args)
             parse_mock.assert_called_once_with("rs.xml")
-            run_mock.gen_scripts.assert_called_once_with(True)
+            run_mock.gen_scripts.assert_called_once_with(True, True)
