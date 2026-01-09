@@ -206,7 +206,7 @@ class Job:
             extra (str):  Additional arguments for the job.
         """
         out.write(
-            '{1}<{2} name="{0.name}" timeout="{0.timeout}" memout="{0.memout}" runs="{0.runs}"{3} jobopts="{0.options}"'.format(
+            '{1}<{2} name="{0.name}" timeout="{0.timeout}" memout="{0.memout}" runs="{0.runs}" jobopts="{0.options}"{3}'.format(
                 self, indent, xmltag, extra
             )
         )
@@ -1218,13 +1218,13 @@ class Project:
                     self.add_runspec(
                         machine_name=machine_name,
                         system_name=system.name,
-                        version=system.version,
+                        system_version=system.version,
                         setting_name=setting.name,
                         benchmark_name=benchmark_name,
                     )
 
     def add_runspec(
-        self, *, machine_name: str, system_name: str, version: str, setting_name: str, benchmark_name: str
+        self, *, machine_name: str, system_name: str, system_version: str, setting_name: str, benchmark_name: str
     ) -> None:
         """
         Adds a run specification, described by machine, system+settings, and benchmark set,
@@ -1239,8 +1239,8 @@ class Project:
         """
         runspec = Runspec(
             self.runscript.machines[machine_name],
-            self.runscript.systems[(system_name, version)],
-            self.runscript.systems[(system_name, version)].settings[setting_name],
+            self.runscript.systems[(system_name, system_version)],
+            self.runscript.systems[(system_name, system_version)].settings[setting_name],
             self.runscript.benchmarks[benchmark_name],
             self,
         )
@@ -1342,7 +1342,7 @@ class Runscript:
         """
         self.projects[project.name] = project
 
-    def gen_scripts(self, skip: bool, overwrite: bool) -> None:
+    def gen_scripts(self, skip: bool, overwrite: bool = False) -> None:
         """
         Generates the start scripts for all benchmarks described by
         this run script.

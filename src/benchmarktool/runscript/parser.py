@@ -453,7 +453,7 @@ class Parser:
                     project.add_runspec(
                         machine_name=child.get("machine"),
                         system_name=child.get("system"),
-                        version=child.get("version"),
+                        system_version=child.get("version"),
                         setting_name=setting_name,
                         benchmark_name=child.get("benchmark"),
                     )
@@ -554,4 +554,5 @@ class Parser:
                 }
             )
             return SeqJob(**kwargs)  # pylint: disable=missing-kwoa
-        raise ValueError(f"Unknown job type: {job_type}")
+        # Should never happen, checked by xml schema
+        raise ValueError(f"Unknown job type: {job_type}")  # nocoverage
