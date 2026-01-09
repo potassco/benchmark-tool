@@ -43,9 +43,9 @@ class TestParser(TestCase):
         args = self.parser.parse_args(["conv"])
         self.assertEqual(args.command, "conv")
         self.assertIsNone(args.resultfile)
-        self.assertEqual(args.output, "out.ods")
+        self.assertEqual(args.output, "out.xlsx")
         self.assertSetEqual(args.projects, set())
-        self.assertEqual(args.measures, [("time", "t"), ("timeout", "to")])
+        self.assertEqual(args.measures, {"time": "t", "timeout": "to"})
         self.assertFalse(args.export)
         self.assertIsNone(args.jupyter_notebook)
         self.assertIsInstance(args.func, Callable)
@@ -54,8 +54,8 @@ class TestParser(TestCase):
         args = self.parser.parse_args(["conv", "res.xml"])
         self.assertEqual(args.resultfile, "res.xml")
         # output
-        args = self.parser.parse_args(["conv", "-o", "test.ods"])
-        self.assertEqual(args.output, "test.ods")
+        args = self.parser.parse_args(["conv", "-o", "test.xlsx"])
+        self.assertEqual(args.output, "test.xlsx")
 
         # projects
         args = self.parser.parse_args(["conv", "-p", "p1,p2"])
@@ -63,9 +63,9 @@ class TestParser(TestCase):
 
         # measures
         args = self.parser.parse_args(["conv", "-m", "all"])
-        self.assertEqual(args.measures, [])
+        self.assertEqual(args.measures, {})
         args = self.parser.parse_args(["conv", "-m", "test:to,other"])
-        self.assertEqual(args.measures, [("test", "to"), ("other", None)])
+        self.assertEqual(args.measures, {"test": "to", "other": None})
         with self.assertRaises(SystemExit), mock.patch("sys.stderr", new=StringIO()):
             self.parser.parse_args(["conv", "-m", ":to"])
 
@@ -84,33 +84,49 @@ class TestParser(TestCase):
             mock.patch("benchmarktool.entry_points.open"),
             mock.patch("benchmarktool.entry_points.gen_ipynb") as gen_mock,
         ):
-            result_mock.gen_office.return_value = None
+            result_mock.gen_spreadsheet.return_value = None
 
             args = self.parser.parse_args(["conv"])
             args.func(args)
             parse_mock.assert_called_once_with(sys.stdin)
-            result_mock.gen_office.assert_called_once_with("out.ods", set(), [("time", "t"), ("timeout", "to")], False)
+            result_mock.gen_spreadsheet.assert_called_once_with(
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300
+            )
             gen_mock.assert_not_called()
 
             parse_mock.reset_mock()
-            result_mock.gen_office.reset_mock()
+            result_mock.gen_spreadsheet.reset_mock()
             args = self.parser.parse_args(["conv", "-e"])
             args.func(args)
-            result_mock.gen_office.assert_called_once_with("out.ods", set(), [("time", "t"), ("timeout", "to")], True)
+            result_mock.gen_spreadsheet.assert_called_once_with(
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, True, 300
+            )
             gen_mock.assert_not_called()
 
             parse_mock.reset_mock()
-            result_mock.gen_office.reset_mock()
+            result_mock.gen_spreadsheet.reset_mock()
             args = self.parser.parse_args(
-                ["conv", "res.xml", "-o", "test.ods", "-p", "p1,p2", "-m", "all", "-j", "notebook.ipynb"]
+                [
+                    "conv",
+                    "res.xml",
+                    "-o",
+                    "test.xlsx",
+                    "-p",
+                    "p1,p2",
+                    "-m",
+                    "all",
+                    "-j",
+                    "notebook.ipynb",
+                    "--max-col-width=50",
+                ]
             )
             args.func(args)
             parse_mock.assert_called_once()
-            result_mock.gen_office.assert_called_once_with("test.ods", {"p1", "p2"}, [], True)
+            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, {}, True, 50)
             gen_mock.assert_not_called()
 
             ex_file = mock.Mock()
-            result_mock.gen_office.return_value = ex_file
+            result_mock.gen_spreadsheet.return_value = ex_file
             args.func(args)
             gen_mock.assert_called_once_with(ex_file, "notebook.ipynb")
 

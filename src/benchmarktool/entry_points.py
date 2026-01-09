@@ -42,30 +42,30 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         export: bool = args.export
         if args.jupyter_notebook is not None:
             export = True
-        ex_file = res.gen_office(args.output, args.projects, args.measures, export)
+        ex_file = res.gen_spreadsheet(args.output, args.projects, args.measures, export, args.max_col_width)
         if args.jupyter_notebook is not None and ex_file is not None:
             gen_ipynb(ex_file, args.jupyter_notebook)
 
     def parse_set(s: str) -> set[str]:
         return set(filter(None, (x.strip() for x in s.split(","))))
 
-    def parse_measures(s: str) -> list[tuple[str, str | None]]:
-        measures = []
+    def parse_measures(s: str) -> dict[str, Any]:
+        measures = {}
         if s != "all":  # empty list = select all measures
             for x in s.split(","):
                 parts = x.split(":", 1)
                 if not parts[0]:
                     raise ArgumentTypeError(f"Invalid measure: '{x}'")
-                measures.append((parts[0], parts[1] if len(parts) > 1 else None))
+                measures[parts[0]] = parts[1] if len(parts) > 1 else None
         return measures
 
     conv_parser = subparsers.add_parser(
         "conv",
-        help="Convert results to ODS or other formats",
+        help="Convert results to XLSX or other formats",
         description=dedent(
             """\
-            Convert previously collected benchmark results to ODS file
-            and optionally generate Jupyter notebook.
+            Convert previously collected benchmark results to XLSX
+            spreadsheet and optionally generate Jupyter notebook.
             """
         ),
         formatter_class=formatter,
@@ -76,7 +76,19 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
 
     conv_parser.add_argument("resultfile", nargs="?", type=str, help="Result file (default: stdin)")
     conv_parser.add_argument(
-        "-o", "--output", default="out.ods", help="Name of generated ods file (default: out.ods)", metavar="<file.ods>"
+        "-o",
+        "--output",
+        default="out.xlsx",
+        help="Name of generated xlsx file (default: %(default)s)",
+        metavar="<file.xlsx>",
+    )
+    conv_parser.add_argument(
+        "--max-col-width",
+        type=int,
+        default=300,
+        help="Maximum column width for spreadsheet (default: %(default)d)",
+        metavar="<n>",
+        dest="max_col_width",
     )
     conv_parser.add_argument(
         "-p",
@@ -96,7 +108,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
             Measures to display
             Comma separated list of form 'name[:{t,to,-}]' (optional argument determines coloring)
             Use '-m all' to display all measures
-            (default: time:t,timeout:to)
+            (default: %(default)s)
             """
         ),
         metavar="<measure[:{t,to,-}][,measure[:{t,to,-}],...]>",
@@ -105,7 +117,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         "-e",
         "--export",
         action="store_true",
-        help="Export instance data to parquet file (same name as ods file)",
+        help="Export instance data to parquet file (same name as .xlsx file)",
     )
     conv_parser.add_argument(
         "-j",
@@ -146,7 +158,7 @@ def btool_eval(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         type=int,
         default=2,
         dest="par_x",
-        help="Add penalized-average-runtime score factor as measure (default: 2)",
+        help="Add penalized-average-runtime score factor as measure (default: %(default)d)",
         metavar="<n>",
     )
     eval_parser.set_defaults(func=run)
@@ -311,17 +323,17 @@ def btool_run_dist(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # 
     parser.add_argument(
         "-j",
         "--jobs",
-        help="Maximum number of jobs running at once (default: 100)",
         type=int,
         default=100,
+        help="Maximum number of jobs running at once (default: %(default)d)",
         metavar="<n>",
     )
     parser.add_argument(
         "-w",
         "--wait",
-        help="Time to wait between checks in seconds (default: 1)",
         type=int,
         default=1,
+        help="Time to wait between checks in seconds (default: %(default)d)",
         metavar="<n>",
     )
     parser.set_defaults(func=run)

@@ -11,7 +11,7 @@ dynamic = ["version"]
 dependencies = [
     "lxml",
     "pandas",
-    "odswriter",
+    "xlsxwriter",
     "pyarrow",
     "nbformat"
 ]

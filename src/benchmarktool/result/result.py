@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from benchmarktool.result.ods_gen import ODSDoc
+from benchmarktool.result.xlsx_gen import XLSXDoc
 
 
 class Result:
@@ -45,17 +45,25 @@ class Result:
                 benchmarks.add(runspec.benchmark)
         return BenchmarkMerge(benchmarks)
 
-    def gen_office(
-        self, out: str, sel_projects: set[str], measures: list[tuple[str, Any]], export: bool = False
+    # pylint: disable=too-many-positional-arguments
+    def gen_spreadsheet(
+        self,
+        out: str,
+        sel_projects: set[str],
+        measures: dict[str, Any],
+        export: bool = False,
+        max_col_width: int = 300,
     ) -> Optional[str]:
         """
-        Prints the current result in open office spreadsheet format.
+        Prints the current result in Microsoft Excel Spreadsheet format (XLSX).
         Returns the name of the export file if values are exported.
 
         Attributes:
             out (str):                        The output file to write to.
             sel_projects (set[str]):          The selected projects ("" for all).
-            measures (list[tuple[str, Any]]): The measures to extract.
+            measures (dict[str, Any]):        The measures to extract.
+            export (bool):                    Whether to export the raw values as parquet file.
+            max_col_width (int):              The maximum column width for spreadsheet.
         """
         projects: list[Project] = []
         for project in self.projects.values():
@@ -63,16 +71,18 @@ class Result:
                 projects.append(project)
         benchmark_merge = self.merge(projects)
 
-        sheet = ODSDoc(benchmark_merge, measures)
+        doc = XLSXDoc(benchmark_merge, measures, max_col_width)
         for project in projects:
             for runspec in project:
-                sheet.add_runspec(runspec)
-        sheet.finish()
-        sheet.make_ods(out)
+                doc.add_runspec(runspec)
+        doc.finish()
+        if not out.lower().endswith(".xlsx"):
+            out += ".xlsx"
+        doc.make_xlsx(out)
 
         if export:
             # as_posix() for windows compatibility
-            ex_file = Path(out).absolute().as_posix().replace(".ods", ".parquet")
+            ex_file = Path(out).absolute().as_posix().replace(".xlsx", ".parquet")
             timeout_meta = {}
             for project in projects:
                 for runspec in project.runspecs:
@@ -84,7 +94,7 @@ class Result:
                         + "/"
                         + runspec.setting.name
                     ] = [self.jobs[project.job].timeout]
-            sheet.inst_sheet.export_values(ex_file, timeout_meta)
+            doc.inst_sheet.export_values(ex_file, timeout_meta)
             return ex_file
         return None
 
@@ -397,7 +407,7 @@ class ClassResult:
         yield from self.instresults
 
 
-@dataclass(order=True, frozen=True)
+@dataclass(order=True, frozen=True, eq=True)
 class InstanceResult:
     """
     Represents the result of an individual instance (with possibly multiple runs).
@@ -432,7 +442,7 @@ class Run:
     number: int
     measures: dict[str, tuple[str, str]] = field(default_factory=dict, compare=False)
 
-    def iter(self, measures: list[tuple[str, Any]]) -> Iterator[tuple[str, str, str]]:
+    def iter(self, measures: dict[str, Any]) -> Iterator[tuple[str, str, str]]:
         """
         Creates an iterator over all measures captured during the run.
         Measures can be filter by giving a string set of measure names.
@@ -440,13 +450,13 @@ class Run:
         will be returned.
 
         Attributes:
-            measures (list[tuple[str, Any]]): Selected measures.
+            measures (dict[str, Any]): Selected measures.
         """
-        if len(measures) == 0:
+        if len(measures.keys()) == 0:
             for name in sorted(self.measures.keys()):
                 yield name, self.measures[name][0], self.measures[name][1]
         else:
-            for name, _ in measures:
+            for name in measures.keys():
                 if name in self.measures:
                     yield name, self.measures[name][0], self.measures[name][1]
                 else:
