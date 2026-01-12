@@ -66,7 +66,7 @@ class TestResult(TestCase):
             xlsx_init.assert_called_once_with("bench_merge", [("time", "to")], 300)
             xlsx_doc.add_runspec.assert_called_once_with(run)
             xlsx_doc.finish.assert_called_once()
-            xlsx_doc.make_xlsx.assert_called_once_with("out")
+            xlsx_doc.make_xlsx.assert_called_once_with("out.xlsx")
             xlsx_doc.inst_sheet.export_values.assert_not_called()
 
             ex_file = self.res.gen_spreadsheet("out.xlsx", "p1", [("time", "to")], True)
