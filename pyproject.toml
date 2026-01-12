@@ -84,7 +84,7 @@ variable-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
 good-names = ["_"]
 
 [tool.pylint."messages control"]
-disable = ["consider-using-f-string", "duplicate-code"]
+disable = ["duplicate-code"]
 extension-pkg-allow-list = ["lxml"]
 
 [tool.coverage.run]

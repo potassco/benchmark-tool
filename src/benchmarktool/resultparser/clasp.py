@@ -70,7 +70,7 @@ def parse(
     if timedout:
         res["time"] = ("float", timeout)
     if error:
-        sys.stderr.write("*** ERROR: Run {0} failed with unrecognized status or error!\n".format(root))
+        sys.stderr.write(f"*** ERROR: Run {root} failed with unrecognized status or error!\n")
     result["error"] = ("float", int(error))
     result["timeout"] = ("float", int(timedout))
     result["memout"] = ("float", int(memout))

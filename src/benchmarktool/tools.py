@@ -52,7 +52,7 @@ def seconds_to_xml_time(int_rep: int) -> str:
     int_rep //= 60
     h = int_rep % 24
     d = int_rep // 24
-    return "{0:02}d {1:02}h {2:02}m {3:02}s".format(d, h, m, s)
+    return f"{d:02}d {h:02}h {m:02}m {s:02}s"
 
 
 def seconds_to_slurm_time(int_rep: int) -> str:
@@ -68,7 +68,7 @@ def seconds_to_slurm_time(int_rep: int) -> str:
     int_rep //= 60
     h = int_rep % 24
     d = int_rep // 24
-    return "{0:02}-{1:02}:{2:02}:{3:02}".format(d, h, m, s)
+    return f"{d:02}-{h:02}:{m:02}:{s:02}"
 
 
 def set_executable(filename: str) -> None:

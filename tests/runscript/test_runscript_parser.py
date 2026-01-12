@@ -32,8 +32,8 @@ class TestParser(TestCase):
             self.assertEqual(
                 mock_stderr.getvalue(),
                 "*** ERROR: XML Syntax Error in runscript: "
-                "Premature end of data in tag runscript line 1, line 5, column 13 "
-                "(tests/ref/runscripts/invalid_xml.xml, line 5)\n",
+                "Premature end of data in tag runscript line 1, line 6, column 1 "
+                "(tests/ref/runscripts/invalid_xml.xml, line 6)\n",
             )
 
         # invalid runscript

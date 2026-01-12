@@ -45,7 +45,7 @@ class Machine:
             out (Any):    Output stream to write to.
             indent (str): Amount of indentation.
         """
-        out.write('{1}<machine name="{0.name}" cpu="{0.cpu}" memory="{0.memory}"/>\n'.format(self, indent))
+        out.write(f'{indent}<machine name="{self.name}" cpu="{self.cpu}" memory="{self.memory}"/>\n')
 
 
 @dataclass(order=True, frozen=True)
@@ -100,7 +100,7 @@ class System:
             settings = list(self.settings.values())
         for setting in sorted(settings, key=lambda s: s.order):
             setting.to_xml(out, indent + "\t")
-        out.write("{0}</system>\n".format(indent))
+        out.write(f"{indent}</system>\n")
 
 
 # pylint: disable=too-many-instance-attributes
@@ -143,21 +143,21 @@ class Setting:
             indent (str): Amount of indentation.
         """
         tag = " ".join(sorted(self.tag))
-        out.write('{1}<setting name="{0.name}" cmdline="{0.cmdline}" tag="{2}"'.format(self, indent, tag))
+        out.write(f'{indent}<setting name="{self.name}" cmdline="{self.cmdline}" tag="{tag}"')
         if self.dist_template is not None:
-            out.write(' {0}="{1}"'.format("disttemplate", self.dist_template))
+            out.write(f' disttemplate="{self.dist_template}"')
         for key, val in self.attr.items():
-            out.write(' {0}="{1}"'.format(key, val))
+            out.write(f' {key}="{val}"')
         if self.dist_options != "":
-            out.write(' {0}="{1}"'.format("distopts", self.dist_options))
+            out.write(f' distopts="{self.dist_options}"')
         out.write(">\n")
         for enctag, encodings in self.encodings.items():
             for enc in sorted(encodings):
                 if enctag == "_default_":
-                    out.write('{0}<encoding file="{1}"/>\n'.format(indent + "\t", enc))
+                    out.write(f'{indent}\t<encoding file="{enc}"/>\n')
                 else:
-                    out.write('{0}<encoding file="{1}" tag="{2}"/>\n'.format(indent + "\t", enc, enctag))
-        out.write("{0}</setting>\n".format(indent))
+                    out.write(f'{indent}\t<encoding file="{enc}" tag="{enctag}"/>\n')
+        out.write(f"{indent}</setting>\n")
 
 
 @total_ordering
@@ -206,12 +206,11 @@ class Job:
             extra (str):  Additional arguments for the job.
         """
         out.write(
-            '{1}<{2} name="{0.name}" timeout="{0.timeout}" memout="{0.memout}" runs="{0.runs}" jobopts="{0.options}"{3}'.format(
-                self, indent, xmltag, extra
-            )
+            f'{indent}<{xmltag} name="{self.name}" timeout="{self.timeout}" memout="{self.memout}" '
+            f'runs="{self.runs}" jobopts="{self.options}"{extra}'
         )
         for key, val in self.attr.items():
-            out.write(' {0}="{1}"'.format(key, val))
+            out.write(f' {key}="{val}"')
         out.write("/>\n")
 
     def script_gen(self) -> Any:
@@ -256,7 +255,7 @@ class ScriptGen:
             instance (Benchmark.Instance): The benchmark instance for the start script.
             run (int):                     The number of the run for the start script.
         """
-        return os.path.join(runspec.path(), instance.benchclass.name, instance.name, "run%d" % run)
+        return os.path.join(runspec.path(), instance.benchclass.name, instance.name, f"run{run}")
 
     def add_to_script(self, runspec: "Runspec", instance: "Benchmark.Instance") -> None:
         """
@@ -338,10 +337,10 @@ class ScriptGen:
         result_parser: Optional[ModuleType] = None
         # dynamicly import result parser
         # prioritize local resultparsers over included in package
-        rp_name = "{0}".format(runspec.system.measures)
+        rp_name = f"{runspec.system.measures}"
         try:
             result_parser = import_from_path(
-                rp_name, os.path.join(os.getcwd(), "resultparsers", "{0}.py".format(runspec.system.measures))
+                rp_name, os.path.join(os.getcwd(), "resultparsers", f"{runspec.system.measures}.py")
             )
         except FileNotFoundError:
             try:
@@ -352,7 +351,7 @@ class ScriptGen:
                     "All runs using this parser will have no measures recorded!\n."
                 )
         for run in range(1, self.job.runs + 1):
-            out.write('{0}<run number="{1}">\n'.format(indent, run))
+            out.write(f'{indent}<run number="{run}">\n')
             # result parser call
             try:
                 result: dict[str, tuple[str, Any]] = result_parser.parse(  # type: ignore
@@ -364,13 +363,11 @@ class ScriptGen:
                     result[f"par{parx}"] = ("float", value)
 
                 for key, (valtype, val) in sorted(result.items()):
-                    out.write(
-                        '{0}<measure name="{1}" type="{2}" val="{3}"/>\n'.format(indent + "\t", key, valtype, val)
-                    )
+                    out.write(f'{indent}\t<measure name="{key}" type="{valtype}" val="{val}"/>\n')
             except AttributeError:
                 pass
 
-            out.write("{0}</run>\n".format(indent))
+            out.write(f"{indent}</run>\n")
 
 
 class SeqScriptGen(ScriptGen):
@@ -409,7 +406,7 @@ class SeqScriptGen(ScriptGen):
                     comma = True
                 queue += repr(os.path.join(relpath, instname))
             startfile.write(
-                """\
+                f"""\
 #!/usr/bin/python -u
 
 import optparse
@@ -420,7 +417,7 @@ import sys
 import signal
 import time
 
-queue = [{0}]
+queue = [{queue}]
 
 class Main:
     def __init__(self):
@@ -431,7 +428,7 @@ class Main:
         self.finished = threading.Condition()
         self.coreLock = threading.Lock()
         c = 0
-        while len(self.cores) < {1}:
+        while len(self.cores) < {self.job.parallel}:
             self.cores.add(c)
             c += 1
 
@@ -450,7 +447,7 @@ class Main:
         thread = Run(cmd, self, core)
         self.started += 1
         self.running.add(thread)
-        print("({{0}}/{{1}}/{{2}}/{{4}}) {{3}}".format(len(self.running), self.started, self.total, cmd, core))
+        print(f"({{len(self.running)}}/{{self.started}}/{{self.total}}/{{core}}) {{cmd}}")
         thread.start()
 
     def run(self, queue):
@@ -460,7 +457,7 @@ class Main:
         self.finished.acquire()
         self.total = len(queue)
         for cmd in queue:
-            while len(self.running) >= {1}:
+            while len(self.running) >= {self.job.parallel}:
                 self.finished.wait()
             self.start(cmd)
         while len(self.running) != 0:
@@ -557,9 +554,7 @@ if __name__ == '__main__':
 
     m = Main()
     m.run(queue)
-""".format(
-                    queue, self.job.parallel
-                )
+"""
             )
         tools.set_executable(os.path.join(path, "start.py"))
 
@@ -602,7 +597,7 @@ class DistScriptGen(ScriptGen):
                 self.num = 0
                 with open(self.runspec.setting.dist_template, "r", encoding="utf8") as f:
                     template = f.read()
-                script = os.path.join(self.path, "start{0:04}.dist".format(len(self.queue)))
+                script = os.path.join(self.path, f"start{len(self.queue):04}.dist")
                 if self.runspec.setting.dist_options != "":
                     distopts = "\n".join(self.runspec.setting.dist_options.split(",")) + "\n"
                 else:
@@ -693,8 +688,7 @@ class DistScriptGen(ScriptGen):
 
         with open(os.path.join(path, "start.sh"), "w", encoding="utf8") as startfile:
             startfile.write(
-                """#!/bin/bash\n\ncd "$(dirname $0)"\n"""
-                + "\n".join(['sbatch "{0}"'.format(os.path.basename(x)) for x in queue])
+                '#!/bin/bash\n\ncd "$(dirname $0)"\n' + "\n".join([f'sbatch "{os.path.basename(x)}"' for x in queue])
             )
         tools.set_executable(os.path.join(path, "start.sh"))
 
@@ -729,7 +723,7 @@ class SeqJob(Job):
             out (Any):    Output stream to write to.
             indent (str): Amount of indentation.
         """
-        extra = ' parallel="{0.parallel}"'.format(self)
+        extra = f' parallel="{self.parallel}"'
         Job._to_xml(self, out, indent, "seqjob", extra)
 
 
@@ -762,8 +756,9 @@ class DistJob(Job):
             out (Any):    Output stream to write to
             indent (str): Amount of indentation
         """
-        extra = ' script_mode="{0.script_mode}" walltime="{0.walltime}" cpt="{0.cpt}" partition="{0.partition}"'.format(
-            self
+        extra = (
+            f' script_mode="{self.script_mode}" walltime="{self.walltime}" cpt="{self.cpt}" '
+            f'partition="{self.partition}"'
         )
         Job._to_xml(self, out, indent, "distjob", extra)
 
@@ -797,7 +792,7 @@ class Config:
             out (Any):    Output stream to write to.
             indent (str): Amount of indentation.
         """
-        out.write('{1}<config name="{0.name}" template="{0.template}"/>\n'.format(self, indent))
+        out.write(f'{indent}<config name="{self.name}" template="{self.template}"/>\n')
 
 
 @dataclass(order=True, unsafe_hash=True)
@@ -861,10 +856,10 @@ class Benchmark:
                 out (Any):    Output stream to write to
                 indent (str): Amount of indentation
             """
-            out.write('{1}<instance name="{0.name}" id="{0.id}">\n'.format(self, indent))
+            out.write(f'{indent}<instance name="{self.name}" id="{self.id}">\n')
             for instance in sorted(self.files):
-                out.write('{1}<file name="{0}"/>\n'.format(instance, indent + "\t"))
-            out.write("{0}</instance>\n".format(indent))
+                out.write(f'{indent}\t<file name="{instance}"/>\n')
+            out.write(f"{indent}</instance>\n")
 
         def paths(self) -> Iterator[str]:
             """
@@ -1130,14 +1125,14 @@ class Benchmark:
             indent (str): Amount of indentation.
         """
         self.init()
-        out.write('{1}<benchmark name="{0}">\n'.format(self.name, indent))
+        out.write(f'{indent}<benchmark name="{self.name}">\n')
         for classname in sorted(self.instances.keys()):
             instances = self.instances[classname]
-            out.write('{1}<class name="{0.name}" id="{0.id}">\n'.format(classname, indent + "\t"))
+            out.write(f'{indent}\t<class name="{classname.name}" id="{classname.id}">\n')
             for instance in sorted(instances):
                 instance.to_xml(out, indent + "\t\t")
-            out.write("{0}</class>\n".format(indent + "\t"))
-        out.write("{0}</benchmark>\n".format(indent))
+            out.write(f"{indent}\t</class>\n")
+        out.write(f"{indent}</benchmark>\n")
 
 
 @dataclass(order=True, frozen=True)
@@ -1165,7 +1160,7 @@ class Runspec:
         Returns an output path under which start scripts
         and benchmark results are stored.
         """
-        name = self.system.name + "-" + self.system.version + "-" + self.setting.name
+        name = f"{self.system.name}-{self.system.version}-{self.setting.name}"
         return os.path.join(self.project.path(), self.machine.name, "results", self.benchmark.name, name)
 
     def gen_scripts(self, script_gen: "ScriptGen") -> None:
@@ -1406,23 +1401,23 @@ class Runscript:
 
         for project in self.projects.values():
             assert isinstance(project.job, (SeqJob, DistJob))
-            out.write('\t<project name="{0.name}" job="{0.job.name}">\n'.format(project))
+            out.write(f'\t<project name="{project.name}" job="{project.job.name}">\n')
             job_gen = project.job.script_gen()
             jobs.add(project.job)
             for runspecs in project.runspecs.values():
                 for runspec in runspecs:
                     out.write(
                         (
-                            '\t\t<runspec machine="{0.machine.name}" system="{0.system.name}" '
-                            'version="{0.system.version}" benchmark="{0.benchmark.name}" '
-                            'setting="{0.setting.name}">\n'
-                        ).format(runspec)
+                            f'\t\t<runspec machine="{runspec.machine.name}" system="{runspec.system.name}" '
+                            f'version="{runspec.system.version}" benchmark="{runspec.benchmark.name}" '
+                            f'setting="{runspec.setting.name}">\n'
+                        )
                     )
                     for classname in sorted(runspec.benchmark.instances):
-                        out.write('\t\t\t<class id="{0.id}">\n'.format(classname))
+                        out.write(f'\t\t\t<class id="{classname.id}">\n')
                         instances = runspec.benchmark.instances[classname]
                         for instance in instances:
-                            out.write('\t\t\t\t<instance id="{0.id}">\n'.format(instance))
+                            out.write(f'\t\t\t\t<instance id="{instance.id}">\n')
                             job_gen.eval_results(
                                 out=out, indent="\t\t\t\t\t", runspec=runspec, instance=instance, parx=parx
                             )

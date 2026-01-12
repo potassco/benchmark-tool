@@ -491,9 +491,9 @@ class Sheet:
                     if isinstance(self.content.at[row, column], dict):
                         # value just to signal non empty cell
                         self.values.at[row, column] = self.content.at[row, column]["value"]
-                        cell_range = "(Instances!{0}:Instances!{1})".format(
-                            get_cell_index(column, self.content.at[row, column]["inst_start"] + 2),
-                            get_cell_index(column, self.content.at[row, column]["inst_end"] + 2),
+                        cell_range = (
+                            f'(Instances!{get_cell_index(column, self.content.at[row, column]["inst_start"] + 2)}:'
+                            f'Instances!{get_cell_index(column, self.content.at[row, column]["inst_end"] + 2)})'
                         )
                         self.content.at[row, column] = Formula(
                             f"SWITCH($A$2,"

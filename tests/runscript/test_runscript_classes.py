@@ -352,7 +352,7 @@ class TestScriptGen(TestCase):
         self.setup_obj()
         self.assertEqual(
             self.sg._path(self.runspec, self.instance, 1),
-            os.path.join(self.runspec.path(), self.instance.benchclass.name, self.instance.name, "run%d" % 1),
+            os.path.join(self.runspec.path(), self.instance.benchclass.name, self.instance.name, "run1"),
         )
 
     def test_add_to_script(self):
