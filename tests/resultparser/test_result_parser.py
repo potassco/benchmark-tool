@@ -19,11 +19,16 @@ class TestClaspParser(TestCase):
         self.rs = mock.Mock(spec=runscript.Runspec)
         proj = mock.Mock(spec=runscript.Project)
         job = mock.Mock(spec=runscript.Job)
+        sys = mock.Mock(spec=runscript.System)
         self.timeout = 10
         job.timeout = self.timeout
         proj.job = job
         self.rs.project = proj
+        self.rs.system = sys
+        sys.name = "system"
+        sys.version = "1.2.3"
         self.ins = mock.Mock(spec=runscript.Benchmark.Instance)
+        self.ins.name = "instance1"
         self.parser = clasp
 
     def test_parse(self):
@@ -79,15 +84,35 @@ class TestClaspParser(TestCase):
             "time": ("float", self.timeout),
             "timeout": ("float", 1),
         }
+        ref_ms = {
+            "error": ("float", 1),
+            "memout": ("float", 0),
+            "time": ("float", self.timeout),
+            "timeout": ("float", 1),
+        }
 
-        self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins), ref_f)
+        self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_f)
         self.root = "tests/ref/results/timeout"
-        self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins), ref_to)
+        self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_to)
         self.root = "tests/ref/results/memout"
-        self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins), ref_mo)
+        self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_mo)
         self.root = "tests/ref/results/clasp_error"
         with mock.patch("sys.stderr", new=StringIO()) as e:
-            self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins), ref_ce)
+            self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_ce)
         self.assertEqual(
-            e.getvalue(), "*** ERROR: Run tests/ref/results/clasp_error failed with unrecognized status or error!\n"
+            e.getvalue(),
+            "*** WARNING: Run 1 of instance 'instance1' for system 'system-1.2.3' "
+            "failed with unrecognized status or error! (tests/ref/results/clasp_error)\n",
+        )
+        self.root = "tests/ref/results/missing"
+        with mock.patch("sys.stderr", new=StringIO()) as e:
+            self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_ms)
+        self.assertEqual(
+            e.getvalue(),
+            "*** WARNING: Result file 'runsolver.solver' not found for run 1 of instance "
+            "'instance1' for system 'system-1.2.3'! (tests/ref/results/missing)\n"
+            "*** WARNING: Result file 'runsolver.watcher' not found for run 1 of instance "
+            "'instance1' for system 'system-1.2.3'! (tests/ref/results/missing)\n"
+            "*** WARNING: Run 1 of instance 'instance1' for system 'system-1.2.3' failed "
+            "with unrecognized status or error! (tests/ref/results/missing)\n",
         )

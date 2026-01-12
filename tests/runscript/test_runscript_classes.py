@@ -2,6 +2,7 @@
 Test cases for runscript classes.
 """
 
+import importlib
 import io
 import os
 import platform
@@ -295,6 +296,7 @@ class TestScriptGen(TestCase):
 
         self.runspec: runscript.Runspec
         self.instance: runscript.Benchmark.Instance
+        self.resultparser = importlib.import_module("benchmarktool.resultparser.clasp")
 
     def setup_obj(self):
         """
@@ -312,7 +314,6 @@ class TestScriptGen(TestCase):
         self.runspec.system.version = "sys_version"
         self.runspec.system.config = mock.Mock(spec=runscript.Config)
         self.runspec.system.config.template = "tests/ref/test_template.sh"
-        self.runspec.system.measures = "clasp"
 
         self.sg.job.runs = 1
         self.sg.job.timeout = 10
@@ -425,7 +426,9 @@ class TestScriptGen(TestCase):
         self.setup_obj()
         o = io.StringIO()
         with mock.patch("benchmarktool.resultparser.clasp.parse", return_value={"time": ("float", 5)}, create=True):
-            self.sg.eval_results(out=o, indent="\t", runspec=self.runspec, instance=self.instance)
+            self.sg.eval_results(
+                out=o, indent="\t", runspec=self.runspec, instance=self.instance, result_parser=self.resultparser
+            )
         self.assertEqual(
             o.getvalue(), '\t<run number="1">\n\t\t<measure name="time" type="float" val="5"/>\n\t</run>\n'
         )
@@ -436,7 +439,9 @@ class TestScriptGen(TestCase):
             return_value={"time": ("float", 5), "timeout": ("float", 0)},
             create=True,
         ):
-            self.sg.eval_results(out=o, indent="\t", runspec=self.runspec, instance=self.instance)
+            self.sg.eval_results(
+                out=o, indent="\t", runspec=self.runspec, instance=self.instance, result_parser=self.resultparser
+            )
         self.assertEqual(
             o.getvalue(),
             (
@@ -454,7 +459,14 @@ class TestScriptGen(TestCase):
             return_value={"time": ("float", 5), "timeout": ("float", 1)},
             create=True,
         ):
-            self.sg.eval_results(out=o, indent="\t", runspec=self.runspec, instance=self.instance, parx=3)
+            self.sg.eval_results(
+                out=o,
+                indent="\t",
+                runspec=self.runspec,
+                instance=self.instance,
+                result_parser=self.resultparser,
+                parx=3,
+            )
         self.assertEqual(
             o.getvalue(),
             (
@@ -466,10 +478,10 @@ class TestScriptGen(TestCase):
             ),
         )
 
+        # invalid parser
         o = io.StringIO()
-        self.runspec.system.measures = "unknown"
         with mock.patch("sys.stderr", new=io.StringIO()):
-            self.sg.eval_results(out=o, indent="\t", runspec=self.runspec, instance=self.instance)
+            self.sg.eval_results(out=o, indent="\t", runspec=self.runspec, instance=self.instance, result_parser=None)
         self.assertEqual(o.getvalue(), '\t<run number="1">\n\t</run>\n')
 
 
@@ -1324,6 +1336,7 @@ class TestRunscript(TestCase):
         sys.name = "sys"
         sys.version = "ver"
         sys.order = 0
+        sys.measures = "clasp"
         sys.to_xml = mock.Mock(side_effect=temp_to_xml("sys_xml"))
 
         machine = mock.Mock(spec=runscript.Machine)
@@ -1357,9 +1370,19 @@ class TestRunscript(TestCase):
 
         self.rs.projects["prj"] = prj
 
-        with mock.patch("benchmarktool.runscript.runscript.SeqScriptGen.eval_results") as sg_eval:
+        resultparser = mock.Mock()
+
+        with (
+            mock.patch("benchmarktool.runscript.runscript.SeqScriptGen.eval_results") as sg_eval,
+            mock.patch(
+                "benchmarktool.runscript.runscript.Runscript._get_result_parser", return_value=resultparser
+            ) as get_rp,
+        ):
             self.rs.eval_results(self.o)
-            sg_eval.assert_called_once_with(out=self.o, indent="\t\t\t\t\t", runspec=runspec, instance=inst, parx=2)
+            sg_eval.assert_called_once_with(
+                out=self.o, indent="\t\t\t\t\t", runspec=runspec, instance=inst, result_parser=resultparser, parx=2
+            )
+            get_rp.assert_called_once_with(runspec)
         self.assertEqual(
             self.o.getvalue(),
             "<result>\n"
