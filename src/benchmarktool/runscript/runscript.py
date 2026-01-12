@@ -7,7 +7,6 @@ specified by the run script.
 __author__ = "Roland Kaminski"
 
 import importlib
-import importlib.util
 import os
 import re
 import shutil
@@ -305,7 +304,14 @@ class ScriptGen:
                 tools.set_executable(startpath)
 
     def eval_results(
-        self, *, out: Any, indent: str, runspec: "Runspec", instance: "Benchmark.Instance", parx: int = 2
+        self,
+        *,
+        out: Any,
+        indent: str,
+        runspec: "Runspec",
+        instance: "Benchmark.Instance",
+        result_parser: Optional[ModuleType],
+        parx: int = 2,
     ) -> None:
         """
         Parses the results of a given benchmark instance and outputs them as XML.
@@ -318,44 +324,12 @@ class ScriptGen:
             parx (int):                    Factor for penalized-average-runtime score.
         """
 
-        def import_from_path(module_name: str, file_path: str) -> ModuleType:  # nocoverage
-            """
-            Helper function to import modules from path.
-
-            Attributes:
-                module_name (str):  Name of the module.
-                file_path (str):    Path to the module.
-            """
-            spec = importlib.util.spec_from_file_location(module_name, file_path)
-            assert spec is not None
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[module_name] = module
-            assert spec.loader is not None
-            spec.loader.exec_module(module)
-            return module
-
-        result_parser: Optional[ModuleType] = None
-        # dynamicly import result parser
-        # prioritize local resultparsers over included in package
-        rp_name = f"{runspec.system.measures}"
-        try:
-            result_parser = import_from_path(
-                rp_name, os.path.join(os.getcwd(), "resultparsers", f"{runspec.system.measures}.py")
-            )
-        except FileNotFoundError:
-            try:
-                result_parser = importlib.import_module(f"benchmarktool.resultparser.{rp_name}")
-            except ModuleNotFoundError:
-                sys.stderr.write(
-                    f"*** ERROR: Result parser import failed: {rp_name}! "
-                    "All runs using this parser will have no measures recorded!\n."
-                )
         for run in range(1, self.job.runs + 1):
             out.write(f'{indent}<run number="{run}">\n')
             # result parser call
             try:
                 result: dict[str, tuple[str, Any]] = result_parser.parse(  # type: ignore
-                    self._path(runspec, instance, run), runspec, instance
+                    self._path(runspec, instance, run), runspec, instance, run
                 )
                 # penalized-average-runtime score
                 if all(key in result for key in ["time", "timeout"]):
@@ -365,6 +339,7 @@ class ScriptGen:
                 for key, (valtype, val) in sorted(result.items()):
                     out.write(f'{indent}\t<measure name="{key}" type="{valtype}" val="{val}"/>\n')
             except AttributeError:
+                # skip if parser import failed or no parse function is defined
                 pass
 
             out.write(f"{indent}</run>\n")
@@ -1357,6 +1332,36 @@ class Runscript:
         """
         return self.output
 
+    def _get_result_parser(self, runspec: Runspec) -> Optional[ModuleType]:  # nocoverage
+        """
+        Helper function to obtain result parsers.
+
+        Attributes:
+            runspec (Runspec): The run specification.
+        """
+        result_parser: Optional[ModuleType] = None
+        # dynamicly import result parser
+        # prioritize local resultparsers over included in package
+        rp_name = runspec.system.measures
+        try:
+            result_parser = tools.import_from_path(rp_name, os.path.join(os.getcwd(), "resultparsers", f"{rp_name}.py"))
+        except FileNotFoundError:
+            try:
+                result_parser = importlib.import_module(f"benchmarktool.resultparser.{rp_name}")
+            except ModuleNotFoundError:
+                sys.stderr.write(
+                    f"*** WARNING: Import of resultparser '{rp_name}' for system "
+                    f"'{runspec.system.name}-{runspec.system.version}' failed! "
+                    "All runs using this parser will have no measures recorded!\n"
+                )
+        if result_parser is not None and not callable(getattr(result_parser, "parse", None)):
+            sys.stderr.write(
+                f"*** WARNING: Resultparser '{rp_name}' for system "
+                f"'{runspec.system.name}-{runspec.system.version}' has no callable 'parse' function! "
+                "All runs using this parser will have no measures recorded!\n"
+            )
+        return result_parser
+
     # pylint: disable=too-many-branches
     def eval_results(self, out: Any, parx: int = 2) -> None:
         """
@@ -1419,7 +1424,12 @@ class Runscript:
                         for instance in instances:
                             out.write(f'\t\t\t\t<instance id="{instance.id}">\n')
                             job_gen.eval_results(
-                                out=out, indent="\t\t\t\t\t", runspec=runspec, instance=instance, parx=parx
+                                out=out,
+                                indent="\t\t\t\t\t",
+                                runspec=runspec,
+                                instance=instance,
+                                result_parser=self._get_result_parser(runspec),
+                                parx=parx,
                             )
                             out.write("\t\t\t\t</instance>\n")
                         out.write("\t\t\t</class>\n")

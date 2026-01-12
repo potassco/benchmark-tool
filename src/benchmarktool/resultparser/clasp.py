@@ -32,25 +32,32 @@ PAR = 2
 
 # pylint: disable=unused-argument
 def parse(
-    root: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance"
+    path: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance", run: int
 ) -> dict[str, tuple[str, Any]]:
     """
     Extracts some clasp statistics.
 
     Attributes:
-        root (str):                    The folder with results.
+        path (str):                    The path to the run directory.
         runspec (Runspec):             The run specification of the benchmark.
         instance (Benchmark.Instance): The benchmark instance.
+        run (int):                     The run number.
     """
     timeout = runspec.project.job.timeout
     res: dict[str, tuple[str, Any]] = {"time": ("float", timeout)}
     for f in ["runsolver.solver", "runsolver.watcher"]:
-        with open(os.path.join(root, f), errors="ignore", encoding="utf-8") as file:
-            for line in file:
-                for val, reg in clasp_re.items():
-                    m = reg[1].match(line)
-                    if m:
-                        res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
+        try:
+            with open(os.path.join(path, f), errors="ignore", encoding="utf-8") as file:
+                for line in file:
+                    for val, reg in clasp_re.items():
+                        m = reg[1].match(line)
+                        if m:
+                            res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
+        except FileNotFoundError:
+            sys.stderr.write(
+                f"*** WARNING: Result file '{f}' not found for run {run} of instance '{instance.name}' "
+                f"for system '{runspec.system.name}-{runspec.system.version}'! ({path})\n"
+            )
 
     if "rstatus" in res and res["rstatus"][1] == "out of memory":
         res["error"] = ("string", "std::bad_alloc")
@@ -70,7 +77,11 @@ def parse(
     if timedout:
         res["time"] = ("float", timeout)
     if error:
-        sys.stderr.write(f"*** ERROR: Run {root} failed with unrecognized status or error!\n")
+        sys.stderr.write(
+            f"*** WARNING: Run {run} of instance '{instance.name}' "
+            f"for system '{runspec.system.name}-{runspec.system.version}' "
+            f"failed with unrecognized status or error! ({path})\n"
+        )
     result["error"] = ("float", int(error))
     result["timeout"] = ("float", int(timedout))
     result["memout"] = ("float", int(memout))
