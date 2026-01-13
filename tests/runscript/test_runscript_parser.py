@@ -56,7 +56,15 @@ class TestParser(TestCase):
                 "The attribute 'input' is not allowed., line 1\n",
             )
 
-        run = p.parse("tests/ref/runscripts/test_runscript.xml")
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            run = p.parse("tests/ref/runscripts/test_runscript.xml")
+        self.assertEqual(
+            mock_stderr.getvalue(),
+            "*** INFO: Attribute 'extra' in distjob 'dist-generic' is currently unused.\n"
+            "*** INFO: Attribute 'other' in seqjob 'seq-generic' is currently unused.\n"
+            "*** INFO: Attribute 'opt' in setting 'one-as' is currently unused.\n",
+        )
+
         # runscript
         self.assertIsInstance(run, runscript.Runscript)
         self.assertEqual(run.output, "output")
@@ -69,7 +77,7 @@ class TestParser(TestCase):
         self.assertEqual(seq_job.timeout, 120)
         self.assertEqual(seq_job.runs, 1)
         self.assertEqual(seq_job.memout, 1000)
-        self.assertDictEqual(seq_job.attr, {})
+        self.assertDictEqual(seq_job.attr, {"other": "value"})
         self.assertEqual(seq_job.parallel, 8)
         dist_job = run.jobs["dist-generic"]
         self.assertIsInstance(dist_job, runscript.DistJob)
@@ -77,7 +85,7 @@ class TestParser(TestCase):
         self.assertEqual(dist_job.timeout, 120)
         self.assertEqual(dist_job.runs, 1)
         self.assertEqual(dist_job.memout, 1000)
-        self.assertDictEqual(dist_job.attr, {})
+        self.assertDictEqual(dist_job.attr, {"extra": "test"})
         self.assertEqual(dist_job.script_mode, "timeout")
         self.assertEqual(dist_job.walltime, 86399)  # = 23:59:59
         self.assertEqual(dist_job.cpt, 1)
@@ -152,7 +160,7 @@ class TestParser(TestCase):
         self.assertEqual(setting.order, 0)
         self.assertEqual(setting.dist_template, "templates/impi.dist")
         self.assertEqual(setting.dist_options, "#SBATCH --test=1,#SBATCH --opt=test")
-        self.assertDictEqual(setting.attr, {})
+        self.assertDictEqual(setting.attr, {"opt": "attr"})
         self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
         setting = system.settings["min"]
         self.assertIsInstance(setting, runscript.Setting)

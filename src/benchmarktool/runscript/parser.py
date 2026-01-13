@@ -399,6 +399,11 @@ class Parser:
                 )
                 name = child.get("name")
                 compound_settings[child.get("name")].append(name)
+                keys = list(attr.keys())
+                if keys:
+                    sys.stderr.write(
+                        f"""*** INFO: Attribute{'s' if len(keys) > 1 else ''} {', '.join(f"'{k}'" for k in keys)} in setting '{name}' {'are' if len(keys) > 1 else 'is'} currently unused.\n"""
+                    )
                 setting = Setting(
                     name=name,
                     cmdline=cmdline,
@@ -536,6 +541,11 @@ class Parser:
 
         if job_type == "distjob":
             attr = self._filter_attr(node, attr_filter + ["script_mode", "walltime", "cpt", "partition"])
+            keys = list(attr.keys())
+            if keys:
+                sys.stderr.write(
+                    f"""*** INFO: Attribute{'s' if len(keys) > 1 else ''} {', '.join(f"'{k}'" for k in keys)} in distjob '{node.get('name')}' {'are' if len(keys) > 1 else 'is'} currently unused.\n"""
+                )
             kwargs.update(
                 {
                     "attr": attr,
@@ -550,6 +560,11 @@ class Parser:
             return DistJob(**kwargs)  # pylint: disable=missing-kwoa
         if job_type == "seqjob":
             attr = self._filter_attr(node, attr_filter + ["parallel"])
+            keys = list(attr.keys())
+            if keys:
+                sys.stderr.write(
+                    f"""*** INFO: Attribute{'s' if len(keys) > 1 else ''} {', '.join(f"'{k}'" for k in keys)} in seqjob '{node.get('name')}' {'are' if len(keys) > 1 else 'is'} currently unused.\n"""
+                )
             kwargs.update(
                 {
                     "attr": attr,
