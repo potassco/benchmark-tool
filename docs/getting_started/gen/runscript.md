@@ -140,13 +140,13 @@ attribute is only relevant for distributed jobs. More information about dist
 templates can be found on the [templates] page.
 - Another optional attribute for distributed jobs is `distopts`, which allows
     you to add additional options for distributed jobs. `distopts` expects a
-    comma-separated string of options. For example, `distopts="#SBATCH
-    --hint=compute_bound,#SBATCH --job-name=\"my_benchmark_run\""` results in
+    comma-separated string of options. For example,  
+    `distopts="#SBATCH --hint=compute_bound,#SBATCH -J=%x.%j.out"` results in
     the following lines being added to the script:
 
     ```bash
     #SBATCH --hint=compute_bound
-    #SBATCH --job-name="my_benchmark_run"
+    #SBATCH -J=%x.%j.out
     ```
 
     The default template for distributed jobs uses SLURM; a comprehensive list
@@ -171,19 +171,22 @@ A sequential job is identified by its `name` and sets the `timeout` (in
 seconds) for a single run, the number of `runs` for each instance, and
 the number of solver processes executed in `parallel`. The optional
 attribute `memout` sets a memory limit (in MB) for each run. If no limit
-is set, a default limit of 2000 MB is used:
+is set, a default limit of 2000 MB is used. Additional options, which will be
+passed to the runlim call, can be set using the optional `jobopts` attribute.
+`jobopts` expects a comma-separated string of options, e.g.
+`jobopts="--single,--report-rate=2000"`.
 
 ```xml
-<seqjob name="seq-gen" timeout="900" runs="1" memout="1000" parallel="1"/>
+<seqjob name="seq-gen" timeout="900" runs="1" memout="1000" jobopts="--single" parallel="1"/>
 ```
 
 ### Distributed Jobs
 
 A distributed job is also identified by its `name` and defines a `timeout`,
-the number of `runs` and an optional `memout`:
+the number of `runs` and an optional `memout` and `jobopts`:
 
 ```xml
-<distjob name="dist-gen" timeout="900" runs="1" memout="1000"
+<distjob name="dist-gen" timeout="900" runs="1" memout="1000" jobopts="--single"
         script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
 ```
 

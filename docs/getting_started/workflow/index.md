@@ -57,16 +57,15 @@ To evaluate your benchmarks and collect the results use the [eval] subcommand:
 btool eval <runscript.xml> > <results.xml>
 ```
 
-This newly created .xml file can then be used as input for the [conv] subcommand to generate an .ods file
-and optionally an .ipynb jupyter notebook. By default only the time and timeout measures are displayed.
-Further measures can be selected using the -m option.
+This newly created .xml file can then be used as input for the [conv] subcommand to generate an .xls
+file and optionally an .ipynb jupyter notebook. By default only the time and timeout measures are displayed. Further measures can be selected using the -m option.
 
 ```
-btool conv -o <out.ods> <result.xml>
+btool conv -o <out.xls> <result.xml>
 ```
 
-[runscripts]: ./gen/runscript.md
-[templates]: ./gen/templates.md
+[runscripts]: ../gen/runscript.md
+[templates]: ../gen/templates.md
 [dispatcher]: ../run_dist/index.md
 [verify]: ../verify/index.md
 [init]: ../init/index.md

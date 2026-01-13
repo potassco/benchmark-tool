@@ -1,10 +1,10 @@
 ---
-title: "ODS Gen"
+title: "XLSX Gen"
 ---
 
 # ODS Gen
 
-::: benchmarktool.result.ods_gen
+::: benchmarktool.result.xlsx_gen
     handler: python
     options:
       filters: public
