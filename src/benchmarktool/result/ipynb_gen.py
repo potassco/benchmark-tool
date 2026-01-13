@@ -464,6 +464,8 @@ display(out_plot)
         nbf.v4.new_code_cell(plot_code),
     ]
     fname = file_name
+    if not fname.lower().endswith(".ipynb"):
+        fname += ".ipynb"
     nb.cells[1]["metadata"]["jp-MarkdownHeadingCollapsed"] = True
     nb.cells[3]["metadata"]["jp-MarkdownHeadingCollapsed"] = True
     # nb.cells[6]["metadata"]["jupyter"] = {"source_hidden": True}

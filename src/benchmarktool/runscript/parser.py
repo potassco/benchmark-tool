@@ -332,7 +332,10 @@ class Parser:
 
         try:
             doc = etree.parse(file_name)
-        except etree.XMLSyntaxError as e:
+        except (etree.XMLSyntaxError, OSError) as e:
+            if isinstance(e, OSError):
+                sys.stderr.write(f"*** ERROR: Runscript file '{file_name}' not found.\n")
+                sys.exit(1)
             sys.stderr.write(f"*** ERROR: XML Syntax Error in runscript: {e}\n")
             sys.exit(1)
 
