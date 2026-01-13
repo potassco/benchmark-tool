@@ -144,11 +144,11 @@ class Setting:
         tag = " ".join(sorted(self.tag))
         out.write(f'{indent}<setting name="{self.name}" cmdline="{self.cmdline}" tag="{tag}"')
         if self.dist_template is not None:
-            out.write(f' disttemplate="{self.dist_template}"')
+            out.write(f' dist_template="{self.dist_template}"')
         for key, val in self.attr.items():
             out.write(f' {key}="{val}"')
         if self.dist_options != "":
-            out.write(f' distopts="{self.dist_options}"')
+            out.write(f' dist_options="{self.dist_options}"')
         out.write(">\n")
         for enctag, encodings in self.encodings.items():
             for enc in sorted(encodings):
@@ -170,7 +170,7 @@ class Job:
         timeout (int): A timeout in seconds for individual benchmark runs.
         memout (int):  A memory limit in MB for individual benchmark runs (20GB).
         runs (int):    The number of runs per benchmark.
-        options (str): Job options.
+        template_options (str): Template options.
         attr (dict[str, Any]): A dictionary of arbitrary attributes.
     """
 
@@ -179,7 +179,7 @@ class Job:
     runs: int = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
     memout: int = field(compare=False, default=20000)
-    options: str = field(compare=False, default="")
+    template_options: str = field(compare=False, default="")
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Job):
@@ -206,7 +206,7 @@ class Job:
         """
         out.write(
             f'{indent}<{xmltag} name="{self.name}" timeout="{self.timeout}" memout="{self.memout}" '
-            f'runs="{self.runs}" jobopts="{self.options}"{extra}'
+            f'runs="{self.runs}" template_options="{self.template_options}"{extra}'
         )
         for key, val in self.attr.items():
             out.write(f' {key}="{val}"')
@@ -276,11 +276,11 @@ class ScriptGen:
                 with open(runspec.system.config.template, "r", encoding="utf8") as f:
                     template = f.read()
 
-                job_options = self.job.options
-                if job_options != "":
-                    job_options = " \\\n\t".join(job_options.split(","))
+                template_options = self.job.template_options
+                if template_options != "":
+                    template_options = " \\\n\t".join(template_options.split(","))
                 else:
-                    job_options = ""
+                    template_options = ""
                 encodings = instance.encodings
                 encodings = encodings.union(runspec.setting.encodings.get("_default_", set()))
                 for i in instance.enctags:
@@ -291,7 +291,7 @@ class ScriptGen:
                     startfile.write(
                         template.format(
                             root=os.path.relpath(".", path),
-                            options=job_options,
+                            options=template_options,
                             memout=self.job.memout,
                             timeout=self.job.timeout,
                             solver=runspec.system.name + "-" + runspec.system.version,
@@ -574,9 +574,9 @@ class DistScriptGen(ScriptGen):
                     template = f.read()
                 script = os.path.join(self.path, f"start{len(self.queue):04}.dist")
                 if self.runspec.setting.dist_options != "":
-                    distopts = "\n".join(self.runspec.setting.dist_options.split(",")) + "\n"
+                    dist_options = "\n".join(self.runspec.setting.dist_options.split(",")) + "\n"
                 else:
-                    distopts = ""
+                    dist_options = ""
                 with open(script, "w", encoding="utf8") as f:
                     f.write(
                         template.format(
@@ -584,7 +584,7 @@ class DistScriptGen(ScriptGen):
                             jobs=self.startscripts,
                             cpt=self.runspec.project.job.cpt,
                             partition=self.runspec.project.job.partition,
-                            dist_options=distopts,
+                            dist_options=dist_options,
                         )
                     )
                 self.queue.append(script)

@@ -6,7 +6,7 @@
 	<config name="seq-generic" template="templates/seq-generic.sh"/>
 	<system name="clasp" version="1.3.2" measures="clasp" config="seq-generic" cmdline="--sys" cmdline_post="--sys_post">
 		<!-- optionally allows for tagging settings -->
-		<setting name="default"  tag="seq" cmdline="--stats 1" cmdline_post="--post" />
+		<setting name="default"  tag="seq" cmdline="--stats 1" cmdline_post="--post"/>
 		<setting name="vsids"    tag="seq" cmdline="--stats --heu=vsids 1"/>
 		<setting name="progress" tag="seq" cmdline="--stats --save-progress 1"/>
 		<setting name="estimate" tag="seq" cmdline="--stats --estimate 1"/>
@@ -17,20 +17,20 @@
 
 	<config name="dist-generic" template="templates/dist-generic.sh"/>
 	<system name="claspar" version="2.1.0" measures="claspar" config="dist-generic" cmdline="--stats">
-		<setting name="one-as" tag="par one-as" cmdline="1" distopts="#SBATCH --test=1,#SBATCH --opt=test" disttemplate="templates/impi.dist">
+		<setting name="one-as" tag="par one-as" cmdline="1" dist_options="#SBATCH --test=1,#SBATCH --opt=test" dist_template="templates/impi.dist" opt="attr">
 			<encoding file="def.lp"/>
 			<encoding file="test1.lp" enctag="test"/>
 			<encoding file="test2.lp" enctag="test"/>
 		</setting>
-		<setting name="all-as" tag="par all-as" cmdline="-q 0" disttemplate="templates/impi.dist"/>
+		<setting name="all-as" tag="par all-as" cmdline="-q 0" dist_template="templates/impi.dist"/>
 		<setting name="min">
 			<encoding file="test21.lp" enctag="test"/>
 			<encoding file="test22.lp" enctag="test2"/>
 		</setting>
 	</system>
 
-	<seqjob name="seq-generic" timeout="120s" runs="1" memout="1000" parallel="8"/>
-	<distjob name="dist-generic" timeout="120s" runs="1" memout="1000" script_mode="timeout" walltime="23h 59m 59s" cpt="1"/>
+	<seqjob name="seq-generic" timeout="120s" runs="1" memout="1000" template_options="--single" parallel="8" other="value"/>
+	<distjob name="dist-generic" timeout="120s" runs="1" memout="1000" template_options="--single" script_mode="timeout" walltime="23h 59m 59s" cpt="1" extra="test"/>
 	<distjob name="dist-part" timeout="120s" runs="1" script_mode="timeout" walltime="23h 59m 59s" cpt="1" partition="test"/>
 
 	<benchmark name="seq-suite">

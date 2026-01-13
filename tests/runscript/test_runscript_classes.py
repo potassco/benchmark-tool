@@ -117,7 +117,7 @@ class TestSetting(TestCase):
         self.assertEqual(
             o.getvalue(),
             '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
-            'disttemplate="template" key="val">\n'
+            'dist_template="template" key="val">\n'
             "\t</setting>\n",
         )
 
@@ -136,7 +136,7 @@ class TestSetting(TestCase):
         self.assertEqual(
             o.getvalue(),
             '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
-            'disttemplate="template" distopts="#SBATCH --test=1,#SBATCH --opt=test">\n'
+            'dist_template="template" dist_options="#SBATCH --test=1,#SBATCH --opt=test">\n'
             '\t\t<encoding file="def.lp"/>\n'
             '\t\t<encoding file="test1.lp" tag="test"/>\n'
             '\t\t<encoding file="test2.lp" tag="test"/>\n'
@@ -196,7 +196,7 @@ class TestJob(TestCase):
         self.j._to_xml(o, "\t", tag, extra)
         self.assertEqual(
             o.getvalue(),
-            '\t<tag name="name" timeout="20" memout="20000" runs="2" jobopts="" extra key="val"/>\n',
+            '\t<tag name="name" timeout="20" memout="20000" runs="2" template_options="" extra key="val"/>\n',
         )
 
     def test_script_gen(self):
@@ -318,7 +318,7 @@ class TestScriptGen(TestCase):
         self.sg.job.runs = 1
         self.sg.job.timeout = 10
         self.sg.job.attr = {"memout": "20"}
-        self.sg.job.options = "--test"
+        self.sg.job.template_options = "--test"
 
         self.instance = mock.Mock(spec=runscript.Benchmark.Instance)
         self.instance.name = "inst_name"
@@ -384,7 +384,7 @@ class TestScriptGen(TestCase):
 
         self.setUp()
         self.setup_obj()
-        self.sg.job.options = ""
+        self.sg.job.template_options = ""
         with (
             mock.patch("benchmarktool.runscript.runscript.ScriptGen._path", return_value="tests/ref"),
             mock.patch("benchmarktool.tools.mkdir_p") as mkdir,

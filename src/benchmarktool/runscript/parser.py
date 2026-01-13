@@ -119,8 +119,8 @@ class Parser:
                             <xs:list itemType="nameType"/>
                         </xs:simpleType>
                     </xs:attribute>
-                    <xs:attribute name="disttemplate" type="xs:string"/>
-                    <xs:attribute name="distopts" type="xs:string"/>
+                    <xs:attribute name="dist_template" type="xs:string"/>
+                    <xs:attribute name="dist_options" type="xs:string"/>
                     <xs:anyAttribute processContents="lax"/>
                 </xs:complexType>
             </xs:element>
@@ -139,7 +139,7 @@ class Parser:
         <xs:attribute name="timeout" type="timeType" use="required"/>
         <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
         <xs:attribute name="memout" type="xs:positiveInteger"/>
-        <xs:attribute name="jobopts" type="xs:string"/>
+        <xs:attribute name="template_options" type="xs:string"/>
         <xs:anyAttribute processContents="lax"/>
     </xs:attributeGroup>
 
@@ -371,16 +371,18 @@ class Parser:
             sys_cmdline = node.get("cmdline")
             sys_cmdline_post = node.get("cmdline_post")
             for child in node.xpath("setting"):
-                attr = self._filter_attr(child, ["name", "cmdline", "tag", "distopts", "disttemplate"])
+                attr = self._filter_attr(
+                    child, ["name", "cmdline", "cmdline_post", "tag", "dist_options", "dist_template"]
+                )
                 compound_settings[child.get("name")] = []
-                disttemplate = child.get("disttemplate")
-                if disttemplate is None:
-                    disttemplate = "templates/single.dist"
+                dist_template = child.get("dist_template")
+                if dist_template is None:
+                    dist_template = "templates/single.dist"
                 if child.get("tag") is None:
                     tag = set()
                 else:
                     tag = set(child.get("tag").split(None))
-                dist_options = child.get("distopts")
+                dist_options = child.get("dist_options")
                 if dist_options is None:
                     dist_options = ""
                 encodings: dict[str, set[str]] = {"_default_": set()}
@@ -409,7 +411,7 @@ class Parser:
                     cmdline=cmdline,
                     tag=tag,
                     order=setting_order,
-                    dist_template=disttemplate,
+                    dist_template=dist_template,
                     attr=attr,
                     dist_options=dist_options,
                     encodings=encodings,
@@ -525,7 +527,7 @@ class Parser:
         """
         Parses a job node and returns the corresponding job instance.
         """
-        attr_filter = ["name", "timeout", "memout", "runs", "jobopts"]
+        attr_filter = ["name", "timeout", "memout", "runs", "template_options"]
         kwargs = {
             "name": node.get("name"),
             "timeout": tools.xml_to_seconds_time(node.get("timeout")),
@@ -534,10 +536,10 @@ class Parser:
         memout = node.get("memout")
         if memout is not None:
             kwargs["memout"] = int(memout)
-        job_options = node.get("jobopts")
-        if job_options is None:
-            job_options = ""
-        kwargs["options"] = job_options
+        template_options = node.get("template_options")
+        if template_options is None:
+            template_options = ""
+        kwargs["template_options"] = template_options
 
         if job_type == "distjob":
             attr = self._filter_attr(node, attr_filter + ["script_mode", "walltime", "cpt", "partition"])

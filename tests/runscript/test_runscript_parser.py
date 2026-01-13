@@ -77,6 +77,7 @@ class TestParser(TestCase):
         self.assertEqual(seq_job.timeout, 120)
         self.assertEqual(seq_job.runs, 1)
         self.assertEqual(seq_job.memout, 1000)
+        self.assertEqual(seq_job.template_options, "--single")
         self.assertDictEqual(seq_job.attr, {"other": "value"})
         self.assertEqual(seq_job.parallel, 8)
         dist_job = run.jobs["dist-generic"]
@@ -85,6 +86,7 @@ class TestParser(TestCase):
         self.assertEqual(dist_job.timeout, 120)
         self.assertEqual(dist_job.runs, 1)
         self.assertEqual(dist_job.memout, 1000)
+        self.assertEqual(dist_job.template_options, "--single")
         self.assertDictEqual(dist_job.attr, {"extra": "test"})
         self.assertEqual(dist_job.script_mode, "timeout")
         self.assertEqual(dist_job.walltime, 86399)  # = 23:59:59

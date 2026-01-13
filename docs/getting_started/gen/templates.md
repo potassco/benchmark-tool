@@ -12,18 +12,19 @@ repository].
 ## Run Templates
 
 Run templates define how each benchmark instance is executed. During script
-generation, references within the template (e.g., `run.files`) are replaced
+generation, references within the template (e.g., `{files}`) are replaced
 with corresponding values.
 
 The following references are available:
 
-- `run.files`: instance files
-- `run.encodings`: encoding files used for this instance
-- `run.root`: path to the benchmark-tool folder
-- `run.timeout`: walltime for this run
-- `run.memout`: memory limit for this run in MB (default: 20000)
-- `run.solver`: solver or program used for this run
-- `run.args`: additional arguments for the solver/program
+- `files`: instance files
+- `encodings`: encoding files used for this instance
+- `root`: path to the benchmark-tool folder
+- `timeout`: walltime for this run
+- `memout`: memory limit for this run in MB (default: 20000)
+- `solver`: solver or program used for this run
+- `args`: additional arguments for the solver/program
+- `options`: additional options
 
 Most templates use the [runlim] program to supervise benchmark runs.
 

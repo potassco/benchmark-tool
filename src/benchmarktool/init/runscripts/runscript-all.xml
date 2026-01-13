@@ -16,12 +16,12 @@
 
 	<config name="dist-generic" template="templates/seq-generic.sh"/>
 	<system name="clingo" version="5.8.0" measures="clasp" config="dist-generic">
-		<setting name="one-as" tag="one-as" cmdline="--stats 1" disttemplate="templates/single.dist" distopts="#SBATCH --hint=compute_bound"/>
+		<setting name="one-as" tag="one-as" cmdline="--stats 1" dist_template="templates/single.dist" dist_options="#SBATCH --hint=compute_bound"/>
 		<setting name="all-as" tag="all-as" cmdline="--stats -q 0"/>
 	</system>
 
 	<seqjob name="seq-generic" timeout="120s" runs="1" memout="1000" parallel="8"/>
-	<distjob name="dist-generic" timeout="120s" runs="1" memout="1000" jobopts="--single" script_mode="timeout" walltime="23h 59m 59s" cpt="4" partition="short"/>
+	<distjob name="dist-generic" timeout="120s" runs="1" memout="1000" template_options="--single" script_mode="timeout" walltime="23h 59m 59s" cpt="4" partition="short"/>
 
 	<benchmark name="seq-suite">
 		<folder path="benchmarks/clasp" group="true">
