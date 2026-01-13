@@ -130,6 +130,12 @@ class TestParser(TestCase):
             args.func(args)
             gen_mock.assert_called_once_with(ex_file, "notebook.ipynb")
 
+        with mock.patch("sys.stderr", new=StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                args = self.parser.parse_args(["conv", "res.xml"])
+                args.func(args)
+            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: Result file 'res.xml' not found.\n")
+
     def test_eval(self):
         """
         Test eval subcommand.

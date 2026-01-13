@@ -25,6 +25,15 @@ class TestParser(TestCase):
         """
         p = parser.Parser()
 
+        # file not found
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                p.parse("non_existing_file.xml")
+            self.assertEqual(
+                mock_stderr.getvalue(),
+                "*** ERROR: Runscript file 'non_existing_file.xml' not found.\n",
+            )
+
         # xml error
         with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
             with self.assertRaises(SystemExit):
