@@ -293,10 +293,10 @@ class TestScriptGen(TestCase):
     def setUp(self):
         self.job = mock.Mock(spec=runscript.Job)
         self.sg = runscript.ScriptGen(self.job)
+        self.resultparser = importlib.import_module("benchmarktool.resultparser.clasp")
 
         self.runspec: runscript.Runspec
         self.instance: runscript.Benchmark.Instance
-        self.resultparser = importlib.import_module("benchmarktool.resultparser.clasp")
 
     def setup_obj(self):
         """
@@ -491,6 +491,7 @@ class TestSeqScriptGen(TestScriptGen):
     """
 
     def setUp(self):
+        super().setUp()
         self.job = mock.Mock(spec=runscript.SeqJob)
         self.job.parallel = 2
         self.sg = runscript.SeqScriptGen(self.job)
@@ -610,6 +611,7 @@ class TestDistScriptGen(TestScriptGen):
     """
 
     def setUp(self):
+        super().setUp()
         self.job = mock.Mock(spec=runscript.DistJob)
         self.sg = runscript.DistScriptGen(self.job)
 
