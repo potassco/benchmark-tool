@@ -402,7 +402,7 @@ class TestScriptGen(TestCase):
         if platform.system() == "Linux":
             self.assertEqual(
                 x,
-                '$CAT "../../inst_path.lp" ../.. 10 20 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
+                '$CAT  "../../inst_path.lp" ../.. 10 20 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
             )
         os.remove("./tests/ref/start.sh")
 
