@@ -317,8 +317,9 @@ class TestScriptGen(TestCase):
 
         self.sg.job.runs = 1
         self.sg.job.timeout = 10
-        self.sg.job.attr = {"memout": "20"}
-        self.sg.job.template_options = "--test"
+        self.sg.job.memout = 20
+        self.sg.job.attr = {"extra": "attr"}
+        self.sg.job.template_options = "--test1,--test2"
 
         self.instance = mock.Mock(spec=runscript.Benchmark.Instance)
         self.instance.name = "inst_name"
@@ -377,7 +378,7 @@ class TestScriptGen(TestCase):
         if platform.system() == "Linux":
             self.assertEqual(
                 x,
-                '$CAT --test \\\n\t" ../../inst_path.lp" ../.. 10 20 '
+                '$CAT --test1 \\\n\t--test2 \\\n"../../inst_path.lp" ../.. 10 20 '
                 '../../programs/sys_name-sys_version cmdline "../../encoding"\n',
             )
         os.remove("./tests/ref/start.sh")
