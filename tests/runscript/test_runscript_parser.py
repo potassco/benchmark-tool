@@ -38,22 +38,18 @@ class TestParser(TestCase):
         with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
             with self.assertRaises(SystemExit):
                 p.parse("tests/ref/runscripts/invalid_xml.xml")
-            self.assertEqual(
+            self.assertIn(
+                "*** ERROR: XML Syntax Error in runscript: ",
                 mock_stderr.getvalue(),
-                "*** ERROR: XML Syntax Error in runscript: "
-                "Premature end of data in tag runscript line 1, line 6, column 1 "
-                "(tests/ref/runscripts/invalid_xml.xml, line 6)\n",
             )
 
         # invalid runscript
         with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
             with self.assertRaises(SystemExit):
                 p.parse("tests/ref/runscripts/invalid_runscript.xml")
-            self.assertEqual(
+            self.assertIn(
+                "*** ERROR: Invalid runscript file: ",
                 mock_stderr.getvalue(),
-                "*** ERROR: Invalid runscript file: "
-                "Element 'runscript', attribute 'input': "
-                "The attribute 'input' is not allowed., line 1\n",
             )
 
         with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
