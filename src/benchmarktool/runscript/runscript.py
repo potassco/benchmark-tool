@@ -279,8 +279,6 @@ class ScriptGen:
                 template_options = self.job.template_options
                 if template_options != "":
                     template_options = " \\\n\t".join(template_options.split(","))
-                else:
-                    template_options = ""
                 encodings = instance.encodings
                 encodings = encodings.union(runspec.setting.encodings.get("_default_", set()))
                 for i in instance.enctags:
