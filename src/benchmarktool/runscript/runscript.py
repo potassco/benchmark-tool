@@ -674,10 +674,12 @@ class SeqJob(Job):
     Describes a sequential job.
 
     Attributes:
-        name (str):     A unique name for a job.
-        timeout (int):  A timeout in seconds for individual benchmark runs.
-        runs (int):     The number of runs per benchmark.
-        attr (dict[str,Any]): A dictionary of arbitrary attributes.
+        name (str):    A unique name for a job.
+        timeout (int): A timeout in seconds for individual benchmark runs.
+        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
+        runs (int):    The number of runs per benchmark.
+        template_options (str): Template options.
+        attr (dict[str, Any]): A dictionary of arbitrary attributes.
         parallel (int): The number of runs that can be started in parallel.
     """
 
@@ -708,10 +710,12 @@ class DistJob(Job):
     Describes a dist job.
 
     Attributes:
-        name (str):      A unique name for a job.
-        timeout (int):   A timeout in seconds for individual benchmark runs.
-        runs (int):      The number of runs per benchmark.
-        attr (dict[str,Any]): A dictionary of arbitrary attributes.
+        name (str):    A unique name for a job.
+        timeout (int): A timeout in seconds for individual benchmark runs.
+        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
+        runs (int):    The number of runs per benchmark.
+        template_options (str): Template options.
+        attr (dict[str, Any]): A dictionary of arbitrary attributes.
         script_mode (str):    Specifies the script generation mode.
         walltime (int):  The walltime for a distributed job.
         cpt (int):       Number of cpus per task for distributed jobs.
