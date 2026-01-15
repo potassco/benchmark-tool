@@ -1,0 +1,43 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <!-- a benchmark -->
+    <xs:complexType name="classType">
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="instance">
+                <xs:complexType>
+                    <xs:attribute name="file" type="xs:string" use="required"/>
+                    <xs:attribute name="tag" type="nameType"/>
+                    <xs:attribute name="group" type="nameType"/>                
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="folder">
+                <xs:complexType>
+                    <xs:attribute name="path" type="xs:string" use="required"/>
+                    <xs:attribute name="tag" type="nameType"/>
+                    <xs:attribute name="group" type="xs:boolean"/>                
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="encoding">
+                <xs:complexType>
+                    <xs:attribute name="file" type="xs:string" use="required"/>
+                </xs:complexType>
+            </xs:element>
+        </xs:choice>
+        <xs:attribute name="name" type="nameType" use="required"/>
+        <xs:attribute name="enctag">
+            <xs:simpleType>
+                <xs:list itemType="nameType"/>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:complexType>
+                
+    <!-- simple types used througout the above definitions -->
+    <xs:simpleType name="nameType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z_\-0-9]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- the root element -->
+    <xs:element name="class" type="classType">
+    </xs:element>
+</xs:schema>

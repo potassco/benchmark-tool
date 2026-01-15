@@ -127,53 +127,61 @@
 
     <!-- a benchmark -->
     <xs:complexType name="benchmarkType">
-        <xs:choice minOccurs="0" maxOccurs="unbounded">
-            <xs:element name="files">
+        <xs:choice minOccurs="1" maxOccurs="1">
+            <xs:element name="spec">
                 <xs:complexType>
-                    <xs:choice minOccurs="0" maxOccurs="unbounded">
-                        <xs:element name="add">
-                            <xs:complexType>
-                                <xs:attribute name="file" type="xs:string" use="required"/>
-                                <xs:attribute name="group" type="xs:string"/>
-                            </xs:complexType>
-                        </xs:element>
-                        <xs:element name="encoding">
-                            <xs:complexType>
-                                <xs:attribute name="file" type="xs:string" use="required"/>
-                            </xs:complexType>
-                        </xs:element>
-                    </xs:choice>
                     <xs:attribute name="path" type="xs:string" use="required"/>
-                    <xs:attribute name="enctag">
-                        <xs:simpleType>
-                            <xs:list itemType="nameType"/>
-                        </xs:simpleType>
-                    </xs:attribute>
+                    <xs:attribute name="tag" type="nameType"/>
                 </xs:complexType>
             </xs:element>
-            <xs:element name="folder">
-                <xs:complexType>
-                    <xs:choice minOccurs="0" maxOccurs="unbounded">
-                        <xs:element name="ignore">
-                            <xs:complexType>
-                                <xs:attribute name="prefix" type="xs:string" use="required"/>
-                            </xs:complexType>
-                        </xs:element>
-                        <xs:element name="encoding">
-                            <xs:complexType>
-                                <xs:attribute name="file" type="xs:string" use="required"/>
-                            </xs:complexType>
-                        </xs:element>
-                    </xs:choice>
-                    <xs:attribute name="path" type="xs:string" use="required"/>
-                    <xs:attribute name="group" type="xs:boolean"/>
-                    <xs:attribute name="enctag">
-                        <xs:simpleType>
-                            <xs:list itemType="nameType"/>
-                        </xs:simpleType>
-                    </xs:attribute>
-                </xs:complexType>
-            </xs:element>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="files">
+                    <xs:complexType>
+                        <xs:choice minOccurs="0" maxOccurs="unbounded">
+                            <xs:element name="add">
+                                <xs:complexType>
+                                    <xs:attribute name="file" type="xs:string" use="required"/>
+                                    <xs:attribute name="group" type="xs:string"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="encoding">
+                                <xs:complexType>
+                                    <xs:attribute name="file" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:choice>
+                        <xs:attribute name="path" type="xs:string" use="required"/>
+                        <xs:attribute name="enctag">
+                            <xs:simpleType>
+                                <xs:list itemType="nameType"/>
+                            </xs:simpleType>
+                        </xs:attribute>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="folder">
+                    <xs:complexType>
+                        <xs:choice minOccurs="0" maxOccurs="unbounded">
+                            <xs:element name="ignore">
+                                <xs:complexType>
+                                    <xs:attribute name="prefix" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="encoding">
+                                <xs:complexType>
+                                    <xs:attribute name="file" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:choice>
+                        <xs:attribute name="path" type="xs:string" use="required"/>
+                        <xs:attribute name="group" type="xs:boolean"/>
+                        <xs:attribute name="enctag">
+                            <xs:simpleType>
+                                <xs:list itemType="nameType"/>
+                            </xs:simpleType>
+                        </xs:attribute>
+                    </xs:complexType>
+                </xs:element>
+            </xs:choice>
         </xs:choice>
         <xs:attribute name="name" type="nameType" use="required"/>
     </xs:complexType>
