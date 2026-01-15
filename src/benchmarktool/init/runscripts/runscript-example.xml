@@ -12,7 +12,7 @@
 
 	<seqjob name="seq-gen" timeout="900s" runs="1" parallel="1"/>
 
-	<distjob name="dist-gen" timeout="1200s" runs="1" script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
+	<distjob name="dist-gen" timeout="1200s" runs="1" template_options="--single" script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
 
 	<benchmark name="no-pigeons">
 		<folder path="benchmarks/clasp/">

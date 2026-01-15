@@ -35,8 +35,12 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     def run(args: Any) -> None:
         p = ResParser()
         if args.resultfile:
-            with open(args.resultfile, encoding="utf-8") as in_file:
-                res = p.parse(in_file)
+            try:
+                with open(args.resultfile, encoding="utf-8") as in_file:
+                    res = p.parse(in_file)
+            except FileNotFoundError:
+                sys.stderr.write(f"*** ERROR: Result file '{args.resultfile}' not found.\n")
+                sys.exit(1)
         else:
             res = p.parse(sys.stdin)
         export: bool = args.export
@@ -78,6 +82,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     conv_parser.add_argument(
         "-o",
         "--output",
+        type=str,
         default="out.xlsx",
         help="Name of generated xlsx file (default: %(default)s)",
         metavar="<file.xlsx>",
@@ -123,7 +128,6 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         "-j",
         "--jupyter-notebook",
         type=str,
-        nargs="?",
         help=dedent(
             """\
             Name of generated .ipynb file
@@ -172,7 +176,7 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     def run(args: Any) -> None:
         p = RunParser()
         run = p.parse(args.runscript)
-        run.gen_scripts(args.exclude)
+        run.gen_scripts(args.exclude, args.force)
 
     gen_parser = subparsers.add_parser(
         "gen",
@@ -182,6 +186,12 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     )
     gen_parser.add_argument("runscript", type=str, help="Runscript file", metavar="<runscript.xml>")
     gen_parser.add_argument("-e", "--exclude", action="store_true", help="Exclude finished runs")
+    gen_parser.add_argument(
+        "-f",
+        "--force",
+        action="store_true",
+        help="Overwrite existing files",
+    )
     gen_parser.set_defaults(func=run)
 
 
@@ -190,7 +200,7 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
     Register init subcommand.
     """
 
-    def copy_dir(src_dir: str, dst_dir: str, overwrite: bool = False) -> None:
+    def copy_dir(src_dir: str, dst_dir: str, force: bool = False) -> None:
         """
         Copy directory src_dir to dst_dir.
         By default existing files are not overwritten.
@@ -211,33 +221,36 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
                 if not os.path.isdir(target_dir):
                     os.mkdir(target_dir)
                 else:
-                    sys.stderr.write(f"INFO: Directory already exists:\t{target_dir}\n")
+                    sys.stderr.write(f"*** INFO: Directory already exists:\t{target_dir}\n")
             # Files
             for file in files:
                 source_name = os.path.join(root, file)
                 target_name = os.path.join(target_root, file)
                 if os.path.isfile(target_name):
-                    sys.stderr.write(f"INFO: File already exists:\t{target_name}\n")
-                    if not overwrite:
+                    sys.stderr.write(f"*** INFO: File already exists:\t{target_name}\n")
+                    if not force:
                         continue
                 shutil.copy(source_name, target_name)
 
     def run(args: Any) -> None:
         src_dir = os.path.join(os.path.dirname(__file__), "init")
         if not os.path.isdir(src_dir):
-            raise SystemExit(f"Resources missing: '{src_dir}' does not exist.\nTry reinstalling the package.")
+            sys.stderr.write(
+                f"*** ERROR: Resources missing: '{src_dir}' does not exist.\nTry reinstalling the package.\n"
+            )
+            sys.exit(1)
         cwd = os.getcwd()
-        copy_dir(src_dir, cwd, args.overwrite)
+        copy_dir(src_dir, cwd, args.force)
         rp_dir = os.path.join(cwd, "resultparsers")
         if not os.path.isdir(rp_dir):
             os.mkdir(rp_dir)
         else:
-            sys.stderr.write(f"INFO: Directory already exists:\t{rp_dir}\n")
+            sys.stderr.write(f"*** INFO: Directory already exists:\t{rp_dir}\n")
         if args.resultparser_template:
             rp_tmp = os.path.join(rp_dir, "rp_tmp.py")
             if os.path.isfile(rp_tmp):
-                sys.stderr.write(f"INFO: File already exists:\t{rp_tmp}\n")
-                if not args.overwrite:
+                sys.stderr.write(f"*** INFO: File already exists:\t{rp_tmp}\n")
+                if not args.force:
                     return
             shutil.copy(os.path.join(os.path.dirname(__file__), "resultparser", "clasp.py"), rp_tmp)
 
@@ -248,14 +261,14 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
             """\
             Initialize the benchmark environment with the necessary directory structure
             and example runscript and templates.
-            By default existing files are not overwritten; use --overwrite to change this behavior.
+            By default existing files are not overwritten; use --force to change this behavior.
             """
         ),
         formatter_class=formatter,
     )
     parser.add_argument(
-        "-o",
-        "--overwrite",
+        "-f",
+        "--force",
         action="store_true",
         help="Overwrite existing files",
     )
@@ -282,9 +295,15 @@ def btool_run_dist(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # 
         return len([f for f in result.stdout.strip().splitlines() if f])
 
     def run(args: Any) -> None:
-        pending = [
-            f for f in os.listdir(args.folder) if os.path.isfile(os.path.join(args.folder, f)) and f.endswith(".dist")
-        ]
+        try:
+            pending = [
+                f
+                for f in os.listdir(args.folder)
+                if os.path.isfile(os.path.join(args.folder, f)) and f.endswith(".dist")
+            ]
+        except FileNotFoundError:
+            sys.stderr.write(f"*** ERROR: Folder '{args.folder}' not found.\n")
+            sys.exit(1)
         print(f"Found {len(pending)} jobs to dispatch.")
         while pending:
             jobs = running_jobs(args.user)
@@ -352,15 +371,22 @@ def btool_verify(subparsers: Any) -> None:  # nocoverage
             for file in files:
                 if file == "runsolver.watcher":
                     watcher_path = os.path.join(root, file)
+                    if os.path.getsize(watcher_path) == 0:
+                        sys.stderr.write(f"*** WARNING: Empty watcher file: {watcher_path}\n")
+                        continue
                     with open(watcher_path, encoding="utf-8") as f:
                         if "runlim error" in f.read():
                             error_files.append(watcher_path)
+                elif file == "runsolver.solver":
+                    solver_path = os.path.join(root, file)
+                    if os.path.getsize(solver_path) == 0:
+                        sys.stderr.write(f"*** WARNING: Empty solver file: {solver_path}\n")
         return error_files
 
     def run(args: Any) -> None:
         folder = args.folder
         if not os.path.isdir(folder):
-            print("Error: provided folder doesn't exist", file=sys.stderr)
+            sys.stderr.write(f"*** ERROR: Folder '{folder}' not found.\n")
             sys.exit(1)
 
         if error_files := find_runlim_errors(folder):

@@ -2,8 +2,9 @@
 Test cases for runscript parser
 """
 
+import io
 import platform
-from unittest import TestCase
+from unittest import TestCase, mock
 
 from lxml import etree  # type: ignore[import-untyped]
 
@@ -23,7 +24,43 @@ class TestParser(TestCase):
         Test parse method.
         """
         p = parser.Parser()
-        run = p.parse("tests/ref/test_runscript.xml")
+
+        # file not found
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                p.parse("non_existing_file.xml")
+            self.assertEqual(
+                mock_stderr.getvalue(),
+                "*** ERROR: Runscript file 'non_existing_file.xml' not found.\n",
+            )
+
+        # xml error
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                p.parse("tests/ref/runscripts/invalid_xml.xml")
+            self.assertIn(
+                "*** ERROR: XML Syntax Error in runscript: ",
+                mock_stderr.getvalue(),
+            )
+
+        # invalid runscript
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                p.parse("tests/ref/runscripts/invalid_runscript.xml")
+            self.assertIn(
+                "*** ERROR: Invalid runscript file: ",
+                mock_stderr.getvalue(),
+            )
+
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            run = p.parse("tests/ref/runscripts/test_runscript.xml")
+        self.assertEqual(
+            mock_stderr.getvalue(),
+            "*** INFO: Attribute 'extra' in distjob 'dist-generic' is currently unused.\n"
+            "*** INFO: Attribute 'other' in seqjob 'seq-generic' is currently unused.\n"
+            "*** INFO: Attribute 'opt' in setting 'one-as' is currently unused.\n",
+        )
+
         # runscript
         self.assertIsInstance(run, runscript.Runscript)
         self.assertEqual(run.output, "output")
@@ -35,14 +72,18 @@ class TestParser(TestCase):
         self.assertEqual(seq_job.name, "seq-generic")
         self.assertEqual(seq_job.timeout, 120)
         self.assertEqual(seq_job.runs, 1)
-        self.assertDictEqual(seq_job.attr, {"memout": "1000"})
+        self.assertEqual(seq_job.memout, 1000)
+        self.assertEqual(seq_job.template_options, "--single")
+        self.assertDictEqual(seq_job.attr, {"other": "value"})
         self.assertEqual(seq_job.parallel, 8)
         dist_job = run.jobs["dist-generic"]
         self.assertIsInstance(dist_job, runscript.DistJob)
         self.assertEqual(dist_job.name, "dist-generic")
         self.assertEqual(dist_job.timeout, 120)
         self.assertEqual(dist_job.runs, 1)
-        self.assertDictEqual(seq_job.attr, {"memout": "1000"})
+        self.assertEqual(dist_job.memout, 1000)
+        self.assertEqual(dist_job.template_options, "--single")
+        self.assertDictEqual(dist_job.attr, {"extra": "test"})
         self.assertEqual(dist_job.script_mode, "timeout")
         self.assertEqual(dist_job.walltime, 86399)  # = 23:59:59
         self.assertEqual(dist_job.cpt, 1)
@@ -115,9 +156,9 @@ class TestParser(TestCase):
         self.assertEqual(setting.cmdline, "--stats 1")
         self.assertSetEqual(setting.tag, {"par", "one-as"})
         self.assertEqual(setting.order, 0)
-        self.assertEqual(setting.disttemplate, "templates/impi.dist")
+        self.assertEqual(setting.dist_template, "templates/impi.dist")
         self.assertEqual(setting.dist_options, "#SBATCH --test=1,#SBATCH --opt=test")
-        self.assertDictEqual(setting.attr, {})
+        self.assertDictEqual(setting.attr, {"opt": "attr"})
         self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
         setting = system.settings["min"]
         self.assertIsInstance(setting, runscript.Setting)
@@ -125,7 +166,7 @@ class TestParser(TestCase):
         self.assertEqual(setting.cmdline, "--stats")
         self.assertSetEqual(setting.tag, set())
         self.assertEqual(setting.order, 2)
-        self.assertEqual(setting.disttemplate, "templates/single.dist")
+        self.assertEqual(setting.dist_template, "templates/single.dist")
         self.assertEqual(setting.dist_options, "")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": set(), "test": {"test21.lp"}, "test2": {"test22.lp"}})
@@ -185,3 +226,36 @@ class TestParser(TestCase):
         p = parser.Parser()
         node = etree.Element("node", attr1="test1", attr2="test2")
         self.assertDictEqual(p._filter_attr(node, ["attr1"]), {"attr2": "test2"})
+
+    def test_validate_components(self):
+        """
+        Test _validate_components method.
+        """
+        p = parser.Parser()
+        run = runscript.Runscript("out")
+
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            p.validate_components(run)
+            self.assertEqual(
+                mock_stderr.getvalue(),
+                "*** WARNING: No machine defined in runscript.\n"
+                "*** WARNING: No config defined in runscript.\n"
+                "*** WARNING: No system defined in runscript.\n"
+                "*** WARNING: No job defined in runscript.\n"
+                "*** WARNING: No benchmark defined in runscript.\n"
+                "*** WARNING: No project defined in runscript.\n",
+            )
+
+        run.systems["sys1"] = runscript.System("sys1", "1.0", "time", 0, mock.Mock(spec=runscript.Config))
+        run.benchmarks["bench1"] = runscript.Benchmark("bench1")
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            p.validate_components(run)
+            self.assertEqual(
+                mock_stderr.getvalue(),
+                "*** WARNING: No machine defined in runscript.\n"
+                "*** WARNING: No config defined in runscript.\n"
+                "*** WARNING: No setting defined for system 'sys1-1.0'.\n"
+                "*** WARNING: No job defined in runscript.\n"
+                "*** WARNING: No instance folder/files defined for benchmark 'bench1'.\n"
+                "*** WARNING: No project defined in runscript.\n",
+            )

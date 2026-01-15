@@ -17,7 +17,7 @@ class TestIpynbGen(TestCase):
         """
         Test gen_ipynb_gen function.
         """
-        name = "./tests/ref/test.ipynb"
+        name = "./tests/ref/test"
         gen_ipynb("x.parquet", name)
-        self.assertTrue(os.path.isfile(name))
-        os.remove(name)
+        self.assertTrue(os.path.isfile(name + ".ipynb"))
+        os.remove(name + ".ipynb")

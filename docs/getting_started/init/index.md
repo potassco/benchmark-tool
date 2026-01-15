@@ -4,14 +4,14 @@ icon: "material/play-outline"
 ---
 
 The `init` subcommand can be used to prepare the necessary folder structure to run
-the benchmarktool and provide some example [runscripts] and script [templates]. By
-default existing files are not overwritten.
+the benchmarktool and provide some example [runscripts] and script [templates].
 
 ```bash
 btool init
 ```
 
-The `-o, --overwrite` option can be used to overwrite existing files.
+By default existing files are not overwritten. This can be changed using
+the `-f, --force` option.
 
 You can use the `--resultparser-template` option to create a copy of the `clasp` resultparser
 called `rp_tmp.py`, which you can use as a base to create your own. You can overwrite the

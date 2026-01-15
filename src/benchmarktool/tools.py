@@ -4,9 +4,12 @@ Created on Jan 15, 2010
 @author: Roland Kaminski
 """
 
+import importlib.util
 import os
 import re
 import stat
+import sys
+from types import ModuleType
 
 
 def mkdir_p(path: str) -> None:
@@ -52,7 +55,7 @@ def seconds_to_xml_time(int_rep: int) -> str:
     int_rep //= 60
     h = int_rep % 24
     d = int_rep // 24
-    return "{0:02}d {1:02}h {2:02}m {3:02}s".format(d, h, m, s)
+    return f"{d:02}d {h:02}h {m:02}m {s:02}s"
 
 
 def seconds_to_slurm_time(int_rep: int) -> str:
@@ -68,7 +71,7 @@ def seconds_to_slurm_time(int_rep: int) -> str:
     int_rep //= 60
     h = int_rep % 24
     d = int_rep // 24
-    return "{0:02}-{1:02}:{2:02}:{3:02}".format(d, h, m, s)
+    return f"{d:02}-{h:02}:{m:02}:{s:02}"
 
 
 def set_executable(filename: str) -> None:
@@ -80,3 +83,20 @@ def set_executable(filename: str) -> None:
     """
     filestat = os.stat(filename)
     os.chmod(filename, filestat[0] | stat.S_IXUSR)
+
+
+def import_from_path(module_name: str, file_path: str) -> ModuleType:  # nocoverage
+    """
+    Helper function to import modules from path.
+
+    Attributes:
+        module_name (str):  Name of the module.
+        file_path (str):    Path to the module.
+    """
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module

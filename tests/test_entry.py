@@ -130,6 +130,12 @@ class TestParser(TestCase):
             args.func(args)
             gen_mock.assert_called_once_with(ex_file, "notebook.ipynb")
 
+        with mock.patch("sys.stderr", new=StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                args = self.parser.parse_args(["conv", "res.xml"])
+                args.func(args)
+            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: Result file 'res.xml' not found.\n")
+
     def test_eval(self):
         """
         Test eval subcommand.
@@ -162,16 +168,21 @@ class TestParser(TestCase):
         self.assertEqual(args.command, "gen")
         self.assertEqual(args.runscript, "rs.xml")
         self.assertFalse(args.exclude)
+        self.assertFalse(args.force)
         self.assertIsInstance(args.func, Callable)
 
         # exclude
         args = self.parser.parse_args(["gen", "rs.xml", "-e"])
         self.assertTrue(args.exclude)
 
+        # force
+        args = self.parser.parse_args(["gen", "rs.xml", "-f"])
+        self.assertTrue(args.force)
+
         # run function
         run_mock = mock.MagicMock()
         with (mock.patch("benchmarktool.entry_points.RunParser.parse", return_value=run_mock) as parse_mock,):
-            args = self.parser.parse_args(["gen", "rs.xml", "-e"])
+            args = self.parser.parse_args(["gen", "rs.xml", "-e", "-f"])
             args.func(args)
             parse_mock.assert_called_once_with("rs.xml")
-            run_mock.gen_scripts.assert_called_once_with(True)
+            run_mock.gen_scripts.assert_called_once_with(True, True)

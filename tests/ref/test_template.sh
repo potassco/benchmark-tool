@@ -1,1 +1,1 @@
-$CAT {run.files} {run.root} {run.timeout} {run.memout} {run.root}/programs/{run.solver} {run.args} {run.encodings}
+$CAT {options} {files} {root} {timeout} {memout} {root}/programs/{solver} {args} {encodings}

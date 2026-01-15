@@ -134,19 +134,19 @@ to select multiple settings at once.
     instances when this setting is selected.
     - If a `tag` is given, encoding usage is instance-dependent. Multiple
     encodings can be selected by using the same tag.
-- The setting element also supports an optional `disttemplate` attribute. The
+- The setting element also supports an optional `dist_template` attribute. The
 default value is `templates/single.dist`, which refers to [single.dist]. This
 attribute is only relevant for distributed jobs. More information about dist
 templates can be found on the [templates] page.
-- Another optional attribute for distributed jobs is `distopts`, which allows
-    you to add additional options for distributed jobs. `distopts` expects a
-    comma-separated string of options. For example, `distopts="#SBATCH
-    --hint=compute_bound,#SBATCH --job-name=\"my_benchmark_run\""` results in
+- Another optional attribute for distributed jobs is `dist_options`, which allows
+    you to add additional options for distributed jobs. `dist_options` expects a
+    comma-separated string of options. For example,  
+    `dist_options="#SBATCH --hint=compute_bound,#SBATCH -J=%x.%j.out"` results in
     the following lines being added to the script:
 
     ```bash
     #SBATCH --hint=compute_bound
-    #SBATCH --job-name="my_benchmark_run"
+    #SBATCH -J=%x.%j.out
     ```
 
     The default template for distributed jobs uses SLURM; a comprehensive list
@@ -171,19 +171,22 @@ A sequential job is identified by its `name` and sets the `timeout` (in
 seconds) for a single run, the number of `runs` for each instance, and
 the number of solver processes executed in `parallel`. The optional
 attribute `memout` sets a memory limit (in MB) for each run. If no limit
-is set, a default limit of 2000 MB is used:
+is set, a default limit of 20 GB is used. Additional options, which will be
+passed to the runlim call, can be set using the optional `template_options` attribute.
+`template_options` expects a comma-separated string of options, e.g.  
+`template_options="--single,--report-rate=2000"`.
 
 ```xml
-<seqjob name="seq-gen" timeout="900" runs="1" memout="1000" parallel="1"/>
+<seqjob name="seq-gen" timeout="900" runs="1" memout="1000" template_options="--single" parallel="1"/>
 ```
 
 ### Distributed Jobs
 
 A distributed job is also identified by its `name` and defines a `timeout`,
-the number of `runs` and an optional `memout`:
+the number of `runs` and an optional `memout` and `template_options`:
 
 ```xml
-<distjob name="dist-gen" timeout="900" runs="1" memout="1000"
+<distjob name="dist-gen" timeout="900" runs="1" memout="1000" template_options="--single"
         script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
 ```
 

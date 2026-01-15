@@ -2,6 +2,7 @@
 Test cases for xlsx file generation.
 """
 
+import os
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -201,6 +202,7 @@ class TestXLSXDoc(TestCase):
                     (call(self.doc.class_sheet, self.doc)),
                 ]
             )
+        os.remove("./tests/ref/new_xlsx.xlsx")
 
 
 # pylint: disable=too-many-instance-attributes, too-many-statements

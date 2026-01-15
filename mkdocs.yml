@@ -152,7 +152,7 @@ nav:
         - reference/api/result/index.md
         - Classes: reference/api/result/result.md
         - Parser: reference/api/result/parser.md
-        - ODS Gen: reference/api/result/ods_gen.md
+        - XLSX Gen: reference/api/result/xlsx_gen.md
       - Tools: reference/api/tools.md
       - Entry Points: reference/api/entry_points.md
   - Community:
