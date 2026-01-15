@@ -53,26 +53,7 @@ class Parser:
             )
             sys.exit(1)
 
-        try:
-            schema = etree.XMLSchema(file=os.path.join(schemas_dir, "runscript.xml"))
-        except etree.XMLSchemaParseError as e:
-            sys.stderr.write(f"*** ERROR: Failed to load runscript schema file: {e}\n")
-            sys.exit(1)
-
-        try:
-            doc = etree.parse(file_name)
-        except (etree.XMLSyntaxError, OSError) as e:
-            if isinstance(e, OSError):
-                sys.stderr.write(f"*** ERROR: Runscript file '{file_name}' not found.\n")
-                sys.exit(1)
-            sys.stderr.write(f"*** ERROR: XML Syntax Error in runscript: {e}\n")
-            sys.exit(1)
-
-        try:
-            schema.assertValid(doc)
-        except etree.DocumentInvalid as e:
-            sys.stderr.write(f"*** ERROR: Invalid runscript file: {e}\n")
-            sys.exit(1)
+        doc = self.parse_file(file_name, schemas_dir, "runscript.xml")
 
         root = doc.getroot()
         run = Runscript(root.get("output"))
@@ -202,6 +183,39 @@ class Parser:
 
         self.validate_components(run)
         return run
+
+    def parse_file(self, file_name: str, schema_dir: str, schema_file: str) -> etree._ElementTree:
+        """
+        Parse a given XML file and validate it against a given schema.
+
+        Attributes:
+            file_name (str): a string holding a path to a xml file.
+            schema_dir (str): a string holding a path to the schema directory.
+            schema_file (str): a string holding the name of the schema file.
+        """
+
+        try:
+            schema = etree.XMLSchema(file=os.path.join(schema_dir, schema_file))
+        except etree.XMLSchemaParseError as e:
+            sys.stderr.write(f"*** ERROR: Failed to load schema file {schema_file}: {e}\n")
+            sys.exit(1)
+
+        try:
+            doc = etree.parse(file_name)
+        except (etree.XMLSyntaxError, OSError) as e:
+            if isinstance(e, OSError):
+                sys.stderr.write(f"*** ERROR: File '{file_name}' not found.\n")
+                sys.exit(1)
+            sys.stderr.write(f"*** ERROR: XML Syntax Error in file '{file_name}': {e}\n")
+            sys.exit(1)
+
+        try:
+            schema.assertValid(doc)
+        except etree.DocumentInvalid as e:
+            sys.stderr.write(f"*** ERROR: '{file_name}' is invalid: {e}\n")
+            sys.exit(1)
+
+        return doc
 
     def validate_components(self, run: Runscript) -> None:
         """
