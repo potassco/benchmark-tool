@@ -4,7 +4,7 @@ icon: "material/play-outline"
 ---
 
 The `init` subcommand can be used to prepare the necessary folder structure to run
-the benchmarktool and provide some example [runscripts] and script [templates]. 
+the benchmarktool and provide some example [runscripts] and script [templates].
 
 ```bash
 btool init
