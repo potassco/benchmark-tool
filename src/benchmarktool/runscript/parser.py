@@ -135,6 +135,42 @@ class Parser:
         element: Any
         for node in root.xpath("./benchmark"):
             benchmark = Benchmark(node.get("name"))
+            for child in node.xpath("./spec"):
+                # discover spec files
+                for dirpath, dirnames, filenames in os.walk(child.get("path")):
+                    tag = child.get("tag")
+                    if "spec.xml" in filenames:
+                        # stop recursion if spec.xml found
+                        dirnames.clear()
+                        spec_file = os.path.join(dirpath, "spec.xml")
+                        spec = self.parse_file(spec_file, schemas_dir, "benchmark_spec.xml").getroot()
+                        class_name = spec.get("name")
+                        if spec.get("enctag") is None:
+                            enctag = set()
+                        else:
+                            enctag = set(spec.get("enctag").split(None))
+
+                        files = Benchmark.Files(dirpath, class_name)
+                        for spec_child in spec.xpath("./instance"):
+                            if tag is None or spec_child.get("tag") == tag:
+                                print(spec_child.get("file"))
+                                files.add_file(spec_child.get("file"), spec_child.get("group"))
+                        files.add_enctags(enctag)
+                        benchmark.add_element(files)
+
+                        for spec_child in spec.xpath("./folder"):
+                            print(spec_child.get("group"))
+                            if tag is None or spec_child.get("tag") == tag:
+                                if spec_child.get("group") is not None:
+                                    group = spec_child.get("group").lower() == "true"
+                                else:
+                                    group = False
+                                folder = Benchmark.Folder(
+                                    os.path.join(dirpath, spec_child.get("path")), group, class_name
+                                )
+                                folder.add_enctags(enctag)
+                                benchmark.add_element(folder)
+
             for child in node.xpath("./folder"):
                 if child.get("group") is not None:
                     group = child.get("group").lower() == "true"
