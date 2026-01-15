@@ -171,7 +171,7 @@ A sequential job is identified by its `name` and sets the `timeout` (in
 seconds) for a single run, the number of `runs` for each instance, and
 the number of solver processes executed in `parallel`. The optional
 attribute `memout` sets a memory limit (in MB) for each run. If no limit
-is set, a default limit of 2000 MB is used. Additional options, which will be
+is set, a default limit of 20 GB is used. Additional options, which will be
 passed to the runlim call, can be set using the optional `template_options` attribute.
 `template_options` expects a comma-separated string of options, e.g.  
 `template_options="--single,--report-rate=2000"`.
