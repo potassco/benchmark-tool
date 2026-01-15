@@ -176,7 +176,7 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     def run(args: Any) -> None:
         p = RunParser()
         run = p.parse(args.runscript)
-        run.gen_scripts(args.exclude, args.overwrite)
+        run.gen_scripts(args.exclude, args.force)
 
     gen_parser = subparsers.add_parser(
         "gen",
@@ -187,8 +187,8 @@ def btool_gen(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
     gen_parser.add_argument("runscript", type=str, help="Runscript file", metavar="<runscript.xml>")
     gen_parser.add_argument("-e", "--exclude", action="store_true", help="Exclude finished runs")
     gen_parser.add_argument(
-        "-o",
-        "--overwrite",
+        "-f",
+        "--force",
         action="store_true",
         help="Overwrite existing files",
     )
@@ -200,7 +200,7 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
     Register init subcommand.
     """
 
-    def copy_dir(src_dir: str, dst_dir: str, overwrite: bool = False) -> None:
+    def copy_dir(src_dir: str, dst_dir: str, force: bool = False) -> None:
         """
         Copy directory src_dir to dst_dir.
         By default existing files are not overwritten.
@@ -221,14 +221,14 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
                 if not os.path.isdir(target_dir):
                     os.mkdir(target_dir)
                 else:
-                    sys.stderr.write(f"INFO: Directory already exists:\t{target_dir}\n")
+                    sys.stderr.write(f"*** INFO: Directory already exists:\t{target_dir}\n")
             # Files
             for file in files:
                 source_name = os.path.join(root, file)
                 target_name = os.path.join(target_root, file)
                 if os.path.isfile(target_name):
-                    sys.stderr.write(f"INFO: File already exists:\t{target_name}\n")
-                    if not overwrite:
+                    sys.stderr.write(f"*** INFO: File already exists:\t{target_name}\n")
+                    if not force:
                         continue
                 shutil.copy(source_name, target_name)
 
@@ -240,7 +240,7 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
             )
             sys.exit(1)
         cwd = os.getcwd()
-        copy_dir(src_dir, cwd, args.overwrite)
+        copy_dir(src_dir, cwd, args.force)
         rp_dir = os.path.join(cwd, "resultparsers")
         if not os.path.isdir(rp_dir):
             os.mkdir(rp_dir)
@@ -250,7 +250,7 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
             rp_tmp = os.path.join(rp_dir, "rp_tmp.py")
             if os.path.isfile(rp_tmp):
                 sys.stderr.write(f"*** INFO: File already exists:\t{rp_tmp}\n")
-                if not args.overwrite:
+                if not args.force:
                     return
             shutil.copy(os.path.join(os.path.dirname(__file__), "resultparser", "clasp.py"), rp_tmp)
 
@@ -261,14 +261,14 @@ def btool_init(subparsers: "_SubParsersAction[ArgumentParser]") -> None:  # noco
             """\
             Initialize the benchmark environment with the necessary directory structure
             and example runscript and templates.
-            By default existing files are not overwritten; use --overwrite to change this behavior.
+            By default existing files are not overwritten; use --force to change this behavior.
             """
         ),
         formatter_class=formatter,
     )
     parser.add_argument(
-        "-o",
-        "--overwrite",
+        "-f",
+        "--force",
         action="store_true",
         help="Overwrite existing files",
     )

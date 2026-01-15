@@ -18,7 +18,7 @@ You can use the `-e, --exclude` option to exclude previously finished benchmarks
 in the start script, thus avoiding running them again.
 
 If the output directory, specified in the runscript, already exists, the program
-is interrupted. The `-o, --overwrite` option can be used to disable this behaviour
+is interrupted. The `-f, --force` option can be used to disable this behaviour
 and overwrite existing files.
 
 After generation, start your benchmarks by executing either the `start.sh` or

@@ -1314,13 +1314,13 @@ class Runscript:
         """
         self.projects[project.name] = project
 
-    def gen_scripts(self, skip: bool, overwrite: bool = False) -> None:
+    def gen_scripts(self, skip: bool, force: bool = False) -> None:
         """
         Generates the start scripts for all benchmarks described by
         this run script.
         """
         if os.path.isdir(self.output):
-            if overwrite:
+            if force:
                 shutil.rmtree(self.output)
             else:
                 sys.stderr.write("*** ERROR: Output directory already exists.\n")
