@@ -47,7 +47,7 @@
                         <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
                             <xs:complexType>
                                 <xs:attribute name="file" type="xs:string" use="required"/>
-                                <xs:attribute name="enctag">
+                                <xs:attribute name="encoding_tag">
                                     <xs:simpleType>
                                         <xs:list itemType="nameType"/>
                                     </xs:simpleType>
@@ -131,7 +131,7 @@
             <xs:element name="spec">
                 <xs:complexType>
                     <xs:attribute name="path" type="xs:string" use="required"/>
-                    <xs:attribute name="tag" type="nameType"/>
+                    <xs:attribute name="instance_tag" type="tagrefType"/>
                 </xs:complexType>
             </xs:element>
             <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -151,7 +151,7 @@
                             </xs:element>
                         </xs:choice>
                         <xs:attribute name="path" type="xs:string" use="required"/>
-                        <xs:attribute name="enctag">
+                        <xs:attribute name="encoding_tag">
                             <xs:simpleType>
                                 <xs:list itemType="nameType"/>
                             </xs:simpleType>
@@ -174,7 +174,7 @@
                         </xs:choice>
                         <xs:attribute name="path" type="xs:string" use="required"/>
                         <xs:attribute name="group" type="xs:boolean"/>
-                        <xs:attribute name="enctag">
+                        <xs:attribute name="encoding_tag">
                             <xs:simpleType>
                                 <xs:list itemType="nameType"/>
                             </xs:simpleType>

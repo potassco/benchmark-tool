@@ -98,10 +98,10 @@ class Parser:
                     dist_options = ""
                 encodings: dict[str, set[str]] = {"_default_": set()}
                 for grandchild in child.xpath("./encoding"):
-                    if grandchild.get("enctag") is None:
+                    if grandchild.get("encoding_tag") is None:
                         encodings["_default_"].add(os.path.normpath(grandchild.get("file")))
                     else:
-                        enctags = set(grandchild.get("enctag").split(None))
+                        enctags = set(grandchild.get("encoding_tag").split(None))
                         for t in enctags:
                             if t not in encodings:
                                 encodings[t] = set()
@@ -194,10 +194,10 @@ class Parser:
                 else:
                     group = False
                 element = Benchmark.Folder(child.get("path"), group)
-                if child.get("enctag") is None:
+                if child.get("encoding_tag") is None:
                     tag = set()
                 else:
-                    tag = set(child.get("enctag").split(None))
+                    tag = set(child.get("encoding_tag").split(None))
                 element.add_enctags(tag)
                 for grandchild in child.xpath("./encoding"):
                     element.add_encoding(grandchild.get("file"))
@@ -206,10 +206,10 @@ class Parser:
                 benchmark.add_element(element)
             for child in node.xpath("./files"):
                 element = Benchmark.Files(child.get("path"))
-                if child.get("enctag") is None:
+                if child.get("encoding_tag") is None:
                     tag = set()
                 else:
-                    tag = set(child.get("enctag").split(None))
+                    tag = set(child.get("encoding_tag").split(None))
                 element.add_enctags(tag)
                 for grandchild in child.xpath("./encoding"):
                     element.add_encoding(grandchild.get("file"))
