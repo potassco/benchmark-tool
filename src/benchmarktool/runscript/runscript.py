@@ -1214,6 +1214,20 @@ class Project:
             setting_name (str):   The settings to run the system with.
             benchmark_name (str): The benchmark set to evaluate.
         """
+        if machine_name not in self.runscript.machines:
+            sys.stderr.write(f"*** ERROR: Machine '{machine_name}' not defined!\n")
+            sys.exit(1)
+        if (system_name, system_version) not in self.runscript.systems:
+            sys.stderr.write(f"*** ERROR: System '{system_name}-{system_version}' not defined!\n")
+            sys.exit(1)
+        if setting_name not in self.runscript.systems[(system_name, system_version)].settings:
+            sys.stderr.write(
+                f"*** ERROR: Setting '{setting_name}' for system '{system_name}-{system_version}' not defined!\n"
+            )
+            sys.exit(1)
+        if benchmark_name not in self.runscript.benchmarks:
+            sys.stderr.write(f"*** ERROR: Benchmark '{benchmark_name}' not defined!\n")
+            sys.exit(1)
         runspec = Runspec(
             self.runscript.machines[machine_name],
             self.runscript.systems[(system_name, system_version)],
