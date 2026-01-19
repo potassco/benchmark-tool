@@ -22,6 +22,7 @@ from benchmarktool.runscript.runscript import (
     SeqJob,
     Setting,
     System,
+    TagDisj,
 )
 
 
@@ -138,38 +139,54 @@ class Parser:
             for child in node.xpath("./spec"):
                 # discover spec files
                 for dirpath, dirnames, filenames in os.walk(child.get("path")):
-                    tag = child.get("tag")
+                    tag = child.get("instance_tag")
                     if "spec.xml" in filenames:
                         # stop recursion if spec.xml found
                         dirnames.clear()
                         spec_file = os.path.join(dirpath, "spec.xml")
                         spec = self.parse_file(spec_file, schemas_dir, "benchmark_spec.xml").getroot()
-                        class_name = spec.get("name")
-                        if spec.get("enctag") is None:
-                            enctag = set()
-                        else:
-                            enctag = set(spec.get("enctag").split(None))
+                        for class_elem in spec.xpath("./class"):
+                            class_name = class_elem.get("name")
+                            if class_elem.get("encoding_tag") is None:
+                                enctag = set()
+                            else:
+                                enctag = set(class_elem.get("encoding_tag").split(None))
 
-                        files = Benchmark.Files(dirpath, class_name)
-                        for spec_child in spec.xpath("./instance"):
-                            if tag is None or spec_child.get("tag") == tag:
-                                print(spec_child.get("file"))
-                                files.add_file(spec_child.get("file"), spec_child.get("group"))
-                        files.add_enctags(enctag)
-                        benchmark.add_element(files)
+                            elements: list[Any] = []
+                            instances = class_elem.xpath("./instance")
+                            if instances:
+                                files = Benchmark.Files(dirpath, class_name)
+                                for instance in instances:
+                                    if (
+                                        tag is None
+                                        or instance.get("instance_tag") is None
+                                        or TagDisj(tag).match(set(instance.get("instance_tag").split(None)))
+                                    ):
+                                        files.add_file(instance.get("file"), instance.get("group"))
+                                files.add_enctags(enctag)
+                                elements.append(files)
 
-                        for spec_child in spec.xpath("./folder"):
-                            print(spec_child.get("group"))
-                            if tag is None or spec_child.get("tag") == tag:
-                                if spec_child.get("group") is not None:
-                                    group = spec_child.get("group").lower() == "true"
-                                else:
-                                    group = False
-                                folder = Benchmark.Folder(
-                                    os.path.join(dirpath, spec_child.get("path")), group, class_name
-                                )
-                                folder.add_enctags(enctag)
-                                benchmark.add_element(folder)
+                            # folder elements are still in development
+                            for folder_elem in class_elem.xpath("./folder"):
+                                if (
+                                    tag is None
+                                    or folder_elem.get("instance_tag") is None
+                                    or TagDisj(tag).match(set(folder_elem.get("instance_tag").split(None)))
+                                ):
+                                    if folder_elem.get("group") is not None:
+                                        group = folder_elem.get("group").lower() == "true"
+                                    else:
+                                        group = False
+                                    folder = Benchmark.Folder(
+                                        os.path.join(dirpath, folder_elem.get("path")), group, class_name
+                                    )
+                                    folder.add_enctags(enctag)
+                                    elements.append(folder)
+
+                            for element in elements:
+                                for encoding in class_elem.xpath("./encoding"):
+                                    element.add_encoding(encoding.get("file"))
+                                benchmark.add_element(element)
 
             for child in node.xpath("./folder"):
                 if child.get("group") is not None:
@@ -285,7 +302,9 @@ class Parser:
         # instances
         for benchmark in run.benchmarks.values():
             if not benchmark.elements:
-                sys.stderr.write(f"*** WARNING: No instance folder/files defined for benchmark '{benchmark.name}'.\n")
+                sys.stderr.write(
+                    f"*** WARNING: No spec or instance folders/files defined for benchmark '{benchmark.name}'.\n"
+                )
 
         # project
         if not run.projects:

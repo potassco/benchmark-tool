@@ -5,15 +5,19 @@
             <xs:element name="instance">
                 <xs:complexType>
                     <xs:attribute name="file" type="xs:string" use="required"/>
-                    <xs:attribute name="tag" type="nameType"/>
-                    <xs:attribute name="group" type="nameType"/>                
+                    <xs:attribute name="instance_tag">
+                        <xs:simpleType>
+                            <xs:list itemType="nameType"/>
+                        </xs:simpleType>
+                    </xs:attribute>
+                    <xs:attribute name="group" type="nameType"/>
                 </xs:complexType>
             </xs:element>
             <xs:element name="folder">
                 <xs:complexType>
                     <xs:attribute name="path" type="xs:string" use="required"/>
-                    <xs:attribute name="tag" type="nameType"/>
-                    <xs:attribute name="group" type="xs:boolean"/>                
+                    <xs:attribute name="instance_tag" type="nameType"/>
+                    <xs:attribute name="group" type="xs:boolean"/>
                 </xs:complexType>
             </xs:element>
             <xs:element name="encoding">
@@ -22,14 +26,14 @@
                 </xs:complexType>
             </xs:element>
         </xs:choice>
-        <xs:attribute name="name" type="nameType" use="required"/>
-        <xs:attribute name="enctag">
+        <xs:attribute name="name" type="classnameType" use="required"/>
+        <xs:attribute name="encoding_tag">
             <xs:simpleType>
                 <xs:list itemType="nameType"/>
             </xs:simpleType>
         </xs:attribute>
     </xs:complexType>
-                
+
     <!-- simple types used througout the above definitions -->
     <xs:simpleType name="nameType">
         <xs:restriction base="xs:string">
@@ -37,7 +41,18 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="classnameType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z_\-0-9/]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <!-- the root element -->
-    <xs:element name="class" type="classType">
+    <xs:element name="spec">
+        <xs:complexType>
+            <xs:choice minOccurs="1" maxOccurs="unbounded">
+                <xs:element name="class" type="classType"/>
+            </xs:choice>
+        </xs:complexType>
     </xs:element>
 </xs:schema>

@@ -943,12 +943,10 @@ class Benchmark:
                     if group not in instances:
                         instances[group] = set()
                     instances[group].add(filename)
-                if self.class_name is None:
-                    self.class_name = relroot
                 for group, instfiles in instances.items():
                     benchmark.add_instance(
                         root=root,
-                        class_name=self.class_name,
+                        class_name=relroot if self.class_name is None else self.class_name,
                         files=(group, instfiles),
                         encodings=self.encodings,
                         enctags=self.enctags,
