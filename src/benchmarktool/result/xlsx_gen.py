@@ -382,14 +382,14 @@ class Sheet:
                 instance_summary[instance_result].setdefault(name, False)
                 if value_type == "int":
                     value_type = "float"
-                elif value_type not in {"float", "None"}:
+                elif value_type not in {"float", "None", "empty"}:
                     value_type = "string"
                 if self.ref_sheet is None:
                     if value_type == "float":
                         block.add_cell(
                             instance_result.instance.values["row"] + run.number - 1, name, value_type, float(value)
                         )
-                    elif value_type == "None":
+                    elif value_type in {"None", "empty"}:
                         block.add_cell(
                             instance_result.instance.values["row"] + run.number - 1, name, value_type, np.nan
                         )
@@ -438,7 +438,7 @@ class Sheet:
                 )
             else:
                 block.add_cell(
-                    (inst_val["row"] + inst_val["max_runs"]) // inst_val["max_runs"] - 1, name, "empty", np.nan
+                    (inst_val["row"] + inst_val["max_runs"]) // inst_val["max_runs"] - 1, name, "None", np.nan
                 )
 
     def add_benchclass_summary(
@@ -468,7 +468,7 @@ class Sheet:
                     },
                 )
             else:
-                block.add_cell(benchclass_result.benchclass.values["row"], name, "empty", np.nan)
+                block.add_cell(benchclass_result.benchclass.values["row"], name, "None", np.nan)
 
     def finish(self) -> None:
         """
@@ -924,10 +924,10 @@ class SystemBlock:
             self.content.at[1, name] = name
             self.columns[name] = value_type
         # first occurrence of column
-        elif self.columns[name] == "None":
+        elif self.columns[name] in {"None", "empty"}:
             self.columns[name] = value_type
         # mixed system column
-        elif value_type not in (self.columns[name], "None"):
+        elif value_type not in {self.columns[name], "None", "empty"}:
             self.columns[name] = "string"
         # leave space for header and add new row if necessary
         if row + 2 not in self.content.index:
