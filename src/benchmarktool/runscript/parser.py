@@ -48,13 +48,13 @@ class Parser:
         """
 
         schemas_dir = os.path.join(os.path.dirname(__file__), "schemas")
-        if not os.path.isdir(schemas_dir):
+        if not os.path.isdir(schemas_dir):  # nocoverage
             sys.stderr.write(
                 f"*** ERROR: Resources missing: '{schemas_dir}' does not exist.\nTry reinstalling the package.\n"
             )
             sys.exit(1)
 
-        doc = self.parse_file(file_name, schemas_dir, "runscript.xml")
+        doc = self.parse_file(file_name, schemas_dir, "runscript.xsd")
 
         root = doc.getroot()
         run = Runscript(root.get("output"))
@@ -138,13 +138,14 @@ class Parser:
             benchmark = Benchmark(node.get("name"))
             for child in node.xpath("./spec"):
                 # discover spec files
-                for dirpath, dirnames, filenames in os.walk(child.get("path")):
+                spec_path = child.get("path")
+                for dirpath, dirnames, filenames in os.walk(spec_path):
                     tag = child.get("instance_tag")
                     if "spec.xml" in filenames:
                         # stop recursion if spec.xml found
                         dirnames.clear()
                         spec_file = os.path.join(dirpath, "spec.xml")
-                        spec = self.parse_file(spec_file, schemas_dir, "benchmark_spec.xml").getroot()
+                        spec = self.parse_file(spec_file, schemas_dir, "benchmark_spec.xsd").getroot()
                         for class_elem in spec.xpath("./class"):
                             class_name = class_elem.get("name")
                             if class_elem.get("encoding_tag") is None:
@@ -164,7 +165,8 @@ class Parser:
                                     ):
                                         files.add_file(instance.get("file"), instance.get("group"))
                                 files.add_enctags(enctag)
-                                elements.append(files)
+                                if files.files:
+                                    elements.append(files)
 
                             # folder elements are still in development
                             for folder_elem in class_elem.xpath("./folder"):
@@ -185,7 +187,7 @@ class Parser:
 
                             for element in elements:
                                 for encoding in class_elem.xpath("./encoding"):
-                                    element.add_encoding(encoding.get("file"))
+                                    element.add_encoding(os.path.join(spec_path, encoding.get("file")))
                                 benchmark.add_element(element)
 
             for child in node.xpath("./folder"):
@@ -303,7 +305,7 @@ class Parser:
         for benchmark in run.benchmarks.values():
             if not benchmark.elements:
                 sys.stderr.write(
-                    f"*** WARNING: No spec or instance folders/files defined for benchmark '{benchmark.name}'.\n"
+                    f"*** WARNING: No spec or instance folders/files defined/used for benchmark '{benchmark.name}'.\n"
                 )
 
         # project
