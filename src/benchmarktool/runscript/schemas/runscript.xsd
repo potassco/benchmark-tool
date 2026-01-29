@@ -234,52 +234,52 @@
     <!-- the root element -->
     <xs:element name="runscript" type="runscriptType">
         <!-- machine keys -->
-        <xs:keyref name="machineRef" refer="machineKey">
-            <xs:selector xpath="project/runspec|project/runall"/>
-            <xs:field xpath="@machine"/>
-        </xs:keyref>
         <xs:key name="machineKey">
             <xs:selector xpath="machine"/>
             <xs:field xpath="@name"/>
         </xs:key>
-        <!-- benchmark keys -->
-        <xs:keyref name="benchmarkRef" refer="benchmarkKey">
-            <xs:selector xpath="project/runspec|project/runall"/>
-            <xs:field xpath="@benchmark"/>
+        <xs:keyref name="machineRef" refer="machineKey">
+            <xs:selector xpath="project/runspec"/>
+            <xs:field xpath="@machine"/>
         </xs:keyref>
+        <!-- benchmark keys -->
         <xs:key name="benchmarkKey">
             <xs:selector xpath="benchmark"/>
             <xs:field xpath="@name"/>
         </xs:key>
-        <!-- system keys -->
-        <xs:keyref name="systemRef" refer="systemKey">
+        <xs:keyref name="benchmarkRef" refer="benchmarkKey">
             <xs:selector xpath="project/runspec"/>
-            <xs:field xpath="@system"/>
-            <xs:field xpath="@version"/>
+            <xs:field xpath="@benchmark"/>
         </xs:keyref>
+        <!-- system keys -->
         <xs:key name="systemKey">
             <xs:selector xpath="system"/>
             <xs:field xpath="@name"/>
             <xs:field xpath="@version"/>
         </xs:key>
-        <!-- config keys -->
-        <xs:keyref name="configRef" refer="configKey">
-            <xs:selector xpath="system"/>
-            <xs:field xpath="@config"/>
+        <xs:keyref name="systemRef" refer="systemKey">
+            <xs:selector xpath="project/runspec"/>
+            <xs:field xpath="@system"/>
+            <xs:field xpath="@version"/>
         </xs:keyref>
+        <!-- config keys -->
         <xs:key name="configKey">
             <xs:selector xpath="config"/>
             <xs:field xpath="@name"/>
         </xs:key>
-        <!-- config keys -->
-        <xs:keyref name="jobRef" refer="jobKey">
-            <xs:selector xpath="project"/>
-            <xs:field xpath="@job"/>
+        <xs:keyref name="configRef" refer="configKey">
+            <xs:selector xpath="system"/>
+            <xs:field xpath="@config"/>
         </xs:keyref>
+        <!-- config keys -->
         <xs:key name="jobKey">
             <xs:selector xpath="seqjob|distjob"/>
             <xs:field xpath="@name"/>
         </xs:key>
+        <xs:keyref name="jobRef" refer="jobKey">
+            <xs:selector xpath="project"/>
+            <xs:field xpath="@job"/>
+        </xs:keyref>
         <!-- project keys -->
         <xs:unique name="projectKey">
             <xs:selector xpath="project"/>
