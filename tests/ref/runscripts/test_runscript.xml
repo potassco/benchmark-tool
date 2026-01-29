@@ -19,13 +19,13 @@
 	<system name="claspar" version="2.1.0" measures="claspar" config="dist-generic" cmdline="--stats">
 		<setting name="one-as" tag="par one-as" cmdline="1" dist_options="#SBATCH --test=1,#SBATCH --opt=test" dist_template="templates/impi.dist" opt="attr">
 			<encoding file="def.lp"/>
-			<encoding file="test1.lp" enctag="test"/>
-			<encoding file="test2.lp" enctag="test"/>
+			<encoding file="test1.lp" encoding_tag="test"/>
+			<encoding file="test2.lp" encoding_tag="test"/>
 		</setting>
 		<setting name="all-as" tag="par all-as" cmdline="-q 0" dist_template="templates/impi.dist"/>
 		<setting name="min">
-			<encoding file="test21.lp" enctag="test"/>
-			<encoding file="test22.lp" enctag="test2"/>
+			<encoding file="test21.lp" encoding_tag="test"/>
+			<encoding file="test22.lp" encoding_tag="test2"/>
 		</setting>
 	</system>
 
@@ -34,12 +34,12 @@
 	<distjob name="dist-part" timeout="120s" runs="1" script_mode="timeout" walltime="23h 59m 59s" cpt="1" partition="test"/>
 
 	<benchmark name="seq-suite">
-		<folder path="benchmarks/clasp" enctag="test test-no test2">
+		<folder path="benchmarks/clasp" encoding_tag="test test-no test2">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<ignore prefix="pigeons"/>
 		</folder>
 		<folder path="test-folder" group="true"/>
-		<files path="benchmarks/clasp" enctag="test2">
+		<files path="benchmarks/clasp" encoding_tag="test2">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<encoding file="benchmarks/no_pigeons2.lp"/>
 			<add file="pigeons/pigeonhole10-unsat.lp"/>
@@ -53,6 +53,10 @@
 			<add file="pigeons/pigeonhole10-unsat.lp" group="pigeon1"/>
 			<add file="pigeons/pigeonhole11-unsat.lp" group="pigeon1"/>
 		</files>
+	</benchmark>
+
+	<benchmark name="spec-test">
+		<spec path="tests/ref/test_bench" instance_tag="tagA|tagB"/>
 	</benchmark>
 
 	<project name="clasp-big" job="seq-generic">
