@@ -1029,11 +1029,9 @@ class Benchmark:
                         "Grouped files must be located in the same folder.\n"
                     )
                     continue
-                if self.class_name is None:
-                    self.class_name = paths[0][0]
                 benchmark.add_instance(
                     root=os.path.join(self.path, paths[0][0]),
-                    class_name=self.class_name,
+                    class_name=paths[0][0] if self.class_name is None else self.class_name,
                     files=(group, set(map(lambda x: x[1], paths))),
                     encodings=self.encodings,
                     enctags=self.enctags,
@@ -1065,7 +1063,14 @@ class Benchmark:
         classname = Benchmark.Class(class_name)
         if classname not in self.instances:
             self.instances[classname] = set()
-        self.instances[classname].add(Benchmark.Instance(root, classname, files[0], files[1], encodings, enctags))
+        ins = Benchmark.Instance(root, classname, files[0], files[1], encodings, enctags)
+        if ins in self.instances[classname]:
+            sys.stderr.write(
+                f"*** WARNING: skipping duplicate instance '{files[0]}' of class '{class_name}' "
+                f"of benchmark '{self.name}'!\n"
+            )
+            return
+        self.instances[classname].add(ins)
 
     def init(self) -> None:
         """
