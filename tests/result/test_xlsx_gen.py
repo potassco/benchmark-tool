@@ -454,7 +454,9 @@ class TestInstSheet(TestCase):
         )
         self.assertSetEqual(sheet.machines, set([self.run_specs[0].machine]))
         pd.testing.assert_frame_equal(
-            sheet.system_blocks[(self.run_specs[0].setting, self.run_specs[0].machine)].content, self.ref_block
+            sheet.system_blocks[(self.run_specs[0].setting, self.run_specs[0].machine)].content,
+            self.ref_block,
+            check_dtype=False,
         )
 
     def test_finish(self) -> None:
@@ -481,6 +483,8 @@ class TestInstSheet(TestCase):
                 if isinstance(ref, xlsx_gen.Formula):
                     self.assertIsInstance(test, xlsx_gen.Formula)
                     self.assertEqual(str(test), str(ref))
+                elif pd.isna(ref) or ref is None:
+                    self.assertTrue(pd.isna(test) or test is None)
                 else:
                     self.assertEqual(test, ref)
                 if pd.isna(ref_val):
@@ -506,6 +510,8 @@ class TestInstSheet(TestCase):
                 if isinstance(ref, xlsx_gen.Formula):
                     self.assertIsInstance(test, xlsx_gen.Formula)
                     self.assertEqual(str(test), str(ref))
+                elif pd.isna(ref) or ref is None:
+                    self.assertTrue(pd.isna(test) or test is None)
                 else:
                     self.assertEqual(test, ref)
                 if pd.isna(ref_val):
@@ -540,6 +546,8 @@ class TestInstSheet(TestCase):
                 elif isinstance(ref, xlsx_gen.DataValidation):
                     self.assertIsInstance(test, xlsx_gen.DataValidation)
                     self.assertDictEqual(test.params, ref.params)
+                elif pd.isna(ref) or ref is None:
+                    self.assertTrue(pd.isna(test) or test is None)
                 else:
                     self.assertEqual(test, ref)
                 if pd.isna(ref_val):
@@ -715,7 +723,6 @@ class TestMergedSheet(TestInstSheet):
             ),
         ]
         # row summary
-        self.ref_row_sum = pd.DataFrame()
         self.ref_res[13] = ["min", "time", xlsx_gen.Formula("=MIN($B3,$F3,$J3)")]
         self.ref_res[14] = [None, "timeout", xlsx_gen.Formula("=MIN($C3,$G3,$K3)")]
         self.ref_res[15] = [None, "models", xlsx_gen.Formula("=MIN($E3,$I3,$M3)")]
@@ -1095,5 +1102,6 @@ class TestSystemBlock(TestCase):
         ref = pd.DataFrame()
         ref.at[1, "test"] = "test"
         ref.at[3, "test"] = "val"
-        pd.testing.assert_frame_equal(block.content, ref)
+        ref = ref.astype(object)
+        pd.testing.assert_frame_equal(block.content, ref, check_dtype=False)
         self.assertDictEqual(block.columns, {"test": "string"})

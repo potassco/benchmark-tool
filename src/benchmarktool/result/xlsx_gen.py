@@ -523,16 +523,16 @@ class Sheet:
             self.values = self.values.reindex(index=self.content.index, columns=self.content.columns)
             self.values = self.values.combine_first(self.content)
         else:
-            self.values = (
-                self.content.iloc[2 : self.result_offset - 1, 1:].combine_first(self.values).combine_first(self.content)
-            )
+            self.values = self.content.copy()
 
         # defragmentation (temporary workaround)
         self.content = self.content.copy()
         self.values = self.values.copy()
 
         # add summaries
+        self.values = self.values.replace({None: np.nan})
         self.add_row_summary(col)
+        self.values = self.values.replace({None: np.nan})
         self.add_col_summary()
 
         # color cells
@@ -583,6 +583,7 @@ class Sheet:
             float_occur (dict[str, Any]): Dict containing column references of float columns.
             col (int):                    Current column index.
         """
+        self.values[col] = self.values[col].astype(object)
         for row in range(self.result_offset - 2):
             ref_range = ",".join(get_cell_index(col_ref, row + 2, True) for col_ref in sorted(float_occur[measure]))
             values = np.array(self.values.loc[2 + row, sorted(float_occur[measure])], float)
@@ -922,6 +923,8 @@ class SystemBlock:
         """
         if name not in self.columns:
             self.content.at[1, name] = name
+            # force correct dtype
+            self.content[name] = self.content[name].astype(object)
             self.columns[name] = value_type
         # first occurrence of column
         elif self.columns[name] in {"None", "empty"}:
