@@ -983,14 +983,27 @@ class TestBenchmark(TestCase):
         encodings = set()
         enctags = set()
         self.b.add_instance(
-            root=root, relroot="class1", files=("inst1", {"file1.lp"}), encodings=encodings, enctags=enctags
+            root=root, class_name="class1", files=("inst1", {"file1.lp"}), encodings=encodings, enctags=enctags
         )
         self.b.add_instance(
-            root=root, relroot="class1", files=("inst2", {"file2.lp"}), encodings=encodings, enctags=enctags
+            root=root, class_name="class1", files=("inst2", {"file2.lp"}), encodings=encodings, enctags=enctags
         )
         self.b.add_instance(
-            root=root, relroot="class2", files=("inst1", {"file1.lp"}), encodings=encodings, enctags=enctags
+            root=root, class_name="class2", files=("inst1", {"file1.lp"}), encodings=encodings, enctags=enctags
         )
+        # duplicate instance in same class
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            self.b.add_instance(
+                root=root,
+                class_name="class2",
+                files=("inst1", {"file2.lp"}),
+                encodings=encodings,
+                enctags=enctags,
+            )
+            self.assertEqual(
+                mock_stderr.getvalue(),
+                "*** WARNING: skipping duplicate instance 'inst1' of class 'class2' of benchmark 'name'!\n",
+            )
         for key, val in self.b.instances.items():
             self.assertIsInstance(key, runscript.Benchmark.Class)
             self.assertIsInstance(val, set)
@@ -1149,6 +1162,52 @@ class TestProject(TestCase):
         self.assertEqual(prj.runspecs[m_name][0].setting, self.setting)
         self.assertEqual(prj.runspecs[m_name][0].benchmark, bench)
         self.assertEqual(prj.runspecs[m_name][0].project, prj)
+
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                prj.add_runspec(
+                    machine_name="invalid_machine",
+                    system_name="invalid_sys",
+                    system_version="invalid_ver",
+                    setting_name="invalid_setting",
+                    benchmark_name="invalid_bench",
+                )
+            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: Machine 'invalid_machine' not defined!\n")
+
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                prj.add_runspec(
+                    machine_name=m_name,
+                    system_name="invalid_sys",
+                    system_version="invalid_ver",
+                    setting_name="invalid_setting",
+                    benchmark_name="invalid_bench",
+                )
+            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: System 'invalid_sys-invalid_ver' not defined!\n")
+
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                prj.add_runspec(
+                    machine_name=m_name,
+                    system_name="sys",
+                    system_version="ver",
+                    setting_name="invalid_setting",
+                    benchmark_name="invalid_bench",
+                )
+            self.assertEqual(
+                mock_stderr.getvalue(), "*** ERROR: Setting 'invalid_setting' for system 'sys-ver' not defined!\n"
+            )
+
+        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
+            with self.assertRaises(SystemExit):
+                prj.add_runspec(
+                    machine_name=m_name,
+                    system_name="sys",
+                    system_version="ver",
+                    setting_name="setting",
+                    benchmark_name="invalid_bench",
+                )
+            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: Benchmark 'invalid_bench' not defined!\n")
 
     def test_path(self):
         """

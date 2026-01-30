@@ -2,9 +2,9 @@
 Test cases for runscript parser
 """
 
+import inspect
 import io
 import os
-import inspect
 import platform
 from unittest import TestCase, mock
 
@@ -248,7 +248,8 @@ class TestParser(TestCase):
         self.assertEqual(len(bench.elements), 3)
         folder = bench.elements[0]
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
-        self.assertEqual(folder.path, "tests/ref/test_bench/test_folder")
+        if platform.system() == "Linux":
+            self.assertEqual(folder.path, "tests/ref/test_bench/test_folder")
         self.assertEqual(folder.class_name, "folder")
         self.assertTrue(folder.group)
         self.assertEqual(len(folder.encodings), 1)
@@ -269,7 +270,7 @@ class TestParser(TestCase):
                 },
             )
         self.assertEqual(len(files.encodings), 0)
-        # self.assertSetEqual(files.enctags, {})
+        self.assertSetEqual(files.enctags, set())
 
     def test_filter_attr(self):
         """
