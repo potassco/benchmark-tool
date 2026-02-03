@@ -3,7 +3,7 @@ title: "Runscripts for Benchmarking"
 ---
 
 A runscript defines all aspects of a benchmark set and the systems used to run
-them. The following sections explain each part of a typical runscript, helping
+it. The following sections explain each part of a typical runscript, helping
 you adapt an existing runscript or create a new one from scratch.
 
 Various runscripts can be found on the [examples] page.
@@ -19,28 +19,30 @@ A runscript element is defined as follows:
 ```
 
 The `output` attribute specifies the top-level folder where all scripts and
-results are stored.
+results will be stored.
+
 
 ### Machine Elements
 
-The `runscript` element can contain any number of the `machine` elements:
+The `runscript` element can contain any number of `machine` elements:
 
 ```xml
 <machine name="hpc" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
 ```
 
-The attributes are as follows:
+The attributes are:
 
-- The `name` attribute identifies the machine.
-- The `cpu` attribute describes the CPU of the machine.
-- The `memory` attribute describes the available memory of the machine.
+- `name`: Identifies the machine.
+- `cpu`: Describes the machine's CPU.
+- `memory`: Describes the available memory.
 
 !!! info
     The `cpu` and `memory` attributes are for informational purposes only.
 
 ### Folder Structure
 
-When running the `gen` subcommand with a runscript, a folder structure is created.
+When running the `gen` subcommand with a runscript, the following folder
+structure is created:
 
 ```text
 <output>
@@ -62,13 +64,13 @@ When running the `gen` subcommand with a runscript, a folder structure is create
                   └─ ...
 ```
 
-1. The name of the top-level folder is specified by the `output` attribute of
-the `runscript` element.
-2. The second folder in the hierarchy represents the project, which will be
-explained later.
-3. The third folder corresponds to the name of the machine on which the
-benchmark is run. Within this folder, you will find the start scripts for
-launching the benchmark and the resulting output files.
+1. The name of the top-level folder is set by the `output` attribute of the
+`runscript` element.
+2. The second folder in the hierarchy represents the project (explained later).
+3. The third folder is named after the machine on which the benchmark is run.
+This folder contains the start scripts for launching the benchmark and the
+resulting output files.
+
 
 ## Configuration
 
@@ -79,7 +81,7 @@ of configurations:
 <config name="seq-generic" template="templates/seq-generic.sh"/>
 ```
 
-For more information refer to the [template][run template] page.
+For more information, see the [template][run template] page.
 
 ## System
 
@@ -92,19 +94,17 @@ Systems are defined as follows:
 </system>
 ```
 
-- The `name` and `version` attributes together specify the name of an executable
-or script called `<name>-<version>`, which must be placed in the `./programs`
-directory. For example, the solver referenced by the [run template] in the
-configuration is `./programs/clingo-5.8.0`. You can freely modify this script
-as needed.
-- The `measures` attribute specifies the name of a [result parser] used during
-benchmark result evaluation. This does not affect benchmark script generation.
-- The `config` attribute refers to the configuration to use for running this
-system.
-- The `cmdline` attribute is optional and can be any string, which will be passed
-to the system regardless of the setting.
-- The `cmdline_post` attribute is similar but is placed after `setting.cmdline`
-in the order of arguments.
+- `name` and `version`: Together, specify the name of an executable or script
+`<name>-<version>`, which must be placed in the `./programs` directory. For
+example, the solver referenced by the [run template] in the configuration is  
+`./programs/clingo-5.8.0`. You can freely modify this script as needed.
+- `measures`: The name of the [result parser] used to evaluate benchmark
+results. This does not affect script generation.
+- `config`: The configuration to use for running this system.
+- `cmdline` (optional): Any string to be passed to the system, regardless of
+the setting.
+- `cmdline_post` (optional): Like `cmdline`, but placed after `setting.cmdline`
+in the argument order.
 
 A runscript can contain any number of systems, each with any number of
 settings.
@@ -121,39 +121,38 @@ encodings used by the system.
 </setting>
 ```
 
-- The `cmdline` attribute can be any valid string, which will be passed to the
-system after `system.cmdline` when this setting is selected.
-- The `cmdline_post` attribute is similar but is placed after `system.cmdline_post`
-in the order of arguments.
-- The `tag` attribute is a space seperated identifier used within the runscript
-to select multiple settings at once.
-- Each setting can contain any number of encoding elements.
-    - The `file` attribute is a relative path from the directory where `bgen`
-    is run to the encoding file.
-    - If no `tag` is given, the encoding is passed to the system for all
-    instances when this setting is selected.
-    - If a `tag` is given, encoding usage is instance-dependent. Multiple
-    encodings can be selected by using the same tag.
-- The setting element also supports an optional `dist_template` attribute. The
-default value is `templates/single.dist`, which refers to [single.dist]. This
-attribute is only relevant for distributed jobs. More information about dist
-templates can be found on the [templates] page.
-- Another optional attribute for distributed jobs is `dist_options`, which allows
-    you to add additional options for distributed jobs. `dist_options` expects a
-    comma-separated string of options. For example,  
-    `dist_options="#SBATCH --hint=compute_bound,#SBATCH -J=%x.%j.out"` results in
-    the following lines being added to the script:
+A `setting` element can have the following optional attributes:
+
+- `cmdline`: Any valid string, passed to the system after `system.cmdline` when
+this setting is selected.
+- `cmdline_post`: Like `cmdline`, but placed after `system.cmdline_post` in the
+argument order.
+- `tag`: A space-separated identifier used within the runscript to select
+multiple settings at once.
+- Each setting can contain any number of `encoding` elements:
+    - `file`: A relative path from the directory where `bgen` is run to the encoding file.
+    - If no `tag` is given, the encoding is passed to the system for all instances when this
+    setting is selected.
+    - If a `tag` is given, encoding usage is instance-dependent. Multiple encodings can
+    be selected by using the same tag.
+- `dist_template`: The default value is `templates/single.dist`, which refers
+to [single.dist]. This attribute is only relevant for distributed jobs. More information
+about dist templates can be found on the [templates] page.
+- `dist_options`: Allows one to add additional options for distributed jobs.
+    `dist_options` expects a comma-separated string of options. For example,  
+    `dist_options="#SBATCH --hint=compute_bound,#SBATCH -J=%x.%j.out"` results in the
+    following lines being added to the script:
 
     ```bash
     #SBATCH --hint=compute_bound
     #SBATCH -J=%x.%j.out
     ```
 
-    The default template for distributed jobs uses SLURM; a comprehensive list
-    of available options is provided in the [SLURM documentation].
+    The default template for distributed jobs uses SLURM; a comprehensive list of available
+    options is provided in the [SLURM documentation].
 
-To summarize, the commandline arguments will always be given to the
-system-under-test in the following order:
+To summarize, the command-line arguments are always given to the system-under-test in
+the following order:
 
 ```
 system.cmdline setting.cmdline system.cmdline_post setting.cmdline_post
@@ -161,19 +160,18 @@ system.cmdline setting.cmdline system.cmdline_post setting.cmdline_post
 
 ## Job
 
-A job defines additional arguments for individual runs. You can define any
-number of jobs. There are two types: sequential jobs (`seqjob`) and distributed
-jobs (`distjob`) for running benchmarks on a cluster.
+A job defines additional arguments for individual runs. You can define any number of jobs.
+There are two types: sequential jobs (`seqjob`) and distributed jobs (`distjob`) for
+running benchmarks on a cluster.
 
 ### Sequential Jobs
 
-A sequential job is identified by its `name` and sets the `timeout` (in
-seconds) for a single run, the number of `runs` for each instance, and
-the number of solver processes executed in `parallel`. The optional
-attribute `memout` sets a memory limit (in MB) for each run. If no limit
-is set, a default limit of 20 GB is used. Additional options, which will be
-passed to the runlim call, can be set using the optional `template_options` attribute.
-`template_options` expects a comma-separated string of options, e.g.  
+A sequential job is identified by its `name` and sets the `timeout` (in seconds) for a
+single run, the number of `runs` for each instance, and the number of solver processes
+executed in `parallel`. The optional attribute `memout` sets a memory limit (in MB) for
+each run. If no limit is set, a default limit of 20 GB is used. Additional options, which
+will be passed to the runlim call, can be set using the optional `template_options`
+attribute. `template_options` expects a comma-separated string of options, e.g.  
 `template_options="--single,--report-rate=2000"`.
 
 ```xml
@@ -182,83 +180,75 @@ passed to the runlim call, can be set using the optional `template_options` attr
 
 ### Distributed Jobs
 
-A distributed job is also identified by its `name` and defines a `timeout`,
-the number of `runs` and an optional `memout` and `template_options`:
+A distributed job is also identified by its `name` and defines a `timeout`, the number
+of `runs`, and an optional `memout` and `template_options`:
 
 ```xml
 <distjob name="dist-gen" timeout="900" runs="1" memout="1000" template_options="--single"
         script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
 ```
 
-Furthermore, a distributed job has the following additional attributes:
+Additionally, a distributed job has the following attributes:
 
-- The `walltime` sets an overall time limit for all runs in `[0-9]+d [0-9]+h
-[0-9]+m [0-9]+s` format. Each value is optional and can be any integer, for
-example, `12d 350s` sets the time to 12 days and 350 seconds. Alternatively, a
-single value without a unit is interpreted as seconds.
-- The `script_mode` attribute defines how runs are grouped and dispatched to
-the cluster.
-    - Value `multi` dispatches all runs individually for maximum
-    parallelization. (In this mode the walltime is ignored.)
-    - Value `timeout` dispatches groups of runs based on the `timeout` and
-    `walltime` of the distributed job. Runs are gathered into groups such that
-    the total time for each group is below the specified `walltime`. For
-    example, if the `walltime` is 25 hours and you have 100 instances with a
-    `timeout` of 1 hour each and 1 run each, there will be 4 groups of 25 runs
-    each, which are dispatched separately.
-- A final optional attribute for distributed jobs is `partition`, which
-specifies the cluster partition name. The default is `kr`. Other values include
-`short` and `long`. If `short` is used, the walltime cannot exceed 24 hours.
-Note that these values depend on your cluster configuration.
+- `walltime`: Sets an overall time limit for all runs in `[0-9]+d [0-9]+h [0-9]+m [0-9]+s`
+format. Each value is optional and can be any integer. For example, `12d 350s` sets the
+time to 12 days and 350 seconds. Alternatively, a single value without a unit is
+interpreted as seconds.
+- `script_mode`: Defines how runs are grouped and dispatched to the cluster.
+    - `multi`: Dispatches all runs individually for maximum parallelization. (In this
+    mode, the walltime is ignored.)
+    - `timeout`: Dispatches groups of runs based on the `timeout` and `walltime` of the
+    distributed job. Runs are gathered into groups such that the total time for each
+    group is below the specified `walltime`. For example, if the `walltime` is 25 hours
+    and you have 100 instances with a `timeout` of 1 hour each and 1 run each, there
+    will be 4 groups of 25 runs each, which are dispatched separately.
+- `partition`: (Optional) Specifies the cluster partition name. The default is `kr`.
+Other values include `short` and `long`. If `short` is used, the walltime cannot exceed
+24 hours. Note that these values depend on your cluster configuration.
 
 !!! info
-    If you have many runs, `script_mode=multi` can cause issues with the
-    cluster's scheduler. Use `timeout` or dispatch the generated `.dist` jobs
-    using `./dispatcher.py`.
+    If you have many runs, `script_mode=multi` can cause issues with the cluster's
+    scheduler. Use `timeout` or dispatch the generated `.dist` jobs using `./dispatcher.py`.
 
 ## Benchmark Sets
 
-The benchmark element defines a group of benchmark instances grouped into
-classes to be run by systems. It is identified by its `name` and can contain
-any number of `folder` or `files` elements:
+The `benchmark` element defines a group of benchmark instances, organized into classes
+to be run by systems. It is identified by its `name` and can contain any number of
+`folder` or `files` elements or alternatively any number of `spec` elements:
 
 ```xml
 <benchmark name="no-pigeons">
     ...
-<benchmark/>
+</benchmark>
 ```
 
 ### Folder Elements
 
 A `folder` element defines a `path` to a folder containing instances, which is
-searched recursively. Each sub-folder folders with instances is treated as a
+searched recursively. Each sub-folder containing instances is treated as a
 benchmark class, and results are separated accordingly:
 
 ```xml
-<folder path="benchmarks/clasp" enctag="tag1" group="true">
+<folder path="benchmarks/clasp" encoding_tag="tag1" group="true">
     <ignore prefix="pigeons"/>
     <encoding file="encodings/no-pigeons.lp"/>
-<folder/>
+</folder>
 ```
 
-A folder `element` can have the following optional attributes:
+A `folder` element can have the following optional attributes:
 
-- You can specify the optional `enctag` attribute to select encodings with
-matching tags in setting definitions. These encodings are used with all
-instances in this folder, when the corresponding setting is run. This topic is
-discussed in more detail on the [encoding support] page.
-- Instances can be grouped using the optional Boolean `group` attribute
-(default is `false`). If enabled, instance files in same folder of form
-`<instance>.<extension>` sharing the same prefix `<instance>` are passed
-together to the system. For example, files `inst1.1.lp` and `inst1.2.lp` in the
-same folder would be grouped as `inst1`.
+- `encoding_tag`: Selects encodings with matching tags in setting definitions. These
+encodings are used with all instances in this folder when the corresponding setting
+is run. See the [encoding support] page for more details.
+- `group`: A Boolean attribute (default is `false`). If enabled, instance files in the
+same folder with the form `<instance>.<extension>` sharing the same prefix `<instance>`
+are grouped together and passed to the system. For example, files `inst1.1.lp` and
+`inst1.2.lp` in the same folder would be grouped as `inst1`.
 
 A `folder` element can contain any number of `encoding` and `ignore` elements:
 
-- To exclude folders from the benchmark, use the `ignore` element to define a
-path `prefix` to be ignored.
-- You can also specify encodings to be used with all instances in a folder
-using the `encoding` element.
+- `ignore`: Excludes folders from the benchmark by defining a path `prefix` to be ignored.
+- `encoding`: Specifies encodings to be used with all instances in the folder.
 
 ### File Elements
 
@@ -266,30 +256,110 @@ Instead of using a `folder` element to gather benchmark instances, you can also
 manually add specific files using the `files` element:
 
 ```xml
-<files path="benchmarks/clasp" enctag="tag1 tag2">
+<files path="benchmarks/clasp" encoding_tag="tag1 tag2">
     <encoding file="default.lp"/>
     <add file="dir/inst1.lp" group="group1"/>
     <add file="dir/inst2.lp" group="group1"/>
 </files>
 ```
 
-The `files` element has the following optional attributes:
+The `files` element supports the following optional attributes:
 
-- The `path` attribute specifies the folder containing the instances to be added.
-- The `enctag` attribute works the same way as for the `folder` element.
+- `path`: Specifies the folder containing the instances to be added.
+- `encoding_tag`: Works the same way as for the `folder` element.
 
 The `files` element can contain any number of `encoding` and `add` elements:
 
-- The add element specifies a file to be added to the benchmark. The `file`
-attribute gives the path to the instance relative to the `path` attribute of
-its parent `files` element.
-- Instance files can optionally be grouped together using the `group`
-attribute. Groups of instances have to be located in the same directory and are
-passed together to the system.
+- `add`: Specifies a file to be added to the benchmark. The `file` attribute gives the
+path to the instance relative to the `path` attribute of its parent `files` element.
+- `group`: Instance files can optionally be grouped together using the `group` attribute.
+Groups of instances must be located in the same directory and are passed together to
+the system.
+
+### Spec Elements
+
+Alternatively `spec` elements can be used to load benchmark specifications
+from `spec.xml` files.
+
+```xml
+<spec path="benchmarks/clasp" instance_tag="tag1 | tag2 tag3"/>
+```
+
+The `spec` element has the following attributes:
+
+- `path`: Specifies a folder to be recursively searched for any `spec.xml` files.
+Once a `spec.xml` file is found, the search does not continue deeper. For example,
+in the structure below, the last `spec.xml` file inside `subfolder` is ignored:
+
+```xml
+benchmarks/clasp
+├── folder1
+│   ├── ins1.lp
+│   └── spec.xml
+└── folder2
+    ├── ins2.lp
+    ├── spec.xml
+    └── subfolder
+        ├── ins2-1.lp
+        └── spec.xml
+```
+
+- `instance_tag` (optional): Selects a subset of instances for the current benchmark.
+The tag may use `|` for disjunction and spaces for conjunction. Disjunction has higher
+precedence. For example, a runtag with `tag1 | tag2 tag3` selects instances that
+either have `tag1` or both `tag2` and `tag3` in their tags. Instances with only the
+tag `tag2` would not be selected. If no `instance_tag` is specified, all instances
+are selected regardless of their tag.
+
+#### Spec Files
+
+A `spec.xml` file can be used to specify benchmark instances, similar to the
+benchmark element in the runscript. Here is an example of a `spec.xml` with all features:
+
+```xml
+<spec>
+    <class name="folder" encoding_tag="encTag">
+        <folder path="test_folder" instance_tag="tagA" group="true"/>
+        <folder path="other_folder"/>
+        <encoding file="enc1.lp"/>
+    </class>
+    <class name="instances">
+        <instance file="test_f1.2.1.lp" instance_tag="tagB" group="test_f1"/>
+        <instance file="test_f1.2.2.lp" instance_tag="tagB" group="test_f1"/>
+        <instance file="test_folder/test_foldered.lp" instance_tag="tagB tagA"/>
+        <instance file="test_f2.lp" instance_tag="tagC"/>
+    </class>
+</spec>
+```
+
+Each `spec.xml` file contains a single `spec` root element, which may include any number
+of `class` elements. Every `class` element must have a `name` attribute and may
+optionally include an `encoding_tag` attribute.
+
+For instances defined in the runscript, the benchmark class is determined by the
+folder containing the instance. In contrast,
+for instances defined in a `spec.xml` file, the benchmark class is constructed by combining
+the relative path from the `path` attribute of the corresponding `spec` element in the
+runscript to the location of the `spec.xml` file, together with the `name` attribute
+of the `class` element.
+For example, with the `spec` element and folder structure from the section above,
+if the `spec.xml` file located in `folder1` contains a `class` element named
+`class_name`, the benchmark class for its instances will be `folder1/class_name`.
+
+The `encoding_tag` attribute can be used to assign setting-dependent encodings to
+the instances. See the [encoding support] page for more information.
+
+Each `class` element can contain any number of `folder`, `instance`, and `encoding`
+elements. These function the same as those defined in the benchmark element in the
+runscript. The only differences are that all paths are now relative to the `spec.xml`
+file, and the `folder` and `instance` elements each also have an `instance_tag`
+attribute. These tags allow for a selection of instances using the `instance_tag`
+attribute of the `spec` element described above.
+
 
 ## Projects
 
-Projects combine all previous elements to define a complete benchmark.
+Projects combine all previous elements to define a complete benchmark setup.
 
 ```xml
 <project name="clingo-basic" job="seq-gen">
@@ -297,15 +367,14 @@ Projects combine all previous elements to define a complete benchmark.
 </project>
 ```
 
-A `project` element has the following attributes:
+A `project` element includes the following attributes:
 
-- Each project is identified by its `name`, which also determines the name of
-the second folder in the overall folder structure.
-- The `job` attribute references a previously defined job to use as a template
-for the benchmark.
+- `name`: Uniquely identifies the project and determines the name of the second
+folder in the output structure.
+- `job`: References a previously defined job to use as a template for the benchmark.
 
-There are two ways to define projects: using the `runtag` or the `runspec`
-element. A project can contain any number of `runtag` and `runspec` elements.
+Projects can be defines in two ways: with `runtag` elements or `runspec` elements.
+A project may contain any number of both.
 
 ### Runtag Elements
 
@@ -317,23 +386,23 @@ The `runtag` element specifies a machine and benchmark set to run:
 
 It has the following attributes:
 
-- The `machine` attribute references a previously defined machine.
-- The `benchmark` attribute references a previously defined benchmark set.
-- The `tag` attribute specifies one or multiple setting tags to be used. Only
-settings with matching tags are selected. The tag may use `|` for disjunction and
-spaces for conjunction. The disjunction has higher precedence, e.g., a runtag with
-the tag `base | foo bar` selects settings, which either have `base` or both `foo`
-and `bar` in their tags. A setting with only the tag `bar` would not be selected.
-To include all settings, use the special `*all*` tag.
+- `machine`: References a previously defined machine.
+- `benchmark`: References a previously defined benchmark set.
+- `tag`: Specifies one or more setting tags to use. Only settings with matching tags
+are selected. The tag may use `|` for disjunction and spaces for conjunction.
+Disjunction has higher precedence; for example, a runtag with `base | foo bar`
+selects settings that either have `base` or both `foo` and `bar` in their tags.
+A setting with only the tag `bar` would not be selected. To include all settings,
+use the special `*all*` tag.
 
-In the above example all instances defined in the `no-pigeons` benchmark are
-run using the `seq-gen` job configuration on machine `hpc` once for each
-setting with the tag `basic`.
+In the example above, all instances defined in the `no-pigeons` benchmark are
+run using the `seq-gen` job configuration on machine `hpc`, once for each setting
+with the tag `basic`.
 
 ### Runspec Elements
 
-Finally, the `project` element can also contain `runspec` elements to select
-explicitly a single machine, benchmark, system, version, and setting:
+A `project` element can also include one or more `runspec` elements to explicitly
+specify a single machine, benchmark, system, version, and setting to use:
 
 ```xml
 <runspec machine="hpc" benchmark="no-pigeons" system="clingo" version="5.8.0"
@@ -342,10 +411,10 @@ explicitly a single machine, benchmark, system, version, and setting:
 
 The attributes are as follows:
 
-- The `machine` attribute references a previously defined machine.
-- The `benchmark` attribute references a previously defined benchmark set.
-- The `system` and `version` attributes reference a previously defined system.
-- The `setting` attribute references a previously defined setting of the selected
+- `machine`: References a previously defined machine.
+- `benchmark`: References a previously defined benchmark set.
+- `system` and `version`: Reference a previously defined system.
+- `setting`: References a previously defined setting of the selected system.
 
 [run template]: ./templates.md#run-templates
 [result parser]: ../../reference/resultparser.md
