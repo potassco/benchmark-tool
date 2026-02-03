@@ -744,7 +744,7 @@ class TestInstance(TestCase):
         Test path method.
         """
         if platform.system() == "Linux":
-            self.assertListEqual(list(self.ins.paths()), ["loc/ation/bench_name/file.lp"])
+            self.assertListEqual(list(self.ins.paths()), ["loc/ation/file.lp"])
 
 
 class TestFolder(TestCase):
