@@ -147,7 +147,11 @@ class Parser:
                         spec_file = os.path.join(dirpath, "spec.xml")
                         spec = self.parse_file(spec_file, schemas_dir, "benchmark_spec.xsd").getroot()
                         for class_elem in spec.xpath("./class"):
-                            class_name = class_elem.get("name")
+                            rel_path = os.path.relpath(dirpath, spec_root)
+                            if rel_path != ".":
+                                class_name = os.path.join(rel_path, class_elem.get("name"))
+                            else:
+                                class_name = class_elem.get("name")
                             if class_elem.get("encoding_tag") is None:
                                 enctag = set()
                             else:

@@ -245,7 +245,7 @@ class TestParser(TestCase):
         bench = run.benchmarks["spec-test"]
         self.assertIsInstance(bench, runscript.Benchmark)
         self.assertEqual(bench.name, "spec-test")
-        self.assertEqual(len(bench.elements), 3)
+        self.assertEqual(len(bench.elements), 4)
         folder = bench.elements[0]
         self.assertIsInstance(folder, runscript.Benchmark.Folder)
         if platform.system() == "Linux":
@@ -271,6 +271,9 @@ class TestParser(TestCase):
             )
         self.assertEqual(len(files.encodings), 0)
         self.assertSetEqual(files.enctags, set())
+        foldered = bench.elements[3]
+        if platform.system() == "Linux":
+            self.assertEqual(foldered.class_name, "test_folder/foldered")
 
     def test_filter_attr(self):
         """

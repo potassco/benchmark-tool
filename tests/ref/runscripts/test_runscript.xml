@@ -57,6 +57,7 @@
 
 	<benchmark name="spec-test">
 		<spec path="tests/ref/test_bench" instance_tag="tagA|tagB"/>
+		<spec path="tests/ref/test_foldered" instance_tag="tagA"/>
 	</benchmark>
 
 	<project name="clasp-big" job="seq-generic">

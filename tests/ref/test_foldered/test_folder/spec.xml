@@ -1,0 +1,5 @@
+<spec>
+    <class name="foldered">
+        <instance file="instance.lp" instance_tag="tagA"/>
+    </class>
+</spec>
