@@ -128,12 +128,14 @@
     <!-- a benchmark -->
     <xs:complexType name="benchmarkType">
         <xs:choice minOccurs="1" maxOccurs="1">
-            <xs:element name="spec">
-                <xs:complexType>
-                    <xs:attribute name="path" type="xs:string" use="required"/>
-                    <xs:attribute name="instance_tag" type="tagrefType"/>
-                </xs:complexType>
-            </xs:element>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="spec">
+                    <xs:complexType>
+                        <xs:attribute name="path" type="xs:string" use="required"/>
+                        <xs:attribute name="instance_tag" type="tagrefType"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:choice>
             <xs:choice minOccurs="0" maxOccurs="unbounded">
                 <xs:element name="files">
                     <xs:complexType>
