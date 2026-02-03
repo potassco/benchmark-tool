@@ -138,8 +138,8 @@ class Parser:
             benchmark = Benchmark(node.get("name"))
             for child in node.xpath("./spec"):
                 # discover spec files
-                spec_path = child.get("path")
-                for dirpath, dirnames, filenames in os.walk(spec_path):
+                spec_root = child.get("path")
+                for dirpath, dirnames, filenames in os.walk(spec_root):
                     tag = child.get("instance_tag")
                     if "spec.xml" in filenames:
                         # stop recursion if spec.xml found
@@ -187,7 +187,7 @@ class Parser:
 
                             for element in elements:
                                 for encoding in class_elem.xpath("./encoding"):
-                                    element.add_encoding(os.path.join(spec_path, encoding.get("file")))
+                                    element.add_encoding(os.path.join(dirpath, encoding.get("file")))
                                 benchmark.add_element(element)
 
             for child in node.xpath("./folder"):
