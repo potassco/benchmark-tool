@@ -32,40 +32,20 @@ class TestParser(TestCase):
         self.assertIsInstance(tree, etree._ElementTree)
 
         # invalid schema
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                p.parse_file("tests/ref/runscripts/test_runscript.xml", "tests/ref/runscripts/", "invalid_xml.xml")
-            self.assertIn(
-                "*** ERROR: Failed to load schema file",
-                mock_stderr.getvalue(),
-            )
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: Failed to load schema file"):
+            p.parse_file("tests/ref/runscripts/test_runscript.xml", "tests/ref/runscripts/", "invalid_xml.xml")
 
         # file not found
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                p.parse_file("non_existing_file.xml", schemas_dir, "runscript.xsd")
-            self.assertEqual(
-                mock_stderr.getvalue(),
-                "*** ERROR: File 'non_existing_file.xml' not found.\n",
-            )
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: File 'non_existing_file.xml' not found."):
+            p.parse_file("non_existing_file.xml", schemas_dir, "runscript.xsd")
 
         # xml error
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                p.parse_file("tests/ref/runscripts/invalid_xml.xml", schemas_dir, "runscript.xsd")
-            self.assertIn(
-                "*** ERROR: XML Syntax Error in file ",
-                mock_stderr.getvalue(),
-            )
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: XML Syntax Error in file "):
+            p.parse_file("tests/ref/runscripts/invalid_xml.xml", schemas_dir, "runscript.xsd")
 
         # invalid runscript
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                p.parse_file("tests/ref/runscripts/invalid_runscript.xml", schemas_dir, "runscript.xsd")
-            self.assertIn(
-                "is invalid: ",
-                mock_stderr.getvalue(),
-            )
+        with self.assertRaisesRegex(SystemExit, r"is invalid: "):
+            p.parse_file("tests/ref/runscripts/invalid_runscript.xml", schemas_dir, "runscript.xsd")
 
     # pylint: disable=too-many-statements
     def test_parse(self):

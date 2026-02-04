@@ -1163,51 +1163,43 @@ class TestProject(TestCase):
         self.assertEqual(prj.runspecs[m_name][0].benchmark, bench)
         self.assertEqual(prj.runspecs[m_name][0].project, prj)
 
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                prj.add_runspec(
-                    machine_name="invalid_machine",
-                    system_name="invalid_sys",
-                    system_version="invalid_ver",
-                    setting_name="invalid_setting",
-                    benchmark_name="invalid_bench",
-                )
-            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: Machine 'invalid_machine' not defined!\n")
-
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                prj.add_runspec(
-                    machine_name=m_name,
-                    system_name="invalid_sys",
-                    system_version="invalid_ver",
-                    setting_name="invalid_setting",
-                    benchmark_name="invalid_bench",
-                )
-            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: System 'invalid_sys-invalid_ver' not defined!\n")
-
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                prj.add_runspec(
-                    machine_name=m_name,
-                    system_name="sys",
-                    system_version="ver",
-                    setting_name="invalid_setting",
-                    benchmark_name="invalid_bench",
-                )
-            self.assertEqual(
-                mock_stderr.getvalue(), "*** ERROR: Setting 'invalid_setting' for system 'sys-ver' not defined!\n"
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: Machine 'invalid_machine' not defined."):
+            prj.add_runspec(
+                machine_name="invalid_machine",
+                system_name="invalid_sys",
+                system_version="invalid_ver",
+                setting_name="invalid_setting",
+                benchmark_name="invalid_bench",
             )
 
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                prj.add_runspec(
-                    machine_name=m_name,
-                    system_name="sys",
-                    system_version="ver",
-                    setting_name="setting",
-                    benchmark_name="invalid_bench",
-                )
-            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: Benchmark 'invalid_bench' not defined!\n")
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: System 'invalid_sys-invalid_ver' not defined."):
+            prj.add_runspec(
+                machine_name=m_name,
+                system_name="invalid_sys",
+                system_version="invalid_ver",
+                setting_name="invalid_setting",
+                benchmark_name="invalid_bench",
+            )
+
+        with self.assertRaisesRegex(
+            SystemExit, r"\*\*\* ERROR: Setting 'invalid_setting' for system 'sys-ver' not defined."
+        ):
+            prj.add_runspec(
+                machine_name=m_name,
+                system_name="sys",
+                system_version="ver",
+                setting_name="invalid_setting",
+                benchmark_name="invalid_bench",
+            )
+
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: Benchmark 'invalid_bench' not defined."):
+            prj.add_runspec(
+                machine_name=m_name,
+                system_name="sys",
+                system_version="ver",
+                setting_name="setting",
+                benchmark_name="invalid_bench",
+            )
 
     def test_path(self):
         """
@@ -1358,11 +1350,9 @@ class TestRunscript(TestCase):
         p.gen_scripts = mock.Mock()
         self.rs.projects["prj"] = p
         skip = True
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                self.rs.gen_scripts(skip, False)
-            self.assertEqual(mock_stderr.getvalue(), "*** ERROR: Output directory already exists.\n")
-            p.gen_scripts.assert_not_called()
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: Output directory already exists."):
+            self.rs.gen_scripts(skip, False)
+        p.gen_scripts.assert_not_called()
 
         with mock.patch("shutil.rmtree") as mock_rmtree:
             self.rs.gen_scripts(skip, True)

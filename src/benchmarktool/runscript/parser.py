@@ -49,10 +49,9 @@ class Parser:
 
         schemas_dir = os.path.join(os.path.dirname(__file__), "schemas")
         if not os.path.isdir(schemas_dir):  # nocoverage
-            sys.stderr.write(
+            raise SystemExit(
                 f"*** ERROR: Resources missing: '{schemas_dir}' does not exist.\nTry reinstalling the package.\n"
             )
-            raise SystemExit(1)
 
         doc = self.parse_file(file_name, schemas_dir, "runscript.xsd")
 
@@ -256,23 +255,19 @@ class Parser:
         try:
             schema = etree.XMLSchema(file=os.path.join(schema_dir, schema_file))
         except etree.XMLSchemaParseError as e:
-            sys.stderr.write(f"*** ERROR: Failed to load schema file {schema_file}: {e}\n")
-            sys.exit(1)
+            raise SystemExit(f"*** ERROR: Failed to load schema file {schema_file}: {e}\n") from e
 
         try:
             doc = etree.parse(file_name)
         except (etree.XMLSyntaxError, OSError) as e:
             if isinstance(e, OSError):
-                sys.stderr.write(f"*** ERROR: File '{file_name}' not found.\n")
-                raise SystemExit(1)
-            sys.stderr.write(f"*** ERROR: XML Syntax Error in file '{file_name}': {e}\n")
-            raise SystemExit(1)
+                raise SystemExit(f"*** ERROR: File '{file_name}' not found.\n") from e
+            raise SystemExit(f"*** ERROR: XML Syntax Error in file '{file_name}': {e}\n") from e
 
         try:
             schema.assertValid(doc)
         except etree.DocumentInvalid as e:
-            sys.stderr.write(f"*** ERROR: '{file_name}' is invalid: {e}\n")
-            raise SystemExit(1)
+            raise SystemExit(f"*** ERROR: '{file_name}' is invalid: {e}\n") from e
 
         return doc
 
