@@ -22,12 +22,8 @@ from benchmarktool.runscript.runscript import (
     SeqJob,
     Setting,
     System,
+    TagDisj,
 )
-
-try:
-    from StringIO import StringIO  # type: ignore[import-not-found]
-except ModuleNotFoundError:
-    from io import StringIO
 
 
 # pylint: disable=anomalous-backslash-in-string, line-too-long, too-many-locals
@@ -51,299 +47,13 @@ class Parser:
             fileName (str): a string holding a path to a xml file.
         """
 
-        schemadoc = etree.parse(
-            StringIO(
-                """\
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <!-- the runscript -->
-    <xs:complexType name="runscriptType">
-        <xs:choice minOccurs="0" maxOccurs="unbounded">
-            <xs:element name="machine" type="machineType"/>
-            <xs:element name="system" type="systemType">
-                <!-- setting keys have to be unique per system/version-->
-                <!-- unfortunately i have found no way to create a link between settings and systems -->
-                <!-- schematron should be able to do this but the lxml implementation seems to be incomplete-->
-                <xs:unique name="settingKey">
-                    <xs:selector xpath="setting"/>
-                    <xs:field xpath="@name"/>
-                </xs:unique>
-            </xs:element>
-            <xs:element name="config" type="configType"/>
-            <xs:element name="benchmark" type="benchmarkType"/>
-            <xs:element name="distjob" type="distjobType"/>
-            <xs:element name="seqjob" type="seqjobType"/>
-            <xs:element name="project" type="projectType"/>
-        </xs:choice>
-        <xs:attribute name="output" type="xs:string" use="required"/>
-    </xs:complexType>
-
-    <!-- a project -->
-    <xs:complexType name="projectType">
-        <xs:choice minOccurs="0" maxOccurs="unbounded">
-            <xs:element name="runspec" type="runspecType"/>
-            <xs:element name="runtag" type="runtagType"/>
-        </xs:choice>
-        <xs:attribute name="name" type="nameType" use="required"/>
-        <xs:attribute name="job" type="nameType" use="required"/>
-    </xs:complexType>
-
-    <!-- a machine -->
-    <xs:complexType name="machineType">
-        <xs:attribute name="name" type="nameType" use="required"/>
-        <xs:attribute name="cpu" type="xs:token" use="required"/>
-        <xs:attribute name="memory" type="xs:token" use="required"/>
-    </xs:complexType>
-
-    <!-- a system -->
-    <xs:complexType name="systemType">
-        <xs:choice minOccurs="1" maxOccurs="unbounded">
-            <xs:element name="setting">
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
-                            <xs:complexType>
-                                <xs:attribute name="file" type="xs:string" use="required"/>
-                                <xs:attribute name="enctag">
-                                    <xs:simpleType>
-                                        <xs:list itemType="nameType"/>
-                                    </xs:simpleType>
-                                </xs:attribute>
-                            </xs:complexType>
-                        </xs:element>
-                    </xs:sequence>
-                    <xs:attribute name="name" type="nameType" use="required"/>
-                    <xs:attribute name="cmdline" type="xs:string"/>
-                    <xs:attribute name="cmdline_post" type="xs:string"/>
-                    <xs:attribute name="tag">
-                        <xs:simpleType>
-                            <xs:list itemType="nameType"/>
-                        </xs:simpleType>
-                    </xs:attribute>
-                    <xs:attribute name="dist_template" type="xs:string"/>
-                    <xs:attribute name="dist_options" type="xs:string"/>
-                    <xs:anyAttribute processContents="lax"/>
-                </xs:complexType>
-            </xs:element>
-        </xs:choice>
-        <xs:attribute name="name" type="nameType" use="required"/>
-        <xs:attribute name="version" type="versionType" use="required"/>
-        <xs:attribute name="measures" type="nameType" use="required"/>
-        <xs:attribute name="config" type="nameType" use="required"/>
-        <xs:attribute name="cmdline" type="xs:string"/>
-        <xs:attribute name="cmdline_post" type="xs:string"/>
-    </xs:complexType>
-
-    <!-- generic attributes for jobs-->
-    <xs:attributeGroup name="jobAttr">
-        <xs:attribute name="name" type="nameType" use="required"/>
-        <xs:attribute name="timeout" type="timeType" use="required"/>
-        <xs:attribute name="runs" type="xs:positiveInteger" use="required"/>
-        <xs:attribute name="memout" type="xs:positiveInteger"/>
-        <xs:attribute name="template_options" type="xs:string"/>
-        <xs:anyAttribute processContents="lax"/>
-    </xs:attributeGroup>
-
-    <!-- a seqjob -->
-    <xs:complexType name="seqjobType">
-        <xs:attributeGroup ref="jobAttr"/>
-        <xs:attribute name="parallel" type="xs:positiveInteger" use="required"/>
-    </xs:complexType>
-
-    <!-- a distjob -->
-    <xs:complexType name="distjobType">
-        <xs:attributeGroup ref="jobAttr"/>
-        <xs:attribute name="script_mode" use="required">
-            <xs:simpleType>
-                <xs:restriction base="xs:string">
-                    <xs:enumeration value="multi"/>
-                    <xs:enumeration value="timeout"/>
-                </xs:restriction>
-             </xs:simpleType>
-        </xs:attribute>
-        <xs:attribute name="walltime" type="timeType" use="required"/>
-        <xs:attribute name="cpt" type="xs:positiveInteger" use="required"/>
-        <xs:attribute name="partition" type="xs:string"/>
-    </xs:complexType>
-
-    <!-- a config -->
-    <xs:complexType name="configType">
-        <xs:attribute name="name" type="nameType" use="required"/>
-        <xs:attribute name="template" type="xs:string" use="required"/>
-    </xs:complexType>
-
-    <!-- a benchmark -->
-    <xs:complexType name="benchmarkType">
-        <xs:choice minOccurs="0" maxOccurs="unbounded">
-            <xs:element name="files">
-                <xs:complexType>
-                    <xs:choice minOccurs="0" maxOccurs="unbounded">
-                        <xs:element name="add">
-                            <xs:complexType>
-                                <xs:attribute name="file" type="xs:string" use="required"/>
-                                <xs:attribute name="group" type="xs:string"/>
-                            </xs:complexType>
-                        </xs:element>
-                        <xs:element name="encoding">
-                            <xs:complexType>
-                                <xs:attribute name="file" type="xs:string" use="required"/>
-                            </xs:complexType>
-                        </xs:element>
-                    </xs:choice>
-                    <xs:attribute name="path" type="xs:string" use="required"/>
-                    <xs:attribute name="enctag">
-                        <xs:simpleType>
-                            <xs:list itemType="nameType"/>
-                        </xs:simpleType>
-                    </xs:attribute>
-                </xs:complexType>
-            </xs:element>
-            <xs:element name="folder">
-                <xs:complexType>
-                    <xs:choice minOccurs="0" maxOccurs="unbounded">
-                        <xs:element name="ignore">
-                            <xs:complexType>
-                                <xs:attribute name="prefix" type="xs:string" use="required"/>
-                            </xs:complexType>
-                        </xs:element>
-                        <xs:element name="encoding">
-                            <xs:complexType>
-                                <xs:attribute name="file" type="xs:string" use="required"/>
-                            </xs:complexType>
-                        </xs:element>
-                    </xs:choice>
-                    <xs:attribute name="path" type="xs:string" use="required"/>
-                    <xs:attribute name="group" type="xs:boolean"/>
-                    <xs:attribute name="enctag">
-                        <xs:simpleType>
-                            <xs:list itemType="nameType"/>
-                        </xs:simpleType>
-                    </xs:attribute>
-                </xs:complexType>
-            </xs:element>
-        </xs:choice>
-        <xs:attribute name="name" type="nameType" use="required"/>
-    </xs:complexType>
-
-    <!-- common attributes for runspec/runtag -->
-    <xs:attributeGroup name="runAttr">
-        <xs:attribute name="machine" type="nameType" use="required"/>
-        <xs:attribute name="benchmark" type="nameType" use="required"/>
-    </xs:attributeGroup>
-
-    <!-- a runspec -->
-    <xs:complexType name="runspecType">
-        <xs:attribute name="system" type="nameType" use="required"/>
-        <xs:attribute name="version" type="versionType" use="required"/>
-        <xs:attribute name="setting" type="nameType" use="required"/>
-        <xs:attributeGroup ref="runAttr"/>
-    </xs:complexType>
-
-    <!-- a runtag -->
-    <xs:complexType name="runtagType">
-        <xs:attributeGroup ref="runAttr"/>
-        <xs:attribute name="tag" type="tagrefType" use="required"/>
-    </xs:complexType>
-
-    <!-- simple types used througout the above definitions -->
-    <xs:simpleType name="versionType">
-        <xs:restriction base="xs:string">
-            <xs:pattern value="[0-9a-zA-Z._-]+"/>
-        </xs:restriction>
-    </xs:simpleType>
-
-    <xs:simpleType name="timeType">
-        <xs:restriction base="xs:string">
-            <xs:pattern value="([0-9]+)|([0-9]+d)?[ ]*([0-9]+h)?[ ]*([0-9]+m)?[ ]*([0-9]+s)?"/>
-        </xs:restriction>
-    </xs:simpleType>
-
-    <xs:simpleType name="tagrefType">
-        <xs:restriction base="xs:string">
-            <xs:pattern value="(\\*all\\*)|([A-Za-z_\\-0-9]+([ ]*[A-Za-z_\\-0-9]+)*)([ ]*\\|[ ]*([A-Za-z_\\-0-9]+([ ]*[A-Za-z_\\-0-9]+)*))*"/>
-        </xs:restriction>
-    </xs:simpleType>
-
-    <xs:simpleType name="nameType">
-        <xs:restriction base="xs:string">
-            <xs:pattern value="[A-Za-z_\\-0-9]*"/>
-        </xs:restriction>
-    </xs:simpleType>
-
-    <!-- the root element -->
-    <xs:element name="runscript" type="runscriptType">
-        <!-- machine keys -->
-        <xs:keyref name="machineRef" refer="machineKey">
-            <xs:selector xpath="project/runspec|project/runall"/>
-            <xs:field xpath="@machine"/>
-        </xs:keyref>
-        <xs:key name="machineKey">
-            <xs:selector xpath="machine"/>
-            <xs:field xpath="@name"/>
-        </xs:key>
-        <!-- benchmark keys -->
-        <xs:keyref name="benchmarkRef" refer="benchmarkKey">
-            <xs:selector xpath="project/runspec|project/runall"/>
-            <xs:field xpath="@benchmark"/>
-        </xs:keyref>
-        <xs:key name="benchmarkKey">
-            <xs:selector xpath="benchmark"/>
-            <xs:field xpath="@name"/>
-        </xs:key>
-        <!-- system keys -->
-        <xs:keyref name="systemRef" refer="systemKey">
-            <xs:selector xpath="project/runspec"/>
-            <xs:field xpath="@system"/>
-            <xs:field xpath="@version"/>
-        </xs:keyref>
-        <xs:key name="systemKey">
-            <xs:selector xpath="system"/>
-            <xs:field xpath="@name"/>
-            <xs:field xpath="@version"/>
-        </xs:key>
-        <!-- config keys -->
-        <xs:keyref name="configRef" refer="configKey">
-            <xs:selector xpath="system"/>
-            <xs:field xpath="@config"/>
-        </xs:keyref>
-        <xs:key name="configKey">
-            <xs:selector xpath="config"/>
-            <xs:field xpath="@name"/>
-        </xs:key>
-        <!-- config keys -->
-        <xs:keyref name="jobRef" refer="jobKey">
-            <xs:selector xpath="project"/>
-            <xs:field xpath="@job"/>
-        </xs:keyref>
-        <xs:key name="jobKey">
-            <xs:selector xpath="seqjob|distjob"/>
-            <xs:field xpath="@name"/>
-        </xs:key>
-        <!-- project keys -->
-        <xs:unique name="projectKey">
-            <xs:selector xpath="project"/>
-            <xs:field xpath="@name"/>
-        </xs:unique>
-    </xs:element>
-</xs:schema>
-"""
+        schemas_dir = os.path.join(os.path.dirname(__file__), "schemas")
+        if not os.path.isdir(schemas_dir):  # nocoverage
+            raise SystemExit(
+                f"*** ERROR: Resources missing: '{schemas_dir}' does not exist.\nTry reinstalling the package.\n"
             )
-        )
-        schema = etree.XMLSchema(schemadoc)
 
-        try:
-            doc = etree.parse(file_name)
-        except (etree.XMLSyntaxError, OSError) as e:
-            if isinstance(e, OSError):
-                sys.stderr.write(f"*** ERROR: Runscript file '{file_name}' not found.\n")
-                sys.exit(1)
-            sys.stderr.write(f"*** ERROR: XML Syntax Error in runscript: {e}\n")
-            sys.exit(1)
-
-        try:
-            schema.assertValid(doc)
-        except etree.DocumentInvalid as e:
-            sys.stderr.write(f"*** ERROR: Invalid runscript file: {e}\n")
-            sys.exit(1)
+        doc = self.parse_file(file_name, schemas_dir, "runscript.xsd")
 
         root = doc.getroot()
         run = Runscript(root.get("output"))
@@ -387,10 +97,10 @@ class Parser:
                     dist_options = ""
                 encodings: dict[str, set[str]] = {"_default_": set()}
                 for grandchild in child.xpath("./encoding"):
-                    if grandchild.get("enctag") is None:
+                    if grandchild.get("encoding_tag") is None:
                         encodings["_default_"].add(os.path.normpath(grandchild.get("file")))
                     else:
-                        enctags = set(grandchild.get("enctag").split(None))
+                        enctags = set(grandchild.get("encoding_tag").split(None))
                         for t in enctags:
                             if t not in encodings:
                                 encodings[t] = set()
@@ -425,16 +135,74 @@ class Parser:
         element: Any
         for node in root.xpath("./benchmark"):
             benchmark = Benchmark(node.get("name"))
+            for child in node.xpath("./spec"):
+                # discover spec files
+                spec_root = child.get("path")
+                for dirpath, dirnames, filenames in os.walk(spec_root):
+                    tag = child.get("instance_tag")
+                    if "spec.xml" in filenames:
+                        # stop recursion if spec.xml found
+                        dirnames.clear()
+                        spec_file = os.path.join(dirpath, "spec.xml")
+                        spec = self.parse_file(spec_file, schemas_dir, "benchmark_spec.xsd").getroot()
+                        for class_elem in spec.xpath("./class"):
+                            rel_path = os.path.relpath(dirpath, spec_root)
+                            if rel_path != ".":
+                                class_name = os.path.join(rel_path, class_elem.get("name"))
+                            else:
+                                class_name = class_elem.get("name")
+                            if class_elem.get("encoding_tag") is None:
+                                enctag = set()
+                            else:
+                                enctag = set(class_elem.get("encoding_tag").split(None))
+
+                            elements: list[Any] = []
+                            instances = class_elem.xpath("./instance")
+                            if instances:
+                                files = Benchmark.Files(dirpath, class_name)
+                                for instance in instances:
+                                    if (
+                                        tag is None
+                                        or instance.get("instance_tag") is None
+                                        or TagDisj(tag).match(set(instance.get("instance_tag").split(None)))
+                                    ):
+                                        files.add_file(instance.get("file"), instance.get("group"))
+                                files.add_enctags(enctag)
+                                if files.files:
+                                    elements.append(files)
+
+                            # folder elements are still in development
+                            for folder_elem in class_elem.xpath("./folder"):
+                                if (
+                                    tag is None
+                                    or folder_elem.get("instance_tag") is None
+                                    or TagDisj(tag).match(set(folder_elem.get("instance_tag").split(None)))
+                                ):
+                                    if folder_elem.get("group") is not None:
+                                        group = folder_elem.get("group").lower() == "true"
+                                    else:
+                                        group = False
+                                    folder = Benchmark.Folder(
+                                        os.path.join(dirpath, folder_elem.get("path")), group, class_name
+                                    )
+                                    folder.add_enctags(enctag)
+                                    elements.append(folder)
+
+                            for element in elements:
+                                for encoding in class_elem.xpath("./encoding"):
+                                    element.add_encoding(os.path.join(dirpath, encoding.get("file")))
+                                benchmark.add_element(element)
+
             for child in node.xpath("./folder"):
                 if child.get("group") is not None:
                     group = child.get("group").lower() == "true"
                 else:
                     group = False
                 element = Benchmark.Folder(child.get("path"), group)
-                if child.get("enctag") is None:
+                if child.get("encoding_tag") is None:
                     tag = set()
                 else:
-                    tag = set(child.get("enctag").split(None))
+                    tag = set(child.get("encoding_tag").split(None))
                 element.add_enctags(tag)
                 for grandchild in child.xpath("./encoding"):
                     element.add_encoding(grandchild.get("file"))
@@ -443,10 +211,10 @@ class Parser:
                 benchmark.add_element(element)
             for child in node.xpath("./files"):
                 element = Benchmark.Files(child.get("path"))
-                if child.get("enctag") is None:
+                if child.get("encoding_tag") is None:
                     tag = set()
                 else:
-                    tag = set(child.get("enctag").split(None))
+                    tag = set(child.get("encoding_tag").split(None))
                 element.add_enctags(tag)
                 for grandchild in child.xpath("./encoding"):
                     element.add_encoding(grandchild.get("file"))
@@ -473,6 +241,35 @@ class Parser:
 
         self.validate_components(run)
         return run
+
+    def parse_file(self, file_name: str, schema_dir: str, schema_file: str) -> etree._ElementTree:
+        """
+        Parse a given XML file and validate it against a given schema.
+
+        Attributes:
+            file_name (str): a string holding a path to a xml file.
+            schema_dir (str): a string holding a path to the schema directory.
+            schema_file (str): a string holding the name of the schema file.
+        """
+
+        try:
+            schema = etree.XMLSchema(file=os.path.join(schema_dir, schema_file))
+        except etree.XMLSchemaParseError as e:
+            raise SystemExit(f"*** ERROR: Failed to load schema file {schema_file}: {e}\n") from e
+
+        try:
+            doc = etree.parse(file_name)
+        except (etree.XMLSyntaxError, OSError) as e:
+            if isinstance(e, OSError):
+                raise SystemExit(f"*** ERROR: File '{file_name}' not found.\n") from e
+            raise SystemExit(f"*** ERROR: XML Syntax Error in file '{file_name}': {e}\n") from e
+
+        try:
+            schema.assertValid(doc)
+        except etree.DocumentInvalid as e:
+            raise SystemExit(f"*** ERROR: '{file_name}' is invalid: {e}\n") from e
+
+        return doc
 
     def validate_components(self, run: Runscript) -> None:
         """
@@ -506,7 +303,9 @@ class Parser:
         # instances
         for benchmark in run.benchmarks.values():
             if not benchmark.elements:
-                sys.stderr.write(f"*** WARNING: No instance folder/files defined for benchmark '{benchmark.name}'.\n")
+                sys.stderr.write(
+                    f"*** WARNING: No spec or instance folders/files defined/used for benchmark '{benchmark.name}'.\n"
+                )
 
         # project
         if not run.projects:

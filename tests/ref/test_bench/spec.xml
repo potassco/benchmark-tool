@@ -1,0 +1,13 @@
+<spec>
+    <class name="folder" encoding_tag="encTag">
+        <folder path="test_folder" instance_tag="tagA" group="true"/>
+        <folder path="other_folder"/>
+        <encoding file="enc1.lp"/>
+    </class>
+    <class name="instances">
+        <instance file="test_f1.2.1.lp" instance_tag="tagB" group="test_f1"/>
+        <instance file="test_f1.2.2.lp" instance_tag="tagB" group="test_f1"/>
+        <instance file="test_folder/test_foldered.lp" instance_tag="tagA"/>
+        <instance file="test_f2.lp" instance_tag="tagC"/>
+    </class>
+</spec>

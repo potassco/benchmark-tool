@@ -2,7 +2,9 @@
 Test cases for runscript parser
 """
 
+import inspect
 import io
+import os
 import platform
 from unittest import TestCase, mock
 
@@ -18,39 +20,39 @@ class TestParser(TestCase):
     Test class for runscript parser.
     """
 
+    def test_parse_file(self):
+        """
+        Test parse_file method.
+        """
+        p = parser.Parser()
+        schemas_dir = os.path.join(os.path.dirname(inspect.getfile(parser)), "schemas")
+
+        # valid file
+        tree = p.parse_file("tests/ref/runscripts/test_runscript.xml", schemas_dir, "runscript.xsd")
+        self.assertIsInstance(tree, etree._ElementTree)
+
+        # invalid schema
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: Failed to load schema file"):
+            p.parse_file("tests/ref/runscripts/test_runscript.xml", "tests/ref/runscripts/", "invalid_xml.xml")
+
+        # file not found
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: File 'non_existing_file.xml' not found."):
+            p.parse_file("non_existing_file.xml", schemas_dir, "runscript.xsd")
+
+        # xml error
+        with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: XML Syntax Error in file "):
+            p.parse_file("tests/ref/runscripts/invalid_xml.xml", schemas_dir, "runscript.xsd")
+
+        # invalid runscript
+        with self.assertRaisesRegex(SystemExit, r"is invalid: "):
+            p.parse_file("tests/ref/runscripts/invalid_runscript.xml", schemas_dir, "runscript.xsd")
+
     # pylint: disable=too-many-statements
     def test_parse(self):
         """
         Test parse method.
         """
         p = parser.Parser()
-
-        # file not found
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                p.parse("non_existing_file.xml")
-            self.assertEqual(
-                mock_stderr.getvalue(),
-                "*** ERROR: Runscript file 'non_existing_file.xml' not found.\n",
-            )
-
-        # xml error
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                p.parse("tests/ref/runscripts/invalid_xml.xml")
-            self.assertIn(
-                "*** ERROR: XML Syntax Error in runscript: ",
-                mock_stderr.getvalue(),
-            )
-
-        # invalid runscript
-        with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
-            with self.assertRaises(SystemExit):
-                p.parse("tests/ref/runscripts/invalid_runscript.xml")
-            self.assertIn(
-                "*** ERROR: Invalid runscript file: ",
-                mock_stderr.getvalue(),
-            )
 
         with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
             run = p.parse("tests/ref/runscripts/test_runscript.xml")
@@ -183,7 +185,7 @@ class TestParser(TestCase):
         self.assertEqual(config.template, "templates/dist-generic.sh")
 
         # benchmarks
-        self.assertEqual(len(run.benchmarks), 2)
+        self.assertEqual(len(run.benchmarks), 3)
         bench = run.benchmarks["seq-suite"]
         self.assertIsInstance(bench, runscript.Benchmark)
         self.assertEqual(bench.name, "seq-suite")
@@ -218,6 +220,40 @@ class TestParser(TestCase):
             )
         self.assertEqual(len(files.encodings), 2)
         self.assertSetEqual(files.enctags, {"test2"})
+
+        # spec-test benchmark
+        bench = run.benchmarks["spec-test"]
+        self.assertIsInstance(bench, runscript.Benchmark)
+        self.assertEqual(bench.name, "spec-test")
+        self.assertEqual(len(bench.elements), 4)
+        folder = bench.elements[0]
+        self.assertIsInstance(folder, runscript.Benchmark.Folder)
+        if platform.system() == "Linux":
+            self.assertEqual(folder.path, "tests/ref/test_bench/test_folder")
+        self.assertEqual(folder.class_name, "folder")
+        self.assertTrue(folder.group)
+        self.assertEqual(len(folder.encodings), 1)
+        if platform.system() == "Linux":
+            self.assertSetEqual(folder.encodings, {"tests/ref/test_bench/enc1.lp"})
+        self.assertSetEqual(folder.enctags, {"encTag"})
+        files = bench.elements[2]
+        self.assertIsInstance(files, runscript.Benchmark.Files)
+        self.assertEqual(files.path, "tests/ref/test_bench")
+        self.assertEqual(files.class_name, "instances")
+        self.assertEqual(len(files.files), 2)  # test_f1 grouped, tagC not used
+        if platform.system() == "Linux":
+            self.assertDictEqual(
+                files.files,
+                {
+                    "test_f1": {"test_f1.2.1.lp", "test_f1.2.2.lp"},
+                    "test_foldered": {"test_folder/test_foldered.lp"},
+                },
+            )
+        self.assertEqual(len(files.encodings), 0)
+        self.assertSetEqual(files.enctags, set())
+        foldered = bench.elements[3]
+        if platform.system() == "Linux":
+            self.assertEqual(foldered.class_name, "test_folder/foldered")
 
     def test_filter_attr(self):
         """
@@ -256,6 +292,6 @@ class TestParser(TestCase):
                 "*** WARNING: No config defined in runscript.\n"
                 "*** WARNING: No setting defined for system 'sys1-1.0'.\n"
                 "*** WARNING: No job defined in runscript.\n"
-                "*** WARNING: No instance folder/files defined for benchmark 'bench1'.\n"
+                "*** WARNING: No spec or instance folders/files defined/used for benchmark 'bench1'.\n"
                 "*** WARNING: No project defined in runscript.\n",
             )

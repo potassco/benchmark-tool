@@ -841,26 +841,28 @@ class Benchmark:
         def paths(self) -> Iterator[str]:
             """
             Returns the location of the instance files by concatenating
-            location, class name and instance name.
+            location and instance name.
             """
             for file in self.files:
-                yield os.path.join(self.location, self.benchclass.name, file)
+                yield os.path.join(self.location, file)
 
     class Folder:
         """
         Describes a folder that should recursively be scanned for benchmarks.
         """
 
-        def __init__(self, path: str, group: bool = False):
+        def __init__(self, path: str, group: bool = False, class_name: Optional[str] = None):
             """
             Initializes a benchmark folder.
 
             Attributes:
                 path (str):   The location of the folder.
                 group (bool): Whether to group instances by their file name prefix.
+                class_name (Optional[str]): The class name of the instances.
             """
             self.path = path
             self.group = group
+            self.class_name = class_name
             self.prefixes: set[str] = set()
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
@@ -926,7 +928,7 @@ class Benchmark:
                     sub.append(dirname)
                 dirs[:] = sub
                 for filename in files:
-                    if self._skip(relroot, filename):
+                    if self._skip(relroot, filename) or filename == "spec.xml":
                         continue
                     m = re.match(r"^(([^.]+(?:\.[^.]+)*?)(?:\.[^.]+)?)\.[^.]+$", filename)
                     if m is None:
@@ -943,8 +945,8 @@ class Benchmark:
                     instances[group].add(filename)
                 for group, instfiles in instances.items():
                     benchmark.add_instance(
-                        root=self.path,
-                        relroot=relroot,
+                        root=root,
+                        class_name=relroot if self.class_name is None else self.class_name,
                         files=(group, instfiles),
                         encodings=self.encodings,
                         enctags=self.enctags,
@@ -955,14 +957,16 @@ class Benchmark:
         Describes a set of individual files in a benchmark.
         """
 
-        def __init__(self, path: str):
+        def __init__(self, path: str, class_name: Optional[str] = None):
             """
             Initializes to the empty set of files.
 
             Attributes:
                 path (str): Root path, all file paths are relative to this path.
+                class_name (Optional[str]): The class name of the instances.
             """
             self.path = path
+            self.class_name = class_name
             self.files: dict[str, set[str]] = {}
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
@@ -1025,10 +1029,9 @@ class Benchmark:
                         "Grouped files must be located in the same folder.\n"
                     )
                     continue
-                relroot = paths[0][0]
                 benchmark.add_instance(
-                    root=self.path,
-                    relroot=relroot,
+                    root=os.path.join(self.path, paths[0][0]),
+                    class_name=paths[0][0] if self.class_name is None else self.class_name,
                     files=(group, set(map(lambda x: x[1], paths))),
                     encodings=self.encodings,
                     enctags=self.enctags,
@@ -1044,7 +1047,7 @@ class Benchmark:
         self.elements.append(element)
 
     def add_instance(
-        self, *, root: str, relroot: str, files: tuple[str, set[str]], encodings: set[str], enctags: set[str]
+        self, *, root: str, class_name: str, files: tuple[str, set[str]], encodings: set[str], enctags: set[str]
     ) -> None:
         """
         Adds an instance to the benchmark set. (This function
@@ -1052,15 +1055,22 @@ class Benchmark:
 
         Attributes:
             root (str):                  The root folder of the instance.
-            relroot (str):               The folder relative to the root folder.
+            class_name (str):            The class name of the instance.
             files (tuple[str,set[str]]): The name and files of the instance.
             encodings (set[str]):        The encodings associated to the instance.
             enctags (set[str]):          The encoding tags associated to the instance.
         """
-        classname = Benchmark.Class(relroot)
+        classname = Benchmark.Class(class_name)
         if classname not in self.instances:
             self.instances[classname] = set()
-        self.instances[classname].add(Benchmark.Instance(root, classname, files[0], files[1], encodings, enctags))
+        ins = Benchmark.Instance(root, classname, files[0], files[1], encodings, enctags)
+        if ins in self.instances[classname]:
+            sys.stderr.write(
+                f"*** WARNING: skipping duplicate instance '{files[0]}' of class '{class_name}' "
+                f"of benchmark '{self.name}'!\n"
+            )
+            return
+        self.instances[classname].add(ins)
 
     def init(self) -> None:
         """
@@ -1172,7 +1182,7 @@ class Project:
     job: Job = field(compare=False)
     runspecs: dict[str, list["Runspec"]] = field(default_factory=dict, compare=False)
 
-    def add_runtag(self, machine_name: str, benchmark_name: str, tag: str) -> None:
+    def add_runtag(self, machine_name: str, benchmark_name: str, tag: Optional[str] = None) -> None:
         """
         Adds a run tag to the project, i.e., a set of run specifications
         identified by certain tags.
@@ -1180,8 +1190,10 @@ class Project:
         Attributes:
             machine_name (str):   The machine to run on.
             benchmark_name (str): The benchmark set to evaluate.
-            tag (str):            The tags of systems+settings to run.
+            tag (Optional[str]):   The tags of systems+settings to run.
         """
+        if tag is None:
+            tag = "*all*"
         disj = TagDisj(tag)
         assert isinstance(self.runscript, Runscript)
         for system in self.runscript.systems.values():
@@ -1209,6 +1221,16 @@ class Project:
             setting_name (str):   The settings to run the system with.
             benchmark_name (str): The benchmark set to evaluate.
         """
+        if machine_name not in self.runscript.machines:
+            raise SystemExit(f"*** ERROR: Machine '{machine_name}' not defined!\n")
+        if (system_name, system_version) not in self.runscript.systems:
+            raise SystemExit(f"*** ERROR: System '{system_name}-{system_version}' not defined!\n")
+        if setting_name not in self.runscript.systems[(system_name, system_version)].settings:
+            raise SystemExit(
+                f"*** ERROR: Setting '{setting_name}' for system '{system_name}-{system_version}' not defined!\n"
+            )
+        if benchmark_name not in self.runscript.benchmarks:
+            raise SystemExit(f"*** ERROR: Benchmark '{benchmark_name}' not defined!\n")
         runspec = Runspec(
             self.runscript.machines[machine_name],
             self.runscript.systems[(system_name, system_version)],
@@ -1323,8 +1345,7 @@ class Runscript:
             if force:
                 shutil.rmtree(self.output)
             else:
-                sys.stderr.write("*** ERROR: Output directory already exists.\n")
-                sys.exit(1)
+                raise SystemExit("*** ERROR: Output directory already exists.\n")
         for project in self.projects.values():
             project.gen_scripts(skip)
 
