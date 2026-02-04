@@ -308,8 +308,8 @@ benchmarks/clasp
 current benchmark. Tag groups are separated by `|`, and tags within a group are
 separated by spaces. For example, `tag1 | tag2 tag3` selects instances that either
 have `tag1` or both `tag2` and `tag3` together. Instances with only `tag2` or `tag3`
-are not included. If `instance_tag` is not set, all instances are included regardless
-of their tags.
+are not included. If the special tag `*all*` is used or `instance_tag` is not set,
+all instances are included regardless of their tags.
 
 #### Spec Files
 
@@ -388,11 +388,12 @@ It has the following attributes:
 
 - `machine`: References a previously defined machine.
 - `benchmark`: References a previously defined benchmark set.
-- `tag`: Specifies one or more setting tags to use. Only settings with matching tag
-groups are selected. Tag groups are separated by `|`, and tags within a group are
-separated by spaces. For example, `base | foo bar` selects settings that either have
-`base` or both `foo` and `bar` together. Settings with only `foo` or `bar` are not
-included. To include all settings, use the special `*all*` tag.
+- `tag` (optional): Specifies one or more setting tags to use. Only settings with
+matching tag groups are selected. Tag groups are separated by `|`, and tags within
+a group are separated by spaces. For example, `tag1 | tag2 tag3` selects instances
+that either have `tag1` or both `tag2` and `tag3` together. Instances with only
+`tag2` or `tag3` are not included. If the special tag `*all*` is used or `tag` is
+not set, all instances are included regardless of their tags.
 
 In the example above, all instances defined in the `no-pigeons` benchmark are
 run using the `seq-gen` job configuration on machine `hpc`, once for each setting

@@ -1182,7 +1182,7 @@ class Project:
     job: Job = field(compare=False)
     runspecs: dict[str, list["Runspec"]] = field(default_factory=dict, compare=False)
 
-    def add_runtag(self, machine_name: str, benchmark_name: str, tag: str) -> None:
+    def add_runtag(self, machine_name: str, benchmark_name: str, tag: Optional[str] = None) -> None:
         """
         Adds a run tag to the project, i.e., a set of run specifications
         identified by certain tags.
@@ -1190,8 +1190,10 @@ class Project:
         Attributes:
             machine_name (str):   The machine to run on.
             benchmark_name (str): The benchmark set to evaluate.
-            tag (str):            The tags of systems+settings to run.
+            tag (Optional[str]):   The tags of systems+settings to run.
         """
+        if tag is None:
+            tag = "*all*"
         disj = TagDisj(tag)
         assert isinstance(self.runscript, Runscript)
         for system in self.runscript.systems.values():

@@ -1110,10 +1110,13 @@ class TestProject(TestCase):
         self.setting = mock.Mock(spec=runscript.Setting)
         self.setting.name = "setting"
         self.setting.tag = {"tag"}
+        self.setting2 = mock.Mock(spec=runscript.Setting)
+        self.setting2.name = "setting2"
+        self.setting2.tag = {"othertag"}
         self.sys = mock.Mock(spec=runscript.System)
         self.sys.name = "sys"
         self.sys.version = "ver"
-        self.sys.settings = {"setting": self.setting}
+        self.sys.settings = {"setting": self.setting, "setting2": self.setting2}
         self.job = runscript.SeqJob(name="job", timeout=1, runs=1, attr={}, parallel=1)
 
     def test_add_runtag(self):
@@ -1137,6 +1140,9 @@ class TestProject(TestCase):
                 setting_name=self.setting.name,
                 benchmark_name=b_name,
             )
+            add_runspec.reset_mock()
+            prj.add_runtag(m_name, b_name)
+            self.assertEqual(add_runspec.call_count, 2)
 
     def test_add_runspec(self):
         """

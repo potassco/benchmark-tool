@@ -61,7 +61,7 @@
 	</benchmark>
 
 	<project name="clasp-big" job="seq-generic">
-		<runtag machine="houat" benchmark="seq-suite" tag="seq"/>
+		<runtag machine="houat" benchmark="seq-suite"/>
 	</project>
 	<project name="claspar-all-as" job="dist-generic">
 		<runtag machine="houat" benchmark="dist-suite" tag="par one-as"/>

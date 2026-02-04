@@ -205,7 +205,7 @@
     <!-- a runtag -->
     <xs:complexType name="runtagType">
         <xs:attributeGroup ref="runAttr"/>
-        <xs:attribute name="tag" type="tagrefType" use="required"/>
+        <xs:attribute name="tag" type="tagrefType"/>
     </xs:complexType>
 
     <!-- simple types used througout the above definitions -->
