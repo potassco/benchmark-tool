@@ -7,7 +7,7 @@
                     <xs:attribute name="file" type="xs:string" use="required"/>
                     <xs:attribute name="instance_tag">
                         <xs:simpleType>
-                            <xs:list itemType="tagrefType"/>
+                            <xs:list itemType="nameType"/>
                         </xs:simpleType>
                     </xs:attribute>
                     <xs:attribute name="group" type="nameType"/>
@@ -16,7 +16,11 @@
             <xs:element name="folder">
                 <xs:complexType>
                     <xs:attribute name="path" type="xs:string" use="required"/>
-                    <xs:attribute name="instance_tag" type="tagrefType"/>
+                    <xs:attribute name="instance_tag">
+                        <xs:simpleType>
+                            <xs:list itemType="nameType"/>
+                        </xs:simpleType>
+                    </xs:attribute>
                     <xs:attribute name="group" type="xs:boolean"/>
                 </xs:complexType>
             </xs:element>
@@ -44,12 +48,6 @@
     <xs:simpleType name="classnameType">
         <xs:restriction base="xs:string">
             <xs:pattern value="[A-Za-z_\-0-9/]*"/>
-        </xs:restriction>
-    </xs:simpleType>
-
-    <xs:simpleType name="tagrefType">
-        <xs:restriction base="xs:string">
-            <xs:pattern value="(\*all\*)|([A-Za-z_\-0-9]+([ ]*[A-Za-z_\-0-9]+)*)([ ]*\|[ ]*([A-Za-z_\-0-9]+([ ]*[A-Za-z_\-0-9]+)*))*"/>
         </xs:restriction>
     </xs:simpleType>
 
