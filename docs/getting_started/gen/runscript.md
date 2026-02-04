@@ -130,7 +130,7 @@ argument order.
 - `tag`: A space-separated identifier used within the runscript to select
 multiple settings at once.
 - Each setting can contain any number of `encoding` elements:
-    - `file`: A relative path from the directory where `bgen` is run to the encoding file.
+    - `file`: A relative path from the directory where `btool gen` is run to the encoding file.
     - If no `tag` is given, the encoding is passed to the system for all instances when this
     setting is selected.
     - If a `tag` is given, encoding usage is instance-dependent. Multiple encodings can
@@ -191,8 +191,8 @@ of `runs`, and an optional `memout` and `template_options`:
 Additionally, a distributed job has the following attributes:
 
 - `walltime`: Sets an overall time limit for all runs in `[0-9]+d [0-9]+h [0-9]+m [0-9]+s`
-format. Each value is optional and can be any integer. For example, `12d 350s` sets the
-time to 12 days and 350 seconds. Alternatively, a single value without a unit is
+format. Each value is optional and can be any positive integer. For example, `12d 350s`
+sets the time to 12 days and 350 seconds. Alternatively, a single value without a unit is
 interpreted as seconds.
 - `script_mode`: Defines how runs are grouped and dispatched to the cluster.
     - `multi`: Dispatches all runs individually for maximum parallelization. (In this
@@ -208,7 +208,7 @@ Other values include `short` and `long`. If `short` is used, the walltime cannot
 
 !!! info
     If you have many runs, `script_mode=multi` can cause issues with the cluster's
-    scheduler. Use `timeout` or dispatch the generated `.dist` jobs using `./dispatcher.py`.
+    scheduler. Use `timeout` or dispatch the generated `.dist` jobs using `btool run-dist`.
 
 ## Benchmark Sets
 
@@ -278,7 +278,7 @@ the system.
 
 ### Spec Elements
 
-Alternatively `spec` elements can be used to load benchmark specifications
+Alternatively, `spec` elements can be used to load benchmark specifications
 from `spec.xml` files.
 
 ```xml
@@ -373,7 +373,7 @@ A `project` element includes the following attributes:
 folder in the output structure.
 - `job`: References a previously defined job to use as a template for the benchmark.
 
-Projects can be defines in two ways: with `runtag` elements or `runspec` elements.
+Projects can be defined in two ways: with `runtag` elements or `runspec` elements.
 A project may contain any number of both.
 
 ### Runtag Elements
