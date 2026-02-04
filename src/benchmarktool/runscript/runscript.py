@@ -1221,18 +1221,18 @@ class Project:
         """
         if machine_name not in self.runscript.machines:
             sys.stderr.write(f"*** ERROR: Machine '{machine_name}' not defined!\n")
-            sys.exit(1)
+            raise SystemExit(1)
         if (system_name, system_version) not in self.runscript.systems:
             sys.stderr.write(f"*** ERROR: System '{system_name}-{system_version}' not defined!\n")
-            sys.exit(1)
+            raise SystemExit(1)
         if setting_name not in self.runscript.systems[(system_name, system_version)].settings:
             sys.stderr.write(
                 f"*** ERROR: Setting '{setting_name}' for system '{system_name}-{system_version}' not defined!\n"
             )
-            sys.exit(1)
+            raise SystemExit(1)
         if benchmark_name not in self.runscript.benchmarks:
             sys.stderr.write(f"*** ERROR: Benchmark '{benchmark_name}' not defined!\n")
-            sys.exit(1)
+            raise SystemExit(1)
         runspec = Runspec(
             self.runscript.machines[machine_name],
             self.runscript.systems[(system_name, system_version)],
@@ -1348,7 +1348,7 @@ class Runscript:
                 shutil.rmtree(self.output)
             else:
                 sys.stderr.write("*** ERROR: Output directory already exists.\n")
-                sys.exit(1)
+                raise SystemExit(1)
         for project in self.projects.values():
             project.gen_scripts(skip)
 

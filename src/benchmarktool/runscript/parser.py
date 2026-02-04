@@ -52,7 +52,7 @@ class Parser:
             sys.stderr.write(
                 f"*** ERROR: Resources missing: '{schemas_dir}' does not exist.\nTry reinstalling the package.\n"
             )
-            sys.exit(1)
+            raise SystemExit(1)
 
         doc = self.parse_file(file_name, schemas_dir, "runscript.xsd")
 
@@ -264,15 +264,15 @@ class Parser:
         except (etree.XMLSyntaxError, OSError) as e:
             if isinstance(e, OSError):
                 sys.stderr.write(f"*** ERROR: File '{file_name}' not found.\n")
-                sys.exit(1)
+                raise SystemExit(1)
             sys.stderr.write(f"*** ERROR: XML Syntax Error in file '{file_name}': {e}\n")
-            sys.exit(1)
+            raise SystemExit(1)
 
         try:
             schema.assertValid(doc)
         except etree.DocumentInvalid as e:
             sys.stderr.write(f"*** ERROR: '{file_name}' is invalid: {e}\n")
-            sys.exit(1)
+            raise SystemExit(1)
 
         return doc
 
