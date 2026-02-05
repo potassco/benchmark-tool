@@ -101,6 +101,162 @@ class DataValidation:
         return hash((repr(sorted(self.params.items())), self.default, self.color))
 
 
+class Chart:
+    """
+    Helper class representing a spreadsheet chart.
+    """
+
+    def __init__(self, title: str, chart_type: str, chart_subtype: Optional[str] = None):
+        """
+        Initialize Chart.
+
+        Supported types/subtypes:
+        - area
+          - stacked
+          - percent_stacked
+        - bar
+          - stacked
+          - percent_stacked
+        - column
+          - stacked
+          - percent_stacked
+        - scatter
+          - straight_with_markers
+          - straight
+          - smooth_with_markers
+          - smooth
+        - line
+          - stacked
+          - percent_stacked
+        - radar
+          - with_markers
+          - filled
+        - pie
+        - doughnut
+        - stock
+
+        Attributes:
+            title (str):      Title of the chart.
+            chart_type (str): Type of the chart.
+            chart_subtype (Optional[str]): Subtype of the chart.
+        """
+        self.title = title
+        self.chart_type = chart_type
+        self.chart_subtype = chart_subtype
+
+        self.series: list[dict[str, Any]] = []
+
+        self.x_axis_params: dict[str, Any] = {}
+        self.y_axis_params: dict[str, Any] = {}
+        self.size_params: dict[str, Any] = {}
+        self.legend_params: dict[str, Any] = {}
+        self.style: int = 2
+
+    def add_series(self, series_options: dict[str, Any]) -> None:
+        """
+        Add series to the chart.
+
+        Attributes:
+            series_options (dict[str, Any]): Series options.
+        """
+        self.series.append(series_options)
+
+    def set_params(
+        self,
+        x_axis: dict[str, Any] = {},
+        y_axis: dict[str, Any] = {},
+        size: dict[str, Any] = {},
+        legend: dict[str, Any] = {},
+        style: Optional[int] = None,
+    ) -> None:
+        """
+        Set chart parameters.
+
+        Attributes:
+            x_axis (dict[str, Any]): X axis parameters.
+            y_axis (dict[str, Any]): Y axis parameters.
+            size (dict[str, Any]):   Size parameters.
+            legend (dict[str, Any]): Legend parameters.
+            style (Optional[int]):   Chart style (1-48).
+        """
+        if x_axis:
+            self.x_axis_params = x_axis
+        if y_axis:
+            self.y_axis_params = y_axis
+        if size:
+            self.size_params = size
+        if legend:
+            self.legend_params = legend
+        if style is not None:
+            self.style = style
+
+    def write(self, xlsxdoc: "XLSXDoc", sheet: Worksheet, row: int, col: int) -> None:
+        """
+        Write to XLSX document sheet.
+
+        Attributes:
+            xlsxdoc (XLSXDoc): XLSX document.
+            sheet (Worksheet): XLSX worksheet.
+            row (int):         Row index.
+            col (int):         Column index.
+        """
+        if isinstance(xlsxdoc.workbook, Workbook):
+            # create chart
+            if self.chart_subtype:
+                chart = xlsxdoc.workbook.add_chart({"type": self.chart_type, "subtype": self.chart_subtype})
+            else:
+                chart = xlsxdoc.workbook.add_chart({"type": self.chart_type})
+
+            # set parameters
+            chart.set_title({"name": self.title})
+            if self.x_axis_params:
+                chart.set_x_axis(self.x_axis_params)
+            if self.y_axis_params:
+                chart.set_y_axis(self.y_axis_params)
+            if self.size_params:
+                chart.set_size(self.size_params)
+            if self.legend_params:
+                chart.set_legend(self.legend_params)
+            chart.set_style(self.style)
+
+            # add series
+            for series in self.series:
+                chart.add_series(series)
+
+            # write to sheet
+            sheet.insert_chart(
+                row,
+                col,
+                chart,
+            )
+        else:
+            raise ValueError("Trying to write to uninitialized workbook.")
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Equality operator.
+
+        Attributes:
+            other (object): Other Chart object.
+        """
+        if not isinstance(other, Chart):
+            raise TypeError("Comparison with non Chart object.")
+        return hash(self) == hash(other)
+
+    def __hash__(self) -> int:
+        """
+        Hash function.
+        """
+        return hash(
+            (
+                self.title,
+                self.chart_type,
+                self.chart_subtype,
+                repr(sorted(list(map(lambda x: repr(x.items()), self.series)))),
+            )
+        )
+
+
 def try_float(v: Any) -> Any:
     """
     Try to cast given value to float.
