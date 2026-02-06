@@ -43,8 +43,8 @@
         <xs:choice minOccurs="1" maxOccurs="unbounded">
             <xs:element name="setting">
                 <xs:complexType>
-                    <xs:sequence>
-                        <xs:element name="encoding" minOccurs="0" maxOccurs="unbounded">
+                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                        <xs:element name="encoding">
                             <xs:complexType>
                                 <xs:attribute name="file" type="xs:string" use="required"/>
                                 <xs:attribute name="encoding_tag">
@@ -54,7 +54,14 @@
                                 </xs:attribute>
                             </xs:complexType>
                         </xs:element>
-                    </xs:sequence>
+                        <xs:element name="variable">
+                            <xs:complexType>
+                                <xs:attribute name="cmd" type="xs:string" use="required"/>
+                                <xs:attribute name="value" type="valueType" use="required"/>
+                                <xs:attribute name="post" type="xs:string"/>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:choice>
                     <xs:attribute name="name" type="nameType" use="required"/>
                     <xs:attribute name="cmdline" type="xs:string"/>
                     <xs:attribute name="cmdline_post" type="xs:string"/>
@@ -230,6 +237,12 @@
     <xs:simpleType name="nameType">
         <xs:restriction base="xs:string">
             <xs:pattern value="[A-Za-z_\-0-9]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="valueType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(-?[0-9]+\.?[0-9]*,-?[0-9.]+\.?[0-9]*,-?[0-9.]+\.?[0-9]*)|([^;,]+(;[^;,]+)*)"/>
         </xs:restriction>
     </xs:simpleType>
 

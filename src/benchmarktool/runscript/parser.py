@@ -7,6 +7,7 @@ representation in form of python classes.
 __author__ = "Roland Kaminski"
 import os
 import sys
+from itertools import product
 from typing import Any
 
 from lxml import etree  # type: ignore[import-untyped]
@@ -106,28 +107,77 @@ class Parser:
                                 encodings[t] = set()
                             encodings[t].add(os.path.normpath(grandchild.get("file")))
 
-                cmdline = " ".join(
-                    filter(None, [sys_cmdline, child.get("cmdline"), sys_cmdline_post, child.get("cmdline_post")])
-                )
-                name = child.get("name")
-                compound_settings[child.get("name")].append(name)
+                cmdline_base = " ".join(filter(None, [sys_cmdline, child.get("cmdline")])).strip()
+                cmdline_post_base = " ".join(filter(None, [sys_cmdline_post, child.get("cmdline_post")])).strip()
+                name_base = child.get("name")
                 keys = list(attr.keys())
                 if keys:
                     sys.stderr.write(
-                        f"""*** INFO: Attribute{'s' if len(keys) > 1 else ''} {', '.join(f"'{k}'" for k in keys)} in setting '{name}' {'are' if len(keys) > 1 else 'is'} currently unused.\n"""
+                        f"""*** INFO: Attribute{'s' if len(keys) > 1 else ''} {', '.join(f"'{k}'" for k in keys)} in setting '{name_base}' {'are' if len(keys) > 1 else 'is'} currently unused.\n"""
                     )
-                setting = Setting(
-                    name=name,
-                    cmdline=cmdline,
-                    tag=tag,
-                    order=setting_order,
-                    dist_template=dist_template,
-                    attr=attr,
-                    dist_options=dist_options,
-                    encodings=encodings,
-                )
-                system.add_setting(setting)
-                setting_order += 1
+
+                values: dict[str, list[Any]] = {}
+                post_values: dict[str, list[Any]] = {}
+                for grandchild in child.xpath("./variable"):
+                    range_str = grandchild.get("value")
+                    range_vals: list[Any] = []
+                    if "," in range_str:
+                        parts = range_str.split(",")
+                        start = float(parts[0])
+                        end = float(parts[1])
+                        step = float(parts[2])
+                        val = start
+                        while val <= end:
+                            range_vals.append(val)
+                            val += step
+                    else:
+                        range_vals = range_str.split(";")
+                    if grandchild.get("post") and grandchild.get("post").lower() == "true":
+                        post_values[grandchild.get("cmd")] = range_vals
+                    else:
+                        values[grandchild.get("cmd")] = range_vals
+
+                if values:
+                    combinations = []
+                    for c1, c2 in product(list(product(*values.values())), list(product(*post_values.values()))):
+                        s1 = " ".join(k.format(v) if "{}" in k else f"{k}={v}" for k, v in zip(values.keys(), c1))
+                        s2 = " ".join(k.format(v) if "{}" in k else f"{k}={v}" for k, v in zip(post_values.keys(), c2))
+                        s3 = "_".join(f"{c}" for c in c1 + c2)
+                        combinations.append((s1, s2, s3))
+
+                    for combination in combinations:
+                        cmdline = " ".join([cmdline_base, combination[0]]).strip()
+                        cmdline_post = " ".join([cmdline_post_base, combination[1]]).strip()
+
+                        name = "_".join([name_base, combination[2]]) if combination[2] else name_base
+                        compound_settings[child.get("name")].append(name)
+                        setting = Setting(
+                            name=name,
+                            cmdline=" ".join([cmdline, cmdline_post]).strip(),
+                            tag=tag,
+                            order=setting_order,
+                            dist_template=dist_template,
+                            attr=attr,
+                            dist_options=dist_options,
+                            encodings=encodings,
+                        )
+                        system.add_setting(setting)
+                        setting_order += 1
+
+                else:
+                    compound_settings[child.get("name")].append(name_base)
+                    setting = Setting(
+                        name=name_base,
+                        cmdline=" ".join([cmdline_base, cmdline_post_base]).strip(),
+                        tag=tag,
+                        order=setting_order,
+                        dist_template=dist_template,
+                        attr=attr,
+                        dist_options=dist_options,
+                        encodings=encodings,
+                    )
+                    system.add_setting(setting)
+                    setting_order += 1
 
             run.systems[(system.name, system.version)] = system
             system_order += 1
