@@ -10,7 +10,9 @@ runner=( "{root}/programs/runlim" \
   --space-limit={memout} \
   --output-file=runsolver.watcher \
   --real-time-limit={timeout} \
-  "{root}/programs/{solver}" {args})
+  "{root}/programs/{solver}" \
+  {sys_cmd} {setting_cmd} {inst_cmd} \
+  {sys_cmd_post} {setting_cmd_post} {inst_cmd_post} )
 
 input=( {files} {encodings} )
 

@@ -11,6 +11,8 @@
                         </xs:simpleType>
                     </xs:attribute>
                     <xs:attribute name="group" type="nameType"/>
+                    <xs:attribute name="cmdline" type="xs:string"/>
+                    <xs:attribute name="cmdline_post" type="xs:string"/>
                 </xs:complexType>
             </xs:element>
             <xs:element name="folder">
@@ -22,6 +24,8 @@
                         </xs:simpleType>
                     </xs:attribute>
                     <xs:attribute name="group" type="xs:boolean"/>
+                    <xs:attribute name="cmdline" type="xs:string"/>
+                    <xs:attribute name="cmdline_post" type="xs:string"/>
                 </xs:complexType>
             </xs:element>
             <xs:element name="encoding">

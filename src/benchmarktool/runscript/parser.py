@@ -77,10 +77,15 @@ class Parser:
         system_order = 0
         for node in root.xpath("./system"):
             config = run.configs[node.get("config")]
-            system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
+            system = System(
+                node.get("name"),
+                node.get("version"),
+                node.get("measures"),
+                system_order,
+                config,
+                {"pre": node.get("cmdline") or "", "post": node.get("cmdline_post") or ""},
+            )
             setting_order = 0
-            sys_cmdline = node.get("cmdline")
-            sys_cmdline_post = node.get("cmdline_post")
             for child in node.xpath("setting"):
                 attr = self._filter_attr(
                     child, ["name", "cmdline", "cmdline_post", "tag", "dist_options", "dist_template"]
@@ -107,8 +112,8 @@ class Parser:
                                 encodings[t] = set()
                             encodings[t].add(os.path.normpath(grandchild.get("file")))
 
-                cmdline_base = " ".join(filter(None, [sys_cmdline, child.get("cmdline")])).strip()
-                cmdline_post_base = " ".join(filter(None, [sys_cmdline_post, child.get("cmdline_post")])).strip()
+                cmdline_base = child.get("cmdline") or ""
+                cmdline_post_base = child.get("cmdline_post") or ""
                 name_base = child.get("name")
                 keys = list(attr.keys())
                 if keys:
@@ -153,7 +158,7 @@ class Parser:
                         compound_settings[child.get("name")].append(name)
                         setting = Setting(
                             name=name,
-                            cmdline=" ".join([cmdline, cmdline_post]).strip(),
+                            cmdline={"pre": cmdline, "post": cmdline_post},
                             tag=tag,
                             order=setting_order,
                             dist_template=dist_template,
@@ -168,7 +173,7 @@ class Parser:
                     compound_settings[child.get("name")].append(name_base)
                     setting = Setting(
                         name=name_base,
-                        cmdline=" ".join([cmdline_base, cmdline_post_base]).strip(),
+                        cmdline={"pre": cmdline_base, "post": cmdline_post_base},
                         tag=tag,
                         order=setting_order,
                         dist_template=dist_template,
@@ -185,6 +190,7 @@ class Parser:
         element: Any
         for node in root.xpath("./benchmark"):
             benchmark = Benchmark(node.get("name"))
+            # spec
             for child in node.xpath("./spec"):
                 # discover spec files
                 spec_root = child.get("path")
@@ -216,7 +222,14 @@ class Parser:
                                         or instance.get("instance_tag") is None
                                         or TagDisj(tag).match(set(instance.get("instance_tag").split(None)))
                                     ):
-                                        files.add_file(instance.get("file"), instance.get("group"))
+                                        files.add_file(
+                                            instance.get("file"),
+                                            instance.get("group"),
+                                            cmdline={
+                                                "pre": instance.get("cmdline") or "",
+                                                "post": instance.get("cmdline_post") or "",
+                                            },
+                                        )
                                 files.add_enctags(enctag)
                                 if files.files:
                                     elements.append(files)
@@ -233,7 +246,13 @@ class Parser:
                                     else:
                                         group = False
                                     folder = Benchmark.Folder(
-                                        os.path.join(dirpath, folder_elem.get("path")), group, class_name
+                                        os.path.join(dirpath, folder_elem.get("path")),
+                                        group,
+                                        class_name,
+                                        cmdline={
+                                            "pre": folder_elem.get("cmdline") or "",
+                                            "post": folder_elem.get("cmdline_post") or "",
+                                        },
                                     )
                                     folder.add_enctags(enctag)
                                     elements.append(folder)
@@ -242,34 +261,43 @@ class Parser:
                                 for encoding in class_elem.xpath("./encoding"):
                                     element.add_encoding(os.path.join(dirpath, encoding.get("file")))
                                 benchmark.add_element(element)
-
-            for child in node.xpath("./folder"):
-                if child.get("group") is not None:
-                    group = child.get("group").lower() == "true"
+            # folder
+            for folder_elem in node.xpath("./folder"):
+                if folder_elem.get("group") is not None:
+                    group = folder_elem.get("group").lower() == "true"
                 else:
                     group = False
-                element = Benchmark.Folder(child.get("path"), group)
-                if child.get("encoding_tag") is None:
+                element = Benchmark.Folder(
+                    folder_elem.get("path"),
+                    group,
+                    cmdline={"pre": folder_elem.get("cmdline") or "", "post": folder_elem.get("cmdline_post") or ""},
+                )
+                if folder_elem.get("encoding_tag") is None:
                     tag = set()
                 else:
-                    tag = set(child.get("encoding_tag").split(None))
+                    tag = set(folder_elem.get("encoding_tag").split(None))
                 element.add_enctags(tag)
-                for grandchild in child.xpath("./encoding"):
-                    element.add_encoding(grandchild.get("file"))
-                for grandchild in child.xpath("./ignore"):
-                    element.add_ignore(grandchild.get("prefix"))
+                for encoding in folder_elem.xpath("./encoding"):
+                    element.add_encoding(encoding.get("file"))
+                for ignore in folder_elem.xpath("./ignore"):
+                    element.add_ignore(ignore.get("prefix"))
                 benchmark.add_element(element)
-            for child in node.xpath("./files"):
-                element = Benchmark.Files(child.get("path"))
-                if child.get("encoding_tag") is None:
+            # files
+            for files in node.xpath("./files"):
+                element = Benchmark.Files(files.get("path"))
+                if files.get("encoding_tag") is None:
                     tag = set()
                 else:
-                    tag = set(child.get("encoding_tag").split(None))
+                    tag = set(files.get("encoding_tag").split(None))
                 element.add_enctags(tag)
-                for grandchild in child.xpath("./encoding"):
-                    element.add_encoding(grandchild.get("file"))
-                for grandchild in child.xpath("./add"):
-                    element.add_file(grandchild.get("file"), grandchild.get("group"))
+                for encoding in files.xpath("./encoding"):
+                    element.add_encoding(encoding.get("file"))
+                for instance in files.xpath("./add"):
+                    element.add_file(
+                        instance.get("file"),
+                        instance.get("group"),
+                        cmdline={"pre": instance.get("cmdline") or "", "post": instance.get("cmdline_post") or ""},
+                    )
                 benchmark.add_element(element)
             run.add_benchmark(benchmark)
 

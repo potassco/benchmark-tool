@@ -23,6 +23,9 @@
 		<folder path="benchmarks/clasp/">
 			<ignore prefix="pigeons"/>
 		</folder>
+		<files path="benchmarks/clasp">
+			<add file="pigeons/pigeonhole10-unsat.lp" cmdline="--text"/>
+		</files>
 	</benchmark>
 
 	<project name="clasp-seq-job" job="seq-gen">
