@@ -927,6 +927,15 @@ class TestFiles(TestCase):
             self.f.add_file("test..x")
             self.assertEqual(mock_stderr.getvalue(), "*** WARNING: skipping invalid file name: test..x\n")
 
+        if platform.system() == "Linux":
+            self.setUp()
+            file1 = "A/X/file.txt"
+            file2 = "A/Y/file.txt"
+            self.f.add_file(file1)
+            self.assertDictEqual(self.f.files, {"A/X/file": {file1}})
+            self.f.add_file(file2)
+            self.assertDictEqual(self.f.files, {"A/X/file": {file1}, "A/Y/file": {file2}})
+
     def test_add_encoding(self):
         """
         Test add_encoding method.
@@ -1044,6 +1053,21 @@ class TestBenchmark(TestCase):
             self.assertIsInstance(val, set)
             for i in val:
                 self.assertEqual(key, i.benchclass)
+
+        if platform.system() == "Linux":
+            self.setUp()
+            self.b.add_instance(
+                root="A/X",
+                class_name="class1",
+                files=("A/X/file", {"file.lp"}),
+                encodings=encodings,
+                enctags=enctags,
+                cmdline={"pre": "", "post": ""},
+            )
+            ins = self.b.instances[runscript.Benchmark.Class("class1")].pop()
+            self.assertEqual(ins.location, "A/X")
+            self.assertEqual(ins.name, "file")
+            self.assertSetEqual(ins.files, {"file.lp"})
 
     def test_init(self):
         """

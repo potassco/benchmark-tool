@@ -223,15 +223,18 @@ class TestParser(TestCase):
             self.assertDictEqual(
                 files.files,
                 {
-                    "pigeonhole10-unsat": {"pigeons/pigeonhole10-unsat.lp"},
-                    "pigeonhole11-unsat": {"pigeons/pigeonhole11-unsat.lp"},
+                    "pigeons/pigeonhole10-unsat": {"pigeons/pigeonhole10-unsat.lp"},
+                    "pigeons/pigeonhole11-unsat": {"pigeons/pigeonhole11-unsat.lp"},
                 },
             )
         self.assertEqual(len(files.encodings), 2)
         self.assertSetEqual(files.enctags, {"test2"})
         self.assertDictEqual(
             files.cmdlines,
-            {"pigeonhole10-unsat": {"post": {""}, "pre": {""}}, "pigeonhole11-unsat": {"post": {""}, "pre": {""}}},
+            {
+                "pigeons/pigeonhole10-unsat": {"post": {""}, "pre": {""}},
+                "pigeons/pigeonhole11-unsat": {"post": {""}, "pre": {""}},
+            },
         )
 
         bench = run.benchmarks["dist-suite"]
@@ -281,7 +284,7 @@ class TestParser(TestCase):
                 files.files,
                 {
                     "test_f1": {"test_f1.2.1.lp", "test_f1.2.2.lp"},
-                    "test_foldered": {"test_folder/test_foldered.lp"},
+                    "test_folder/test_foldered": {"test_folder/test_foldered.lp"},
                 },
             )
         self.assertEqual(len(files.encodings), 0)
@@ -290,7 +293,7 @@ class TestParser(TestCase):
             files.cmdlines,
             {
                 "test_f1": {"post": {"", "file_cmd_post"}, "pre": {"", "file_cmd"}},
-                "test_foldered": {"post": {""}, "pre": {""}},
+                "test_folder/test_foldered": {"post": {""}, "pre": {""}},
             },
         )
         foldered = bench.elements[3]
