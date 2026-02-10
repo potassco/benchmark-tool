@@ -137,17 +137,19 @@ class TestParser(TestCase):
         self.assertEqual(system.version, "1.3.2")
         self.assertEqual(system.measures, "clasp")
         self.assertEqual(system.order, 0)
+        self.assertDictEqual(system.cmdline, {"pre": "--sys", "post": "--sys_post"})
         self.assertEqual(len(system.settings), 7)
         self.assertIsInstance(system.config, runscript.Config)
         self.assertEqual(system.config.name, "seq-generic")
-        self.assertEqual(system.settings["default"].cmdline, "--sys --stats 1 --sys_post --post")
+        self.assertDictEqual(system.settings["default"].cmdline, {"pre": "--stats 1", "post": "--post"})
         system = run.systems[("claspar", "2.1.0")]
         self.assertIsInstance(system, runscript.System)
         self.assertEqual(system.name, "claspar")
         self.assertEqual(system.version, "2.1.0")
         self.assertEqual(system.measures, "claspar")
         self.assertEqual(system.order, 1)
-        self.assertEqual(len(system.settings), 3)
+        # 6: claspar, all-as, min_1_ab, min_1_5, min_2_ab, min_2_5
+        self.assertEqual(len(system.settings), 6)
         self.assertIsInstance(system.config, runscript.Config)
         self.assertEqual(system.config.name, "dist-generic")
 
@@ -155,23 +157,28 @@ class TestParser(TestCase):
         setting = system.settings["one-as"]
         self.assertIsInstance(setting, runscript.Setting)
         self.assertEqual(setting.name, "one-as")
-        self.assertEqual(setting.cmdline, "--stats 1")
+        self.assertDictEqual(setting.cmdline, {"pre": "1", "post": ""})
         self.assertSetEqual(setting.tag, {"par", "one-as"})
         self.assertEqual(setting.order, 0)
         self.assertEqual(setting.dist_template, "templates/impi.dist")
         self.assertEqual(setting.dist_options, "#SBATCH --test=1,#SBATCH --opt=test")
         self.assertDictEqual(setting.attr, {"opt": "attr"})
         self.assertDictEqual(setting.encodings, {"_default_": {"def.lp"}, "test": {"test1.lp", "test2.lp"}})
-        setting = system.settings["min"]
+        setting = system.settings["min_1_ab"]
         self.assertIsInstance(setting, runscript.Setting)
-        self.assertEqual(setting.name, "min")
-        self.assertEqual(setting.cmdline, "--stats")
+        self.assertEqual(setting.name, "min_1_ab")
+        self.assertDictEqual(setting.cmdline, {"pre": "range=1", "post": "pool ab"})
         self.assertSetEqual(setting.tag, set())
         self.assertEqual(setting.order, 2)
         self.assertEqual(setting.dist_template, "templates/single.dist")
         self.assertEqual(setting.dist_options, "")
         self.assertDictEqual(setting.attr, {})
         self.assertDictEqual(setting.encodings, {"_default_": set(), "test": {"test21.lp"}, "test2": {"test22.lp"}})
+        setting = system.settings["min_2_5"]
+        self.assertIsInstance(setting, runscript.Setting)
+        self.assertEqual(setting.name, "min_2_5")
+        self.assertDictEqual(setting.cmdline, {"pre": "range=2", "post": "pool 5"})
+        self.assertEqual(setting.order, 5)
 
         # configs
         self.assertEqual(len(run.configs), 2)
@@ -196,6 +203,7 @@ class TestParser(TestCase):
         self.assertFalse(folder.group)
         self.assertSetEqual(folder.prefixes, {"pigeons"})
         self.assertEqual(len(folder.encodings), 1)
+        self.assertDictEqual(folder.cmdline, {"pre": "folder_cmd", "post": "folder_cmd_post"})
         if platform.system() == "Linux":
             self.assertSetEqual(folder.encodings, {"benchmarks/no_pigeons.lp"})
         self.assertSetEqual(folder.enctags, {"test", "test-no", "test2"})
@@ -206,6 +214,7 @@ class TestParser(TestCase):
         self.assertSetEqual(folder.prefixes, set())
         self.assertSetEqual(folder.encodings, set())
         self.assertSetEqual(folder.enctags, set())
+        self.assertDictEqual(folder.cmdline, {"pre": "", "post": ""})
         files = bench.elements[2]
         self.assertIsInstance(files, runscript.Benchmark.Files)
         self.assertEqual(files.path, "benchmarks/clasp")
@@ -220,6 +229,31 @@ class TestParser(TestCase):
             )
         self.assertEqual(len(files.encodings), 2)
         self.assertSetEqual(files.enctags, {"test2"})
+        self.assertDictEqual(
+            files.cmdlines,
+            {"pigeonhole10-unsat": {"post": {""}, "pre": {""}}, "pigeonhole11-unsat": {"post": {""}, "pre": {""}}},
+        )
+
+        bench = run.benchmarks["dist-suite"]
+        self.assertIsInstance(bench, runscript.Benchmark)
+        self.assertEqual(bench.name, "dist-suite")
+        self.assertEqual(len(bench.elements), 2)
+        files = bench.elements[1]
+        self.assertIsInstance(files, runscript.Benchmark.Files)
+        self.assertEqual(files.path, "benchmarks/clasp")
+        self.assertEqual(len(files.files), 1)
+        if platform.system() == "Linux":
+            self.assertDictEqual(
+                files.files,
+                {
+                    "pigeon1": {"pigeons/pigeonhole10-unsat.lp", "pigeons/pigeonhole11-unsat.lp"},
+                },
+            )
+        self.assertEqual(len(files.encodings), 0)
+        self.assertSetEqual(files.enctags, set())
+        self.assertDictEqual(
+            files.cmdlines, {"pigeon1": {"post": {"file_cmd_post", "file_cmd_post2"}, "pre": {"file_cmd", "file_cmd2"}}}
+        )
 
         # spec-test benchmark
         bench = run.benchmarks["spec-test"]
@@ -236,6 +270,7 @@ class TestParser(TestCase):
         if platform.system() == "Linux":
             self.assertSetEqual(folder.encodings, {"tests/ref/test_bench/enc1.lp"})
         self.assertSetEqual(folder.enctags, {"encTag"})
+        self.assertDictEqual(folder.cmdline, {"pre": "folder_cmd", "post": "folder_cmd_post"})
         files = bench.elements[2]
         self.assertIsInstance(files, runscript.Benchmark.Files)
         self.assertEqual(files.path, "tests/ref/test_bench")
@@ -251,6 +286,13 @@ class TestParser(TestCase):
             )
         self.assertEqual(len(files.encodings), 0)
         self.assertSetEqual(files.enctags, set())
+        self.assertDictEqual(
+            files.cmdlines,
+            {
+                "test_f1": {"post": {"", "file_cmd_post"}, "pre": {"", "file_cmd"}},
+                "test_foldered": {"post": {""}, "pre": {""}},
+            },
+        )
         foldered = bench.elements[3]
         if platform.system() == "Linux":
             self.assertEqual(foldered.class_name, "test_folder/foldered")
