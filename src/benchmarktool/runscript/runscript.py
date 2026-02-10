@@ -1010,7 +1010,7 @@ class Benchmark:
                 cmdline (dict[str, str]): Command line options for the instance.
             """
             if group is None:
-                m = re.match(r"^([^.]+(?:\.[^.]+)*)\.[^.]+$", os.path.basename(path))
+                m = re.match(r"^([^.]+(?:\.[^.]+)*)\.[^.]+$", path)
                 if m is None:
                     sys.stderr.write(f"*** WARNING: skipping invalid file name: {path}\n")
                     return
@@ -1109,7 +1109,9 @@ class Benchmark:
         classname = Benchmark.Class(class_name)
         if classname not in self.instances:
             self.instances[classname] = set()
-        ins = Benchmark.Instance(root, classname, files[0], files[1], encodings, enctags, cmdline=cmdline)
+        ins = Benchmark.Instance(
+            root, classname, os.path.basename(files[0]), files[1], encodings, enctags, cmdline=cmdline
+        )
         if ins in self.instances[classname]:
             sys.stderr.write(
                 f"*** WARNING: skipping duplicate instance '{files[0]}' of class '{class_name}' "
