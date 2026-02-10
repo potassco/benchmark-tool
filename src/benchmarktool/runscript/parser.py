@@ -135,6 +135,10 @@ class Parser:
                         while val <= end:
                             range_vals.append(val)
                             val += step
+                        # convert to int if all values and start are integers
+                        # can force float, using 1.0,3,1 for example
+                        if all(v.is_integer() for v in range_vals) and start.is_integer():
+                            range_vals = [int(v) for v in range_vals]
                     else:
                         range_vals = range_str.split(";")
                     if grandchild.get("post") and grandchild.get("post").lower() == "true":
