@@ -1385,13 +1385,20 @@ class Runscript:
         """
         self.projects[project.name] = project
 
-    def gen_scripts(self, skip: bool, force: bool = False) -> None:
+    def gen_scripts(self, skip: bool = False, update: bool = False, clean: bool = False) -> None:
         """
         Generates the start scripts for all benchmarks described by
         this run script.
+
+        Attributes:
+            skip (bool):   Exclude already finished runs
+            update (bool): Update exiting output folder, existing scripts with the same name will be overwritten,
+                           but existing results will be kept.
+            clean (bool):  Clean exiting output folder before generating scripts, existing scripts and results
+                           will be deleted.
         """
-        if os.path.isdir(self.output):
-            if force:
+        if not skip and not update and os.path.isdir(self.output):
+            if clean:
                 shutil.rmtree(self.output)
             else:
                 raise SystemExit("*** ERROR: Output directory already exists.\n")
