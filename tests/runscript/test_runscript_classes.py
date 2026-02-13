@@ -923,6 +923,14 @@ class TestFiles(TestCase):
         )
         self.f.add_file(file2)
         self.assertDictEqual(self.f.files, {"file1": {file1}, "file1.2": {file2}, group: {file1, file2}})
+        self.assertDictEqual(
+            self.f.cmdlines,
+            {
+                "file1": {"pre": {"1"}, "post": {"11"}},
+                "file1.2": {"pre": {""}, "post": {""}},
+                group: {"pre": {"2", "3"}, "post": {"22", "33"}},
+            },
+        )
         with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
             self.f.add_file("test..x")
             self.assertEqual(mock_stderr.getvalue(), "*** WARNING: skipping invalid file name: test..x\n")
@@ -1425,15 +1433,32 @@ class TestRunscript(TestCase):
         p = mock.Mock(spec=runscript.Project)
         p.gen_scripts = mock.Mock()
         self.rs.projects["prj"] = p
-        skip = True
+
+        # default behavior: error if output directory already exists
         with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: Output directory already exists."):
-            self.rs.gen_scripts(skip, False)
+            self.rs.gen_scripts()
         p.gen_scripts.assert_not_called()
 
+        # update
+        p.gen_scripts = mock.Mock()
         with mock.patch("shutil.rmtree") as mock_rmtree:
-            self.rs.gen_scripts(skip, True)
+            self.rs.gen_scripts(False, True)
+            mock_rmtree.assert_not_called()
+            p.gen_scripts.assert_called_once_with(False)
+
+        # skip
+        p.gen_scripts = mock.Mock()
+        with mock.patch("shutil.rmtree") as mock_rmtree:
+            self.rs.gen_scripts(True)
+            mock_rmtree.assert_not_called()
+            p.gen_scripts.assert_called_once_with(True)
+
+        # clean
+        p.gen_scripts = mock.Mock()
+        with mock.patch("shutil.rmtree") as mock_rmtree:
+            self.rs.gen_scripts(False, False, True)
             mock_rmtree.assert_called_once_with("tests/ref/out")
-            p.gen_scripts.assert_called_once_with(skip)
+            p.gen_scripts.assert_called_once_with(False)
 
     def test_path(self):
         """

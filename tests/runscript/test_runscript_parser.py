@@ -148,7 +148,7 @@ class TestParser(TestCase):
         self.assertEqual(system.version, "2.1.0")
         self.assertEqual(system.measures, "claspar")
         self.assertEqual(system.order, 1)
-        # 6: claspar, all-as, min_1_ab, min_1_5, min_2_ab, min_2_5
+        # 6: one-as, all-as, min_1_ab, min_1_5, min_2_ab, min_2_5
         self.assertEqual(len(system.settings), 6)
         self.assertIsInstance(system.config, runscript.Config)
         self.assertEqual(system.config.name, "dist-generic")
