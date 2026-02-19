@@ -25,10 +25,19 @@ Afterwards you should see the following folders:
 If you want to create a new [resultparser][resparser] or want to modify the provided one, you can use
 `btool init --resultparser-template` to also create a copy of the clasp resultparser as `rp_tmp.py`.
 
-To start using the benchmark-tool create a new [runscript] or modify an existing one. Check that all
-files/folders referenced in the runscript exist. These are most likely your benchmark instances/encodings,
-templates and system-under-test. Also make sure, that the the `runlim` executable is inside the `programs/`
-folder and any [custom resultparser][resparser] is placed inside the `resultparsers/` folder.
+To start using the benchmark-tool create a new [runscript] or modify an existing one and
+setup you system-under-test (SUT) inside the `programs/` folder. If your job uses the template
+option `--single` and your SUT is a shell script make sure to use `exec`. The name of your SUT
+should match the `<system>-<version>` given in the runscript. An example script for basic clingo
+can be found inside the `programs/` folder as `clingo-latest`.
+
+!!! info
+    When using `--single` avoid using pipes `|` in your scripts or make sure signals are properly propagated between processes.
+    In general the use of pipes is strongly discouraged.
+
+Check that all files/folders referenced in the runscript exist. These are most likely your benchmark
+instances/encodings, templates and SUT. Also make sure, that the the `runlim` executable is inside the
+`programs/` folder and any [custom resultparser][resparser] is placed inside the `resultparsers/` folder.
 If everything is setup you can generate you benchmarks using the [gen] subcommand:
 
 ```

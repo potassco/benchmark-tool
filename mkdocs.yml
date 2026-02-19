@@ -139,6 +139,7 @@ nav:
   - Examples: examples/index.md
   - Reference:
     - reference/index.md
+    - Gloassary: reference/glossary.md
     - Encoding Support: reference/encoding_support.md
     - Modifying the Resultparser: reference/resultparser.md
     - API:
