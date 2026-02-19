@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from benchmarktool.result.xlsx_gen import XLSXDoc
+from benchmarktool.result.spreadsheet import XLSXDoc
 
 
 class Result:
@@ -75,7 +75,7 @@ class Result:
         for project in projects:
             for runspec in project:
                 doc.add_runspec(runspec)
-        doc.finish()
+        doc.finalize()
         if not out.lower().endswith(".xlsx"):
             out += ".xlsx"
         doc.make_xlsx(out)
