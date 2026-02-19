@@ -30,6 +30,7 @@ setup you system-under-test (SUT) inside the `programs/` folder. If your job use
 option `--single` and your SUT is a shell script make sure to use `exec`. The name of your SUT
 should match the `<system>-<version>` given in the runscript. An example script for basic clingo
 can be found inside the `programs/` folder as `clingo-latest`.
+Make sure your SUT is executable i.e., has the correct file permission.
 
 !!! info
     When using `--single` avoid using pipes `|` in your scripts or make sure signals are properly propagated between processes.
