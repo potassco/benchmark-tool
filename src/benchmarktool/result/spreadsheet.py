@@ -52,8 +52,12 @@ class XLSXDoc:
         }
 
         self.inst_sheet = InstanceSheet("Instances", benchmark, measures)
-        self.merged_sheet = MergedRunSheet("Merged Runs", benchmark, measures, self.inst_sheet)
+        self.merged_sheet = MergedRunSheet("Merged_Runs", benchmark, measures, self.inst_sheet)
         self.class_sheet = ClassSheet("Classes", benchmark, measures, self.inst_sheet)
+        self.chart_sheet = ChartSheet("Charts", benchmark, measures, self.inst_sheet)
+        self.helper_sheet = HelperSheet(
+            "Helper", benchmark, measures, self.inst_sheet, self.merged_sheet, self.chart_sheet
+        )
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
@@ -72,6 +76,11 @@ class XLSXDoc:
         self.merged_sheet.finalize()
         self.class_sheet.finalize()
 
+        self.chart_sheet.prepare()
+        self.helper_sheet.prepare()
+        self.helper_sheet.finalize()
+        self.chart_sheet.finalize(self.helper_sheet)
+
     def make_xlsx(self, out: str) -> None:
         """
         Write XLSX file.
@@ -79,9 +88,11 @@ class XLSXDoc:
         Attributes:
             out (str): Name of the generated XLSX file.
         """
+        print(self.chart_sheet.content)
+        print(self.helper_sheet.content)
         self.workbook = Workbook(out)
 
-        for sheet in (self.inst_sheet, self.merged_sheet, self.class_sheet):
+        for sheet in (self.inst_sheet, self.merged_sheet, self.class_sheet, self.helper_sheet, self.chart_sheet):
             sheet.write_sheet(self)
         self.workbook.close()
 
@@ -128,6 +139,7 @@ class ResultSheet(Sheet):
         self.float_occur: dict[str, set[Any]] = {}
 
         self.result_offset = 0
+        self.col_offset = 0
 
         self.formats: dict[int, str] = {}
 
@@ -145,6 +157,8 @@ class ResultSheet(Sheet):
             self.content.at[0, col] = block.gen_name(len(self.machines) > 1)
             col += len(block.columns)
 
+        self.col_offset = col
+
         self._finalize_results()
         self._obtain_values()
 
@@ -154,7 +168,7 @@ class ResultSheet(Sheet):
 
         # add summaries
         self.values = self.values.replace({None: np.nan})
-        self.add_row_summary(col)
+        self.add_row_summary()
         self.values = self.values.replace({None: np.nan})
         self.add_col_summary()
 
@@ -182,29 +196,26 @@ class ResultSheet(Sheet):
         """
         raise NotImplementedError
 
-    def add_row_summary(self, offset: int) -> None:
+    def add_row_summary(self) -> None:
         """
         Add row summary (min, max, median).
-
-        Attributes:
-            offset (int): Column offset.
         """
-        col = offset
+        col = self.col_offset
         for col_name in ["min", "median", "max"]:
             block = SystemBlock(None, None)
             block.offset = col
             self.summary_refs[col_name] = {"col": col}
-            measures = sorted(self.float_occur.keys()) if not self.measures else list(self.measures.keys())
-            for measure in measures:
-                if measure in self.float_occur:
-                    self.values.at[1, col] = measure
-                    self._add_summary_formula(block, col_name, measure, self.float_occur, col)
-                    self.summary_refs[col_name][measure] = (
-                        col,
-                        f"{get_cell_index(col, 2, True, True)}:"
-                        f"{get_cell_index(col, self.result_offset - 1, True, True)}",
-                    )
-                    col += 1
+            # measures = sorted(self.float_occur.keys()) if not self.measures else list(self.measures.keys())
+            for measure in sorted(self.float_occur.keys()):
+                # if measure in self.float_occur:
+                self.values.at[1, col] = measure
+                self._add_summary_formula(block, col_name, measure, self.float_occur, col)
+                self.summary_refs[col_name][measure] = (
+                    col,
+                    f"{get_cell_index(col, 2, True, True)}:"
+                    f"{get_cell_index(col, self.result_offset - 1, True, True)}",
+                )
+                col += 1
             self.content = self.content.join(block.content)
             self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, block.offset] = col_name
@@ -1005,6 +1016,254 @@ class MergedRunSheet(ResultSheet):
                 self._add_default_col_summary_formulas(col, summaries)
 
 
+class HelperSheet(Sheet):
+    """
+    A helper sheet to prepare data for charts.
+    """
+
+    def __init__(
+        self,
+        name,
+        benchmark,
+        measures,
+        instance_sheet: InstanceSheet,
+        merged_run_sheet: MergedRunSheet,
+        chart_sheet: Sheet,
+    ):
+        self.name = name
+        self.benchmark = benchmark
+        self.measures = measures
+        self.content = pd.DataFrame()
+
+        self.instance_sheet = instance_sheet
+        self.merged_run_sheet = merged_run_sheet
+        self.chart_sheet = chart_sheet
+
+        self.setting_n = 0
+        self.col_offset = 0
+        self.instance_n = 0
+
+        self.float_occur: dict[str, list[int]] = {}
+        self.sorted_cols: dict[str, int] = {}
+        self.aggregated_cols: dict[str, int] = {}
+
+    def prepare(self) -> None:
+        """
+        Prepare the helper sheet.
+        """
+        for measure, cols in self.instance_sheet.float_occur.items():
+            s_cols = sorted(cols)
+            self.float_occur[measure] = s_cols
+            if self.setting_n == 0:
+                self.setting_n = len(s_cols)
+            if self.col_offset == 0 and len(s_cols) > 1:
+                self.col_offset = s_cols[1] - s_cols[0]
+
+        # self.instance_n = self.instance_sheet.result_offset - 2
+        self.content[0] = None
+
+        # lookup table, col 0,1
+        row = 1
+        for measure in self.float_occur.keys():
+            self.content.loc[row, 0] = measure
+            self.content.loc[row, 1] = self.float_occur[measure][0]
+            row += 1
+
+        col = 3
+        for i in range(2):
+            if i == 0:
+                sheet = "Instances"
+                sheet_ref = self.instance_sheet
+            else:
+                sheet = "Merged_Runs"
+                sheet_ref = self.merged_run_sheet
+
+            self.instance_n = sheet_ref.result_offset - 2
+            self.plot_offset = self.instance_n + 6
+
+            # index instances, col 3
+            self.content.loc[3, col] = "index"
+            self.content.loc[4, col] = Formula(f"=SEQUENCE({self.instance_n},1,1,1)")
+
+            self.content.loc[self.plot_offset, col] = "pre-plot"
+            self.content.loc[self.plot_offset + 1, col] = Formula(f"=SEQUENCE({self.instance_n},1,1,1)")
+
+            # get first col for selected measure, col 4
+            inst_ref = f"{sheet}!{get_cell_index(1, 2)}:{get_cell_index(self.instance_sheet.col_offset, sheet_ref.result_offset - 1)}"
+            self.content.loc[1, col + 1] = Formula(
+                f"=VLOOKUP(Charts!{self.chart_sheet.measure_select},{get_cell_index(0, 1)}:{get_cell_index(1, row - 1)},2,FALSE)"
+            )
+
+            self.content.loc[2, col + 1] = Formula(f"={sheet}!{get_cell_index(1, 0)}")
+
+            self.content.loc[3, col + 1] = "values"
+            choose_formula = f"CHOOSECOLS({inst_ref},{get_cell_index(col+1, 1)})"
+            self.content.loc[4, col + 1] = Formula(f'=IF({choose_formula}="","",{choose_formula})')
+
+            anchor = lambda ref_row, ref_col: f"ANCHORARRAY({get_cell_index(ref_col, ref_row)})"
+            sort_formula = lambda ref_row, ref_col: f"=SORT({anchor(ref_row, ref_col)})"
+            aggr_formula = (
+                lambda ref_row, ref_col: f'=IFERROR(SCAN(0,{anchor(ref_row, ref_col)},LAMBDA(_xlpm.x,_xlpm.y,_xlpm.x+_xlpm.y)),"")'
+            )
+            self.content.loc[3, col + 2] = "sorted"
+            self.content.loc[4, col + 2] = Formula(sort_formula(4, col + 1))
+
+            array_ref_ex_last = (
+                lambda ref_row, ref_col: f"CHOOSEROWS({anchor(ref_row, ref_col)},SEQUENCE(ROWS({anchor(ref_row, ref_col)})-1))"
+            )
+            remove_duplicates_keep_last = (
+                lambda ref_row, ref_col: f'=IF(INDEX({anchor(ref_row, ref_col)},SEQUENCE(ROWS({array_ref_ex_last(ref_row, ref_col)})))=INDEX({anchor(ref_row, ref_col)},SEQUENCE(ROWS({array_ref_ex_last(ref_row, ref_col)}))+1),"",INDEX({array_ref_ex_last(ref_row, ref_col)},SEQUENCE(ROWS({array_ref_ex_last(ref_row, ref_col)}))))'
+            )
+            # alternative, but xlsx writer has issues with LET + ANCHORARRAY
+            # =LET(arr,CHOOSEROWS(E5#,SEQUENCE(ROWS(E5#)-1)),IF(INDEX(E5#,SEQUENCE(ROWS(arr)))=INDEX(E5#,SEQUENCE(ROWS(arr))+1),"",INDEX(arr,SEQUENCE(ROWS(arr)))))
+            self.content.loc[self.plot_offset + 1, col + 2] = Formula(remove_duplicates_keep_last(4, col + 2))
+            self.content.loc[self.plot_offset + self.instance_n, col + 2] = Formula(
+                f"={get_cell_index(col + 2, self.instance_n + 3)}"
+            )
+
+            self.content.loc[3, col + 3] = "aggregated"
+            self.content.loc[4, col + 3] = Formula(aggr_formula(4, col + 2))
+            self.content.loc[self.plot_offset + 1, col + 3] = Formula(remove_duplicates_keep_last(4, col + 3))
+            self.content.loc[self.plot_offset + self.instance_n, col + 3] = Formula(
+                f"={get_cell_index(col + 3, self.instance_n + 3)}"
+            )
+
+            # col 5 + 2
+            col += 4
+            for setting in range(1, self.setting_n):
+                self.content.loc[1, col] = Formula(f"={get_cell_index(4, 1)}+{setting*self.col_offset}")
+                self.content.loc[2, col] = Formula(f"={sheet}!{get_cell_index(1 + setting*self.col_offset, 0)}")
+
+                self.content.loc[3, col] = "values"
+                choose_formula = f"CHOOSECOLS({inst_ref},{get_cell_index(col, 1)})"
+                self.content.loc[4, col] = Formula(f'=IF({choose_formula}="","",{choose_formula})')
+
+                self.content.loc[3, col + 1] = "sorted"
+                self.content.loc[4, col + 1] = Formula(sort_formula(4, col))
+                self.content.loc[self.plot_offset + 1, col + 1] = Formula(remove_duplicates_keep_last(4, col + 1))
+                self.content.loc[self.plot_offset + self.instance_n, col + 1] = Formula(
+                    f"={get_cell_index(col + 1, self.instance_n + 3)}"
+                )
+
+                self.content.loc[3, col + 2] = "aggregated"
+                self.content.loc[4, col + 2] = Formula(aggr_formula(4, col + 1))
+                self.content.loc[self.plot_offset + 1, col + 2] = Formula(remove_duplicates_keep_last(4, col + 2))
+                self.content.loc[self.plot_offset + self.instance_n, col + 2] = Formula(
+                    f"={get_cell_index(col + 2, self.instance_n + 3)}"
+                )
+
+                col += 3
+            col += 1
+
+        self.content = self.content.reindex(
+            index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
+        ).replace(np.nan, None)
+
+    def finalize(self):
+        self.content = self.content.fillna(np.nan).replace(np.nan, None)
+
+    def write_sheet(self, xlsxdoc: XLSXDoc) -> None:
+        """
+        Write sheet to XLSX document.
+
+        Attributes:
+            xlsxdoc (XLSXDoc): XLSX document.
+        """
+        if isinstance(xlsxdoc.workbook, Workbook):
+            sheet = xlsxdoc.workbook.add_worksheet(self.name)
+            for col in range(len(self.content.columns)):
+                for row, cell in enumerate(list(self.content.iloc[:, col])):
+                    val = cell
+                    if isinstance(val, Formula):
+                        val = str(val)
+                        print(val)
+                    if isinstance(val, (int, float, str, bool)) or val is None:
+                        sheet.write(row, col, val)
+        else:
+            raise ValueError("Trying to write to uninitialized workbook.")
+
+
+class ChartSheet(Sheet):
+    """
+    A sheet for charts.
+    """
+
+    def __init__(self, name, benchmark, measures: dict[str, Any], instance_sheet: InstanceSheet):
+        self.name = name
+        self.benchmark = benchmark
+        self.measures = measures
+        self.content = pd.DataFrame()
+
+        self.merge_select = ""
+        self.measure_select = ""
+        self.instance_sheet = instance_sheet
+
+    def prepare(self) -> None:
+        """
+        Prepare the chart sheet. Call after instance sheet is finalized.
+        """
+        self.measures = (
+            sorted(self.instance_sheet.float_occur.keys()) if not self.measures else list(self.measures.keys())
+        )
+
+        self.content[0] = None
+        self.content[1] = None
+        self.content.loc[1, 1] = "Merge criteria:"
+        self.content.loc[2, 1] = DataValidation(
+            {
+                "validate": "list",
+                "source": ["none", "average", "median", "min", "max"],
+                "input_message": "Select merge criteria",
+            },
+            "none",
+            "input",
+        )
+        self.merge_select = get_cell_index(1, 2, True, True)
+
+        self.content.loc[1, 3] = "Measure criteria:"
+        self.content.loc[2, 3] = DataValidation(
+            {
+                "validate": "list",
+                "source": list(self.instance_sheet.float_occur.keys()),
+                "input_message": "Select measure criteria",
+            },
+            self.measures[0] if self.measures else "",
+            "input",
+        )
+        self.measure_select = get_cell_index(3, 2, True, True)
+
+        self.content = self.content.reindex(
+            index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
+        ).replace(np.nan, None)
+
+    def finalize(self, helper_sheet: HelperSheet) -> None:
+        """
+        Finalize the chart sheet. Call after helper sheet is finalized.
+        """
+        self.content = self.content.fillna(np.nan).replace(np.nan, None)
+
+    def write_sheet(self, xlsxdoc: XLSXDoc) -> None:
+        """
+        Write sheet to XLSX document.
+
+        Attributes:
+            xlsxdoc (XLSXDoc): XLSX document.
+        """
+        if isinstance(xlsxdoc.workbook, Workbook):
+            sheet = xlsxdoc.workbook.add_worksheet(self.name)
+            for col in range(len(self.content.columns)):
+                for row, cell in enumerate(list(self.content.iloc[:, col])):
+                    val = cell
+                    if isinstance(val, Formula):
+                        val = str(val)
+                    if isinstance(val, (int, float, str, bool)) or val is None:
+                        sheet.write(row, col, val)
+                    elif isinstance(val, DataValidation):
+                        val.write(xlsxdoc, sheet, row, col)
+        else:
+            raise ValueError("Trying to write to uninitialized workbook.")
+
+
 def __main__():
     from benchmarktool.result import parser  # nocoverage
 
@@ -1019,17 +1278,25 @@ def __main__():
     intance_sheet = InstanceSheet("Instances", benchmark_merge, {})
     class_sheet = ClassSheet("Classes", benchmark_merge, {}, intance_sheet)
     merge_sheet = MergedRunSheet("Merged", benchmark_merge, {}, intance_sheet)
+    chart_sheet = ChartSheet("Charts", benchmark_merge, {}, intance_sheet)
+    helper_sheet = HelperSheet("Helper", benchmark_merge, {}, intance_sheet, chart_sheet)
     for project in projects:
         for runspec in project:
             intance_sheet.add_runspec(runspec)
             class_sheet.add_runspec(runspec)
             merge_sheet.add_runspec(runspec)
     intance_sheet.finalize()
+    chart_sheet.prepare()
+    helper_sheet.prepare()
     class_sheet.finalize()
     merge_sheet.finalize()
-    print(intance_sheet.content)
-    print(class_sheet.content)
-    print(merge_sheet.content)
+    helper_sheet.finalize()
+    chart_sheet.finalize(helper_sheet)
+    # print(intance_sheet.content)
+    # print(class_sheet.content)
+    # print(merge_sheet.content)
+    print(chart_sheet.content)
+    print(helper_sheet.content)
 
 
 if __name__ == "__main__":

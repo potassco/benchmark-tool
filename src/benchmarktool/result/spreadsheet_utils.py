@@ -36,6 +36,9 @@ class Formula:
         """
         # remove leading '='
         s = self.formula_string.lstrip("=")
+        # array formulas
+        if s.startswith("{"):
+            return s
         return f"={s}"
 
 
