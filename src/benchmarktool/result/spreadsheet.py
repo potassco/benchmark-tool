@@ -1063,13 +1063,15 @@ class HelperSheet(Sheet):
         self.content[0] = None
 
         # lookup table, col 0,1
-        row = 1
+        lookup_row = 1
         for measure in self.float_occur.keys():
-            self.content.loc[row, 0] = measure
-            self.content.loc[row, 1] = self.float_occur[measure][0]
-            row += 1
+            self.content.loc[lookup_row, 0] = measure
+            self.content.loc[lookup_row, 1] = self.float_occur[measure][0]
+            lookup_row += 1
 
-        col = 3
+        start_col = 3
+        start_row = 1
+        col = start_col
         for i in range(2):
             if i == 0:
                 sheet = "Instances"
@@ -1081,76 +1083,68 @@ class HelperSheet(Sheet):
             self.instance_n = sheet_ref.result_offset - 2
             self.plot_offset = self.instance_n + 6
 
-            # index instances, col 3
-            self.content.loc[3, col] = "index"
-            self.content.loc[4, col] = Formula(f"=SEQUENCE({self.instance_n},1,1,1)")
-
+            # index columns
+            self.content.loc[start_row + 2, col] = "index"
+            index_col = col
             self.content.loc[self.plot_offset, col] = "pre-plot"
-            self.content.loc[self.plot_offset + 1, col] = Formula(f"=SEQUENCE({self.instance_n},1,1,1)")
+            for r in range(self.instance_n):
+                self.content.loc[r + start_row + 3, col] = r + 1
+                self.content.loc[self.plot_offset + r + start_row, col] = r + 1
 
-            # get first col for selected measure, col 4
-            inst_ref = f"{sheet}!{get_cell_index(1, 2)}:{get_cell_index(self.instance_sheet.col_offset, sheet_ref.result_offset - 1)}"
-            self.content.loc[1, col + 1] = Formula(
-                f"=VLOOKUP(Charts!{self.chart_sheet.measure_select},{get_cell_index(0, 1)}:{get_cell_index(1, row - 1)},2,FALSE)"
-            )
-
-            self.content.loc[2, col + 1] = Formula(f"={sheet}!{get_cell_index(1, 0)}")
-
-            self.content.loc[3, col + 1] = "values"
-            choose_formula = f"CHOOSECOLS({inst_ref},{get_cell_index(col+1, 1)})"
-            self.content.loc[4, col + 1] = Formula(f'=IF({choose_formula}="","",{choose_formula})')
-
-            anchor = lambda ref_row, ref_col: f"ANCHORARRAY({get_cell_index(ref_col, ref_row)})"
-            sort_formula = lambda ref_row, ref_col: f"=SORT({anchor(ref_row, ref_col)})"
-            aggr_formula = (
-                lambda ref_row, ref_col: f'=IFERROR(SCAN(0,{anchor(ref_row, ref_col)},LAMBDA(_xlpm.x,_xlpm.y,_xlpm.x+_xlpm.y)),"")'
-            )
-            self.content.loc[3, col + 2] = "sorted"
-            self.content.loc[4, col + 2] = Formula(sort_formula(4, col + 1))
-
-            array_ref_ex_last = (
-                lambda ref_row, ref_col: f"CHOOSEROWS({anchor(ref_row, ref_col)},SEQUENCE(ROWS({anchor(ref_row, ref_col)})-1))"
-            )
-            remove_duplicates_keep_last = (
-                lambda ref_row, ref_col: f'=IF(INDEX({anchor(ref_row, ref_col)},SEQUENCE(ROWS({array_ref_ex_last(ref_row, ref_col)})))=INDEX({anchor(ref_row, ref_col)},SEQUENCE(ROWS({array_ref_ex_last(ref_row, ref_col)}))+1),"",INDEX({array_ref_ex_last(ref_row, ref_col)},SEQUENCE(ROWS({array_ref_ex_last(ref_row, ref_col)}))))'
-            )
-            # alternative, but xlsx writer has issues with LET + ANCHORARRAY
-            # =LET(arr,CHOOSEROWS(E5#,SEQUENCE(ROWS(E5#)-1)),IF(INDEX(E5#,SEQUENCE(ROWS(arr)))=INDEX(E5#,SEQUENCE(ROWS(arr))+1),"",INDEX(arr,SEQUENCE(ROWS(arr)))))
-            self.content.loc[self.plot_offset + 1, col + 2] = Formula(remove_duplicates_keep_last(4, col + 2))
-            self.content.loc[self.plot_offset + self.instance_n, col + 2] = Formula(
-                f"={get_cell_index(col + 2, self.instance_n + 3)}"
-            )
-
-            self.content.loc[3, col + 3] = "aggregated"
-            self.content.loc[4, col + 3] = Formula(aggr_formula(4, col + 2))
-            self.content.loc[self.plot_offset + 1, col + 3] = Formula(remove_duplicates_keep_last(4, col + 3))
-            self.content.loc[self.plot_offset + self.instance_n, col + 3] = Formula(
-                f"={get_cell_index(col + 3, self.instance_n + 3)}"
-            )
-
-            # col 5 + 2
-            col += 4
-            for setting in range(1, self.setting_n):
-                self.content.loc[1, col] = Formula(f"={get_cell_index(4, 1)}+{setting*self.col_offset}")
-                self.content.loc[2, col] = Formula(f"={sheet}!{get_cell_index(1 + setting*self.col_offset, 0)}")
-
-                self.content.loc[3, col] = "values"
-                choose_formula = f"CHOOSECOLS({inst_ref},{get_cell_index(col, 1)})"
-                self.content.loc[4, col] = Formula(f'=IF({choose_formula}="","",{choose_formula})')
-
-                self.content.loc[3, col + 1] = "sorted"
-                self.content.loc[4, col + 1] = Formula(sort_formula(4, col))
-                self.content.loc[self.plot_offset + 1, col + 1] = Formula(remove_duplicates_keep_last(4, col + 1))
-                self.content.loc[self.plot_offset + self.instance_n, col + 1] = Formula(
-                    f"={get_cell_index(col + 1, self.instance_n + 3)}"
+            col += 1
+            for setting in range(self.setting_n):
+                # setting refs
+                if setting == 0:
+                    self.content.loc[start_row, col] = Formula(
+                        f"=VLOOKUP(Charts!{self.chart_sheet.measure_select},{get_cell_index(0, start_row)}:{get_cell_index(1, lookup_row - 1)},2,FALSE)"
+                    )
+                else:
+                    self.content.loc[start_row, col] = Formula(
+                        f"={get_cell_index(start_col + 1, start_row)}+{setting*self.col_offset}"
+                    )
+                self.content.loc[start_row + 1, col] = Formula(
+                    f"={sheet}!{get_cell_index(1 + setting*self.col_offset, 0)}"
                 )
+                # headers
+                self.content.loc[start_row + 2, col] = "values"
+                self.content.loc[start_row + 2, col + 1] = "sorted"
+                self.content.loc[start_row + 2, col + 2] = "aggregated"
 
-                self.content.loc[3, col + 2] = "aggregated"
-                self.content.loc[4, col + 2] = Formula(aggr_formula(4, col + 1))
-                self.content.loc[self.plot_offset + 1, col + 2] = Formula(remove_duplicates_keep_last(4, col + 2))
-                self.content.loc[self.plot_offset + self.instance_n, col + 2] = Formula(
-                    f"={get_cell_index(col + 2, self.instance_n + 3)}"
+                get_inst_col = (
+                    lambda ref_row, ref_col: f'INDIRECT(ADDRESS({get_cell_index(index_col, ref_row, True, False)}+2,{get_cell_index(ref_col, start_row, False, True)}+1,,,"{sheet}"))'
                 )
+                inst_row = start_row + 3
+                for row in range(self.instance_n):
+                    # values
+                    self.content.loc[inst_row + row, col] = Formula(
+                        f'=IF({get_inst_col(row + start_row + 3, col)}="","",{get_inst_col(row + start_row + 3, col)})'
+                    )
+                    # sorted
+                    self.content.loc[inst_row + row, col + 1] = Formula(
+                        f'=IFERROR(SMALL({get_cell_index(col, inst_row, True, True)}:{get_cell_index(col, inst_row + self.instance_n - 1, True, True)},ROW()-ROW({get_cell_index(col + 1, inst_row, True, True)})+1),"")'
+                    )
+                    # aggregated
+                    self.content.loc[inst_row + row, col + 2] = Formula(
+                        f'=IFERROR(SUM({get_cell_index(col + 1, inst_row, True, True)}:{get_cell_index(col + 1, inst_row + row, True, True)}),"")'
+                    )
+                    if row == self.instance_n - 1:
+                        # sorted
+                        self.content.loc[self.plot_offset + 1 + row, col + 1] = Formula(
+                            f"={get_cell_index(col + 1, inst_row + row)}"
+                        )
+                        # aggregated
+                        self.content.loc[self.plot_offset + 1 + row, col + 2] = Formula(
+                            f"={get_cell_index(col + 2, inst_row + row)}"
+                        )
+                    else:
+                        # sorted
+                        self.content.loc[self.plot_offset + 1 + row, col + 1] = Formula(
+                            f'=IF({get_cell_index(col + 1, inst_row + row )}={get_cell_index(col + 1, inst_row + row + 1)}, "", {get_cell_index(col + 1, inst_row + row)})'
+                        )
+                        # aggregated
+                        self.content.loc[self.plot_offset + 1 + row, col + 2] = Formula(
+                            f'=IF({get_cell_index(col + 2, inst_row + row )}={get_cell_index(col + 2, inst_row + row + 1)}, "", {get_cell_index(col + 2, inst_row + row)})'
+                        )
 
                 col += 3
             col += 1
