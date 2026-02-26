@@ -9,7 +9,7 @@ icon: "material/file-code"
 Given a basic template:
 
 ```bash
-{run.solver} {run.args} {run.file} {runs.encodings}
+{run.solver} {sys_cmd} {setting_cmd} {run.file} {runs.encodings}
 ```
 
 The default behaviour of a benchmark is to simply execute the system with each instance:
