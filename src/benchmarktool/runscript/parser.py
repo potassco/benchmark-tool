@@ -146,7 +146,7 @@ class Parser:
                     else:
                         values[grandchild.get("cmd")] = range_vals
 
-                if values:
+                if values or post_values:
                     combinations = []
                     for c1, c2 in product(list(product(*values.values())), list(product(*post_values.values()))):
                         s1 = " ".join(k.format(v) if "{}" in k else f"{k}={v}" for k, v in zip(values.keys(), c1))
