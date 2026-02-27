@@ -62,6 +62,7 @@ class System:
                          This integer should denote the occurrence in
                          the run specification.
         config (Config): The system configuration.
+        cmdline (dict[str, str]): Command line options for the system.
         settings (dict[str, Setting]): Settings used with the system.
     """
 
@@ -70,6 +71,7 @@ class System:
     measures: str = field(compare=False)
     order: int = field(compare=False)
     config: "Config" = field(compare=False)
+    cmdline: dict[str, str] = field(default_factory=dict, compare=False)
     settings: dict[str, "Setting"] = field(default_factory=dict, compare=False)
 
     def add_setting(self, setting: "Setting") -> None:
@@ -90,11 +92,14 @@ class System:
         """
         assert isinstance(self.config, Config)
         out.write(
-            (
-                f'{indent}<system name="{self.name}" version="{self.version}" '
-                f'measures="{self.measures}" config="{self.config.name}">\n'
-            )
+            f'{indent}<system name="{self.name}" version="{self.version}" '
+            f'measures="{self.measures}" config="{self.config.name}"'
         )
+        if self.cmdline.get("pre"):
+            out.write(f' cmdline="{self.cmdline["pre"]}" cmdline_post="{self.cmdline["post"]}"')
+        if self.cmdline.get("post"):
+            out.write(f' cmdline_post="{self.cmdline["post"]}"')
+        out.write(">\n")
         if settings is None:
             settings = list(self.settings.values())
         for setting in sorted(settings, key=lambda s: s.order):
@@ -124,7 +129,7 @@ class Setting:
     """
 
     name: str
-    cmdline: str = field(compare=False)
+    cmdline: dict[str, str] = field(default_factory=dict, compare=False)
     tag: set[str] = field(compare=False)
     order: int = field(compare=False)
     dist_template: str = field(compare=False)
@@ -142,7 +147,11 @@ class Setting:
             indent (str): Amount of indentation.
         """
         tag = " ".join(sorted(self.tag))
-        out.write(f'{indent}<setting name="{self.name}" cmdline="{self.cmdline}" tag="{tag}"')
+        out.write(f'{indent}<setting name="{self.name}" tag="{tag}"')
+        if self.cmdline.get("pre"):
+            out.write(f' cmdline="{self.cmdline["pre"]}"')
+        if self.cmdline.get("post"):
+            out.write(f' cmdline_post="{self.cmdline["post"]}"')
         if self.dist_template is not None:
             out.write(f' dist_template="{self.dist_template}"')
         for key, val in self.attr.items():
@@ -293,7 +302,12 @@ class ScriptGen:
                             memout=self.job.memout,
                             timeout=self.job.timeout,
                             solver=runspec.system.name + "-" + runspec.system.version,
-                            args=runspec.setting.cmdline,
+                            sys_cmd=runspec.system.cmdline.get("pre", ""),
+                            sys_cmd_post=runspec.system.cmdline.get("post", ""),
+                            setting_cmd=runspec.setting.cmdline.get("pre", ""),
+                            setting_cmd_post=runspec.setting.cmdline.get("post", ""),
+                            inst_cmd=instance.cmdline.get("pre", ""),
+                            inst_cmd_post=instance.cmdline.get("post", ""),
                             files=" ".join([f'"{os.path.relpath(i, path)}"' for i in sorted(instance.paths())]),
                             encodings=encodings_str,
                         )
@@ -815,6 +829,7 @@ class Benchmark:
             encodings (set[str]): Encoding associated with the instance.
             enctags (set[str]):   Encoding tags associated with the instance.
             id (int):             A numeric identifier.
+            cmdline (dict[str, str]): Command line options for the instance.
         """
 
         location: str = field(compare=False)
@@ -824,6 +839,7 @@ class Benchmark:
         encodings: set[str] = field(compare=False)
         enctags: set[str] = field(compare=False)
         id: Optional[int] = field(default=None, compare=False)
+        cmdline: dict[str, str] = field(default_factory=dict, compare=False)
 
         def to_xml(self, out: Any, indent: str) -> None:
             """
@@ -833,7 +849,12 @@ class Benchmark:
                 out (Any):    Output stream to write to
                 indent (str): Amount of indentation
             """
-            out.write(f'{indent}<instance name="{self.name}" id="{self.id}">\n')
+            out.write(f'{indent}<instance name="{self.name}" id="{self.id}"')
+            if self.cmdline.get("pre"):
+                out.write(f' cmdline="{self.cmdline["pre"]}"')
+            if self.cmdline.get("post"):
+                out.write(f' cmdline_post="{self.cmdline["post"]}"')
+            out.write(">\n")
             for instance in sorted(self.files):
                 out.write(f'{indent}\t<file name="{instance}"/>\n')
             out.write(f"{indent}</instance>\n")
@@ -851,7 +872,10 @@ class Benchmark:
         Describes a folder that should recursively be scanned for benchmarks.
         """
 
-        def __init__(self, path: str, group: bool = False, class_name: Optional[str] = None):
+        # pylint: disable=dangerous-default-value
+        def __init__(
+            self, path: str, group: bool = False, class_name: Optional[str] = None, cmdline: dict[str, str] = {}
+        ) -> None:
             """
             Initializes a benchmark folder.
 
@@ -859,6 +883,7 @@ class Benchmark:
                 path (str):   The location of the folder.
                 group (bool): Whether to group instances by their file name prefix.
                 class_name (Optional[str]): The class name of the instances.
+                cmdline (dict[str, str]): Command line options for the instances in this folder.
             """
             self.path = path
             self.group = group
@@ -866,6 +891,7 @@ class Benchmark:
             self.prefixes: set[str] = set()
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
+            self.cmdline: dict[str, str] = cmdline
 
         def add_ignore(self, prefix: str) -> None:
             """
@@ -950,6 +976,7 @@ class Benchmark:
                         files=(group, instfiles),
                         encodings=self.encodings,
                         enctags=self.enctags,
+                        cmdline=self.cmdline,
                     )
 
     class Files:
@@ -968,19 +995,22 @@ class Benchmark:
             self.path = path
             self.class_name = class_name
             self.files: dict[str, set[str]] = {}
+            self.cmdlines: dict[str, dict[str, set[str]]] = {}
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
 
-        def add_file(self, path: str, group: Optional[str] = None) -> None:
+        # pylint: disable=dangerous-default-value
+        def add_file(self, path: str, group: Optional[str] = None, cmdline: dict[str, str] = {}) -> None:
             """
             Adds a file to the set of files.
 
             Attributes:
                 path (str):            Location of the file.
                 group (Optional[str]): Instance group.
+                cmdline (dict[str, str]): Command line options for the instance.
             """
             if group is None:
-                m = re.match(r"^([^.]+(?:\.[^.]+)*)\.[^.]+$", os.path.basename(path))
+                m = re.match(r"^([^.]+(?:\.[^.]+)*)\.[^.]+$", path)
                 if m is None:
                     sys.stderr.write(f"*** WARNING: skipping invalid file name: {path}\n")
                     return
@@ -988,7 +1018,11 @@ class Benchmark:
                 group = m.group(1)
             if group not in self.files:
                 self.files[group] = set()
+                self.cmdlines[group] = {"pre": set(), "post": set()}
             self.files[group].add(os.path.normpath(path))
+            # cmdlines for differrent files of the same instance are merged
+            self.cmdlines[group]["pre"].add(cmdline.get("pre", ""))
+            self.cmdlines[group]["post"].add(cmdline.get("post", ""))
 
         def add_encoding(self, file: str) -> None:
             """
@@ -1035,6 +1069,10 @@ class Benchmark:
                     files=(group, set(map(lambda x: x[1], paths))),
                     encodings=self.encodings,
                     enctags=self.enctags,
+                    cmdline={
+                        "pre": " ".join(self.cmdlines[group]["pre"]).strip(),
+                        "post": " ".join(self.cmdlines[group]["post"]).strip(),
+                    },
                 )
 
     def add_element(self, element: Any) -> None:
@@ -1047,7 +1085,14 @@ class Benchmark:
         self.elements.append(element)
 
     def add_instance(
-        self, *, root: str, class_name: str, files: tuple[str, set[str]], encodings: set[str], enctags: set[str]
+        self,
+        *,
+        root: str,
+        class_name: str,
+        files: tuple[str, set[str]],
+        encodings: set[str],
+        enctags: set[str],
+        cmdline: dict[str, str],
     ) -> None:
         """
         Adds an instance to the benchmark set. (This function
@@ -1059,11 +1104,14 @@ class Benchmark:
             files (tuple[str,set[str]]): The name and files of the instance.
             encodings (set[str]):        The encodings associated to the instance.
             enctags (set[str]):          The encoding tags associated to the instance.
+            cmdline (dict[str, str]):    The command line options associated to the instance.
         """
         classname = Benchmark.Class(class_name)
         if classname not in self.instances:
             self.instances[classname] = set()
-        ins = Benchmark.Instance(root, classname, files[0], files[1], encodings, enctags)
+        ins = Benchmark.Instance(
+            root, classname, os.path.basename(files[0]), files[1], encodings, enctags, cmdline=cmdline
+        )
         if ins in self.instances[classname]:
             sys.stderr.write(
                 f"*** WARNING: skipping duplicate instance '{files[0]}' of class '{class_name}' "
@@ -1097,6 +1145,7 @@ class Benchmark:
                             instance.encodings,
                             instance.enctags,
                             instanceid,
+                            instance.cmdline,
                         )
                     )
                     instanceid += 1
@@ -1336,13 +1385,20 @@ class Runscript:
         """
         self.projects[project.name] = project
 
-    def gen_scripts(self, skip: bool, force: bool = False) -> None:
+    def gen_scripts(self, skip: bool = False, update: bool = False, clean: bool = False) -> None:
         """
         Generates the start scripts for all benchmarks described by
         this run script.
+
+        Attributes:
+            skip (bool):   Exclude already finished runs
+            update (bool): Update exiting output folder, existing scripts with the same name will be overwritten,
+                           but existing results will be kept.
+            clean (bool):  Clean exiting output folder before generating scripts, existing scripts and results
+                           will be deleted.
         """
-        if os.path.isdir(self.output):
-            if force:
+        if not skip and not update and os.path.isdir(self.output):
+            if clean:
                 shutil.rmtree(self.output)
             else:
                 raise SystemExit("*** ERROR: Output directory already exists.\n")

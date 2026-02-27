@@ -7,6 +7,7 @@ representation in form of python classes.
 __author__ = "Roland Kaminski"
 import os
 import sys
+from itertools import product
 from typing import Any
 
 from lxml import etree  # type: ignore[import-untyped]
@@ -76,10 +77,15 @@ class Parser:
         system_order = 0
         for node in root.xpath("./system"):
             config = run.configs[node.get("config")]
-            system = System(node.get("name"), node.get("version"), node.get("measures"), system_order, config)
+            system = System(
+                node.get("name"),
+                node.get("version"),
+                node.get("measures"),
+                system_order,
+                config,
+                {"pre": node.get("cmdline") or "", "post": node.get("cmdline_post") or ""},
+            )
             setting_order = 0
-            sys_cmdline = node.get("cmdline")
-            sys_cmdline_post = node.get("cmdline_post")
             for child in node.xpath("setting"):
                 attr = self._filter_attr(
                     child, ["name", "cmdline", "cmdline_post", "tag", "dist_options", "dist_template"]
@@ -106,28 +112,81 @@ class Parser:
                                 encodings[t] = set()
                             encodings[t].add(os.path.normpath(grandchild.get("file")))
 
-                cmdline = " ".join(
-                    filter(None, [sys_cmdline, child.get("cmdline"), sys_cmdline_post, child.get("cmdline_post")])
-                )
-                name = child.get("name")
-                compound_settings[child.get("name")].append(name)
+                cmdline_base = child.get("cmdline") or ""
+                cmdline_post_base = child.get("cmdline_post") or ""
+                name_base = child.get("name")
                 keys = list(attr.keys())
                 if keys:
                     sys.stderr.write(
-                        f"""*** INFO: Attribute{'s' if len(keys) > 1 else ''} {', '.join(f"'{k}'" for k in keys)} in setting '{name}' {'are' if len(keys) > 1 else 'is'} currently unused.\n"""
+                        f"""*** INFO: Attribute{'s' if len(keys) > 1 else ''} {', '.join(f"'{k}'" for k in keys)} in setting '{name_base}' {'are' if len(keys) > 1 else 'is'} currently unused.\n"""
                     )
-                setting = Setting(
-                    name=name,
-                    cmdline=cmdline,
-                    tag=tag,
-                    order=setting_order,
-                    dist_template=dist_template,
-                    attr=attr,
-                    dist_options=dist_options,
-                    encodings=encodings,
-                )
-                system.add_setting(setting)
-                setting_order += 1
+
+                values: dict[str, list[Any]] = {}
+                post_values: dict[str, list[Any]] = {}
+                for grandchild in child.xpath("./variable"):
+                    range_str = grandchild.get("value")
+                    range_vals: list[Any] = []
+                    if "," in range_str:
+                        parts = range_str.split(",")
+                        start = float(parts[0])
+                        end = float(parts[1])
+                        step = float(parts[2])
+                        val = start
+                        while val <= end:
+                            range_vals.append(val)
+                            val += step
+                        # convert to int if all values and start are integers
+                        # can force float, using 1.0,3,1 for example
+                        if all(v.is_integer() for v in range_vals) and start.is_integer():
+                            range_vals = [int(v) for v in range_vals]
+                    else:
+                        range_vals = range_str.split(";")
+                    if grandchild.get("post") and grandchild.get("post").lower() == "true":
+                        post_values[grandchild.get("cmd")] = range_vals
+                    else:
+                        values[grandchild.get("cmd")] = range_vals
+
+                if values or post_values:
+                    combinations = []
+                    for c1, c2 in product(list(product(*values.values())), list(product(*post_values.values()))):
+                        s1 = " ".join(k.format(v) if "{}" in k else f"{k}={v}" for k, v in zip(values.keys(), c1))
+                        s2 = " ".join(k.format(v) if "{}" in k else f"{k}={v}" for k, v in zip(post_values.keys(), c2))
+                        s3 = "_".join(f"{c}" for c in c1 + c2)
+                        combinations.append((s1, s2, s3))
+
+                    for combination in combinations:
+                        cmdline = " ".join([cmdline_base, combination[0]]).strip()
+                        cmdline_post = " ".join([cmdline_post_base, combination[1]]).strip()
+
+                        name = "_".join([name_base, combination[2]]) if combination[2] else name_base
+                        compound_settings[child.get("name")].append(name)
+                        setting = Setting(
+                            name=name,
+                            cmdline={"pre": cmdline, "post": cmdline_post},
+                            tag=tag,
+                            order=setting_order,
+                            dist_template=dist_template,
+                            attr=attr,
+                            dist_options=dist_options,
+                            encodings=encodings,
+                        )
+                        system.add_setting(setting)
+                        setting_order += 1
+
+                else:
+                    compound_settings[child.get("name")].append(name_base)
+                    setting = Setting(
+                        name=name_base,
+                        cmdline={"pre": cmdline_base, "post": cmdline_post_base},
+                        tag=tag,
+                        order=setting_order,
+                        dist_template=dist_template,
+                        attr=attr,
+                        dist_options=dist_options,
+                        encodings=encodings,
+                    )
+                    system.add_setting(setting)
+                    setting_order += 1
 
             run.systems[(system.name, system.version)] = system
             system_order += 1
@@ -135,6 +194,7 @@ class Parser:
         element: Any
         for node in root.xpath("./benchmark"):
             benchmark = Benchmark(node.get("name"))
+            # spec
             for child in node.xpath("./spec"):
                 # discover spec files
                 spec_root = child.get("path")
@@ -166,7 +226,14 @@ class Parser:
                                         or instance.get("instance_tag") is None
                                         or TagDisj(tag).match(set(instance.get("instance_tag").split(None)))
                                     ):
-                                        files.add_file(instance.get("file"), instance.get("group"))
+                                        files.add_file(
+                                            instance.get("file"),
+                                            instance.get("group"),
+                                            cmdline={
+                                                "pre": instance.get("cmdline") or "",
+                                                "post": instance.get("cmdline_post") or "",
+                                            },
+                                        )
                                 files.add_enctags(enctag)
                                 if files.files:
                                     elements.append(files)
@@ -183,7 +250,13 @@ class Parser:
                                     else:
                                         group = False
                                     folder = Benchmark.Folder(
-                                        os.path.join(dirpath, folder_elem.get("path")), group, class_name
+                                        os.path.join(dirpath, folder_elem.get("path")),
+                                        group,
+                                        class_name,
+                                        cmdline={
+                                            "pre": folder_elem.get("cmdline") or "",
+                                            "post": folder_elem.get("cmdline_post") or "",
+                                        },
                                     )
                                     folder.add_enctags(enctag)
                                     elements.append(folder)
@@ -192,34 +265,43 @@ class Parser:
                                 for encoding in class_elem.xpath("./encoding"):
                                     element.add_encoding(os.path.join(dirpath, encoding.get("file")))
                                 benchmark.add_element(element)
-
-            for child in node.xpath("./folder"):
-                if child.get("group") is not None:
-                    group = child.get("group").lower() == "true"
+            # folder
+            for folder_elem in node.xpath("./folder"):
+                if folder_elem.get("group") is not None:
+                    group = folder_elem.get("group").lower() == "true"
                 else:
                     group = False
-                element = Benchmark.Folder(child.get("path"), group)
-                if child.get("encoding_tag") is None:
+                element = Benchmark.Folder(
+                    folder_elem.get("path"),
+                    group,
+                    cmdline={"pre": folder_elem.get("cmdline") or "", "post": folder_elem.get("cmdline_post") or ""},
+                )
+                if folder_elem.get("encoding_tag") is None:
                     tag = set()
                 else:
-                    tag = set(child.get("encoding_tag").split(None))
+                    tag = set(folder_elem.get("encoding_tag").split(None))
                 element.add_enctags(tag)
-                for grandchild in child.xpath("./encoding"):
-                    element.add_encoding(grandchild.get("file"))
-                for grandchild in child.xpath("./ignore"):
-                    element.add_ignore(grandchild.get("prefix"))
+                for encoding in folder_elem.xpath("./encoding"):
+                    element.add_encoding(encoding.get("file"))
+                for ignore in folder_elem.xpath("./ignore"):
+                    element.add_ignore(ignore.get("prefix"))
                 benchmark.add_element(element)
-            for child in node.xpath("./files"):
-                element = Benchmark.Files(child.get("path"))
-                if child.get("encoding_tag") is None:
+            # files
+            for files in node.xpath("./files"):
+                element = Benchmark.Files(files.get("path"))
+                if files.get("encoding_tag") is None:
                     tag = set()
                 else:
-                    tag = set(child.get("encoding_tag").split(None))
+                    tag = set(files.get("encoding_tag").split(None))
                 element.add_enctags(tag)
-                for grandchild in child.xpath("./encoding"):
-                    element.add_encoding(grandchild.get("file"))
-                for grandchild in child.xpath("./add"):
-                    element.add_file(grandchild.get("file"), grandchild.get("group"))
+                for encoding in files.xpath("./encoding"):
+                    element.add_encoding(encoding.get("file"))
+                for instance in files.xpath("./add"):
+                    element.add_file(
+                        instance.get("file"),
+                        instance.get("group"),
+                        cmdline={"pre": instance.get("cmdline") or "", "post": instance.get("cmdline_post") or ""},
+                    )
                 benchmark.add_element(element)
             run.add_benchmark(benchmark)
 

@@ -44,6 +44,7 @@ class TestSystem(TestCase):
         self.measures = "clasp"
         self.order = 0
         self.config = runscript.Config("config_name", "template")
+        self.cmdline = {"pre": "pre", "post": "post"}
 
     def test_add_setting(self):
         """
@@ -68,19 +69,20 @@ class TestSystem(TestCase):
 
         o = io.StringIO()
         s = runscript.System(
-            self.name, self.version, self.measures, self.order, self.config, {s1.name: s1, s2.name: s2}
+            self.name, self.version, self.measures, self.order, self.config, self.cmdline, {s1.name: s1, s2.name: s2}
         )
         s.to_xml(o, "\t", None)
         s1.to_xml.assert_called_once_with(o, "\t\t")
         s2.to_xml.assert_called_once_with(o, "\t\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<system name="name" version="version" measures="clasp" config="config_name">\n\t</system>\n',
+            '\t<system name="name" version="version" measures="clasp" config="config_name" '
+            'cmdline="pre" cmdline_post="post" cmdline_post="post">\n\t</system>\n',
         )
 
         s1.to_xml.reset_mock()
         s2.to_xml.reset_mock()
-        s = runscript.System(self.name, self.version, self.measures, self.order, self.config, {s2.name, s2})
+        s = runscript.System(self.name, self.version, self.measures, self.order, self.config, {}, {s2.name: s2})
         s.to_xml(o, "\t", [s2])
         s1.to_xml.assert_not_called()
         s2.to_xml.assert_called_once_with(o, "\t\t")
@@ -94,7 +96,7 @@ class TestSetting(TestCase):
 
     def setUp(self):
         self.name = "name"
-        self.cmdline = "cmdline"
+        self.cmdline = {"pre": "pre", "post": "post"}
         self.tag = {"tag1", "tag2"}
         self.order = 0
         self.template = "template"
@@ -116,14 +118,15 @@ class TestSetting(TestCase):
         s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
+            '\t<setting name="name" tag="tag1 tag2" '
+            'cmdline="pre" cmdline_post="post" '
             'dist_template="template" key="val">\n'
             "\t</setting>\n",
         )
 
         s = runscript.Setting(
             name=self.name,
-            cmdline=self.cmdline,
+            cmdline={},
             tag=self.tag,
             order=self.order,
             dist_template=self.template,
@@ -135,7 +138,7 @@ class TestSetting(TestCase):
         s.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<setting name="name" cmdline="cmdline" tag="tag1 tag2" '
+            '\t<setting name="name" tag="tag1 tag2" '
             'dist_template="template" dist_options="#SBATCH --test=1,#SBATCH --opt=test">\n'
             '\t\t<encoding file="def.lp"/>\n'
             '\t\t<encoding file="test1.lp" tag="test"/>\n'
@@ -304,7 +307,7 @@ class TestScriptGen(TestCase):
         """
         self.runspec = mock.Mock(spec=runscript.Runspec)
         self.runspec.setting = mock.Mock(spec=runscript.Setting)
-        self.runspec.setting.cmdline = "cmdline"
+        self.runspec.setting.cmdline = {"pre": "setting_pre", "post": "setting_post"}
         self.runspec.setting.encodings = {}
         self.runspec.path.return_value = "runspec_path"
         self.runspec.project = mock.Mock(spec=runscript.Project)
@@ -312,6 +315,7 @@ class TestScriptGen(TestCase):
         self.runspec.system = mock.Mock(spec=runscript.System)
         self.runspec.system.name = "sys_name"
         self.runspec.system.version = "sys_version"
+        self.runspec.system.cmdline = {"pre": "sys_pre", "post": "sys_post"}
         self.runspec.system.config = mock.Mock(spec=runscript.Config)
         self.runspec.system.config.template = "tests/ref/test_template.sh"
 
@@ -325,6 +329,7 @@ class TestScriptGen(TestCase):
         self.instance.name = "inst_name"
         self.instance.encodings = {"encoding"}
         self.instance.enctags = {"tag"}
+        self.instance.cmdline = {"pre": "inst_pre", "post": "inst_post"}
         self.instance.paths.return_value = ["inst_path.lp"]
         self.instance.benchclass = mock.Mock(sepc=runscript.Benchmark.Class)
         self.instance.benchclass.name = "class_name"
@@ -379,7 +384,8 @@ class TestScriptGen(TestCase):
             self.assertEqual(
                 x,
                 '$CAT --test1 \\\n\t--test2 "../../inst_path.lp" ../.. 10 20 '
-                '../../programs/sys_name-sys_version cmdline "../../encoding"\n',
+                "../../programs/sys_name-sys_version sys_pre setting_pre inst_pre "
+                'sys_post setting_post inst_post "../../encoding"\n',
             )
         os.remove("./tests/ref/start.sh")
 
@@ -402,7 +408,8 @@ class TestScriptGen(TestCase):
         if platform.system() == "Linux":
             self.assertEqual(
                 x,
-                '$CAT  "../../inst_path.lp" ../.. 10 20 ../../programs/sys_name-sys_version cmdline "../../encoding"\n',
+                '$CAT  "../../inst_path.lp" ../.. 10 20 ../../programs/sys_name-sys_version '
+                'sys_pre setting_pre inst_pre sys_post setting_post inst_post "../../encoding"\n',
             )
         os.remove("./tests/ref/start.sh")
 
@@ -724,6 +731,7 @@ class TestInstance(TestCase):
         self.ins = runscript.Benchmark.Instance(
             self.location, self.benchclass, self.name, self.files, self.encodings, self.enctags
         )
+        self.cmdline = {"pre": "pre", "post": "post"}
 
     def test_to_xml(self):
         """
@@ -731,12 +739,13 @@ class TestInstance(TestCase):
         """
         o = io.StringIO()
         ins = runscript.Benchmark.Instance(
-            self.location, self.benchclass, self.name, self.files, self.encodings, self.enctags, 2
+            self.location, self.benchclass, self.name, self.files, self.encodings, self.enctags, 2, self.cmdline
         )
         ins.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<instance name="inst_name" id="2">\n\t\t<file name="file.lp"/>\n\t</instance>\n',
+            '\t<instance name="inst_name" id="2" cmdline="pre" cmdline_post="post">\n'
+            '\t\t<file name="file.lp"/>\n\t</instance>\n',
         )
 
     def test_path(self):
@@ -765,6 +774,7 @@ class TestFolder(TestCase):
         self.assertSetEqual(self.f.prefixes, set())
         self.assertSetEqual(self.f.encodings, set())
         self.assertSetEqual(self.f.enctags, set())
+        self.assertDictEqual(self.f.cmdline, {})
 
     def test_add_ignore(self):
         """
@@ -889,6 +899,7 @@ class TestFiles(TestCase):
         self.assertDictEqual(self.f.files, {})
         self.assertSetEqual(self.f.encodings, set())
         self.assertSetEqual(self.f.enctags, set())
+        self.assertDictEqual(self.f.cmdlines, {})
 
     def test_add_file(self):
         """
@@ -897,17 +908,41 @@ class TestFiles(TestCase):
         file1 = "file1.txt"
         file2 = "file1.2.lp"
         group = "group"
-        self.f.add_file(file1)
+        self.f.add_file(file1, cmdline={"pre": "1", "post": "11"})
         self.assertDictEqual(self.f.files, {"file1": {file1}})
-        self.f.add_file(file1, group)
+        self.assertDictEqual(self.f.cmdlines, {"file1": {"pre": {"1"}, "post": {"11"}}})
+        self.f.add_file(file1, group, cmdline={"pre": "2", "post": "22"})
         self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1}})
-        self.f.add_file(file2, group)
+        self.assertDictEqual(
+            self.f.cmdlines, {"file1": {"pre": {"1"}, "post": {"11"}}, group: {"pre": {"2"}, "post": {"22"}}}
+        )
+        self.f.add_file(file2, group, cmdline={"pre": "3", "post": "33"})
         self.assertDictEqual(self.f.files, {"file1": {file1}, group: {file1, file2}})
+        self.assertDictEqual(
+            self.f.cmdlines, {"file1": {"pre": {"1"}, "post": {"11"}}, group: {"pre": {"2", "3"}, "post": {"22", "33"}}}
+        )
         self.f.add_file(file2)
         self.assertDictEqual(self.f.files, {"file1": {file1}, "file1.2": {file2}, group: {file1, file2}})
+        self.assertDictEqual(
+            self.f.cmdlines,
+            {
+                "file1": {"pre": {"1"}, "post": {"11"}},
+                "file1.2": {"pre": {""}, "post": {""}},
+                group: {"pre": {"2", "3"}, "post": {"22", "33"}},
+            },
+        )
         with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
             self.f.add_file("test..x")
             self.assertEqual(mock_stderr.getvalue(), "*** WARNING: skipping invalid file name: test..x\n")
+
+        if platform.system() == "Linux":
+            self.setUp()
+            file1 = "A/X/file.txt"
+            file2 = "A/Y/file.txt"
+            self.f.add_file(file1)
+            self.assertDictEqual(self.f.files, {"A/X/file": {file1}})
+            self.f.add_file(file2)
+            self.assertDictEqual(self.f.files, {"A/X/file": {file1}, "A/Y/file": {file2}})
 
     def test_add_encoding(self):
         """
@@ -982,14 +1017,30 @@ class TestBenchmark(TestCase):
         root = "root"
         encodings = set()
         enctags = set()
+        cmdline = {"pre": "", "post": ""}
         self.b.add_instance(
-            root=root, class_name="class1", files=("inst1", {"file1.lp"}), encodings=encodings, enctags=enctags
+            root=root,
+            class_name="class1",
+            files=("inst1", {"file1.lp"}),
+            encodings=encodings,
+            enctags=enctags,
+            cmdline=cmdline,
         )
         self.b.add_instance(
-            root=root, class_name="class1", files=("inst2", {"file2.lp"}), encodings=encodings, enctags=enctags
+            root=root,
+            class_name="class1",
+            files=("inst2", {"file2.lp"}),
+            encodings=encodings,
+            enctags=enctags,
+            cmdline=cmdline,
         )
         self.b.add_instance(
-            root=root, class_name="class2", files=("inst1", {"file1.lp"}), encodings=encodings, enctags=enctags
+            root=root,
+            class_name="class2",
+            files=("inst1", {"file1.lp"}),
+            encodings=encodings,
+            enctags=enctags,
+            cmdline=cmdline,
         )
         # duplicate instance in same class
         with mock.patch("sys.stderr", new=io.StringIO()) as mock_stderr:
@@ -999,6 +1050,7 @@ class TestBenchmark(TestCase):
                 files=("inst1", {"file2.lp"}),
                 encodings=encodings,
                 enctags=enctags,
+                cmdline={"pre": "", "post": ""},
             )
             self.assertEqual(
                 mock_stderr.getvalue(),
@@ -1010,6 +1062,21 @@ class TestBenchmark(TestCase):
             for i in val:
                 self.assertEqual(key, i.benchclass)
 
+        if platform.system() == "Linux":
+            self.setUp()
+            self.b.add_instance(
+                root="A/X",
+                class_name="class1",
+                files=("A/X/file", {"file.lp"}),
+                encodings=encodings,
+                enctags=enctags,
+                cmdline={"pre": "", "post": ""},
+            )
+            ins = self.b.instances[runscript.Benchmark.Class("class1")].pop()
+            self.assertEqual(ins.location, "A/X")
+            self.assertEqual(ins.name, "file")
+            self.assertSetEqual(ins.files, {"file.lp"})
+
     def test_init(self):
         """
         Test init method.
@@ -1018,9 +1085,15 @@ class TestBenchmark(TestCase):
         self.b.add_element(runscript.Benchmark.Folder("path"))
         class1 = runscript.Benchmark.Class("class1")
         class2 = runscript.Benchmark.Class("class2")
-        inst1 = runscript.Benchmark.Instance("loc", class1, "inst1", {"file1.lp"}, set(), set())
-        inst2 = runscript.Benchmark.Instance("loc", class1, "inst2", {"file2.lp"}, set(), set())
-        inst3 = runscript.Benchmark.Instance("loc", class2, "inst3", {"file3.lp"}, set(), set())
+        inst1 = runscript.Benchmark.Instance(
+            "loc", class1, "inst1", {"file1.lp"}, set(), set(), cmdline={"pre": "pre", "post": "post"}
+        )
+        inst2 = runscript.Benchmark.Instance(
+            "loc", class1, "inst2", {"file2.lp"}, set(), set(), cmdline={"pre": "", "post": ""}
+        )
+        inst3 = runscript.Benchmark.Instance(
+            "loc", class2, "inst3", {"file3.lp"}, set(), set(), cmdline={"pre": "", "post": ""}
+        )
         self.b.instances = {class1: {inst1, inst2}, class2: {inst3}}
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.Folder.init") as folder_init:
             self.b.init()
@@ -1033,11 +1106,14 @@ class TestBenchmark(TestCase):
                 ins_list = sorted(ins_set)
                 self.assertEqual(ins_list[0].id, 0)
                 self.assertEqual(ins_list[1].id, 1)
+                self.assertDictEqual(ins_list[0].cmdline, {"pre": "pre", "post": "post"})
+                self.assertDictEqual(ins_list[1].cmdline, {"pre": "", "post": ""})
             elif bcl.name == "class2":
                 self.assertEqual(bcl.id, 1)
                 self.assertEqual(len(ins_set), 1)
                 ins_list = sorted(ins_set)
                 self.assertEqual(ins_list[0].id, 0)
+                self.assertDictEqual(ins_list[0].cmdline, {"pre": "", "post": ""})
             else:
                 self.fail("Error in init method.")  # nocoverage
         self.assertTrue(self.b.initialized)
@@ -1048,7 +1124,9 @@ class TestBenchmark(TestCase):
         """
         o = io.StringIO()
         bclass = runscript.Benchmark.Class("class", 0)
-        inst = runscript.Benchmark.Instance("loc", bclass, "inst", {"file.lp"}, set(), set())
+        inst = runscript.Benchmark.Instance(
+            "loc", bclass, "inst", {"file.lp"}, set(), set(), cmdline={"pre": "", "post": ""}
+        )
         self.b = runscript.Benchmark(self.name, [], {bclass: {inst}})
         with mock.patch("benchmarktool.runscript.runscript.Benchmark.Instance.to_xml"):
             self.b.to_xml(o, "\t")
@@ -1355,15 +1433,32 @@ class TestRunscript(TestCase):
         p = mock.Mock(spec=runscript.Project)
         p.gen_scripts = mock.Mock()
         self.rs.projects["prj"] = p
-        skip = True
+
+        # default behavior: error if output directory already exists
         with self.assertRaisesRegex(SystemExit, r"\*\*\* ERROR: Output directory already exists."):
-            self.rs.gen_scripts(skip, False)
+            self.rs.gen_scripts()
         p.gen_scripts.assert_not_called()
 
+        # update
+        p.gen_scripts = mock.Mock()
         with mock.patch("shutil.rmtree") as mock_rmtree:
-            self.rs.gen_scripts(skip, True)
+            self.rs.gen_scripts(False, True)
+            mock_rmtree.assert_not_called()
+            p.gen_scripts.assert_called_once_with(False)
+
+        # skip
+        p.gen_scripts = mock.Mock()
+        with mock.patch("shutil.rmtree") as mock_rmtree:
+            self.rs.gen_scripts(True)
+            mock_rmtree.assert_not_called()
+            p.gen_scripts.assert_called_once_with(True)
+
+        # clean
+        p.gen_scripts = mock.Mock()
+        with mock.patch("shutil.rmtree") as mock_rmtree:
+            self.rs.gen_scripts(False, False, True)
             mock_rmtree.assert_called_once_with("tests/ref/out")
-            p.gen_scripts.assert_called_once_with(skip)
+            p.gen_scripts.assert_called_once_with(False)
 
     def test_path(self):
         """

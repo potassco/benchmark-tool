@@ -102,12 +102,25 @@ example, the solver referenced by the [run template] in the configuration is
 results. This does not affect script generation.
 - `config`: The configuration to use for running this system.
 - `cmdline` (optional): Any string to be passed to the system, regardless of
-the setting.
+the setting. Files should not be passed using the `cmdline`, since file paths
+will be wrong.
 - `cmdline_post` (optional): Like `cmdline`, but placed after `setting.cmdline`
 in the argument order.
 
 A runscript can contain any number of systems, each with any number of
 settings.
+
+Command-line arguments can be specified at the system, setting, or instance
+level, using either the `cmdline` or `cmdline_post` attribute. By default,
+the `seq-generic` run template arranges the command-line arguments in the
+following order:
+
+```
+system.cmdline setting.cmdline instance.cmdline system.cmdline_post setting.cmdline_post instance.cmdline_post
+```
+
+If a different order is needed, simply modify the references in your template
+accordingly.
 
 ### Setting
 
@@ -118,23 +131,19 @@ encodings used by the system.
 <setting name="setting-1" cmdline="--quiet=1,0" tag="basic">
     <encoding file="encodings/default.lp"/>
     <encoding file="extra.lp" tag="extra"/>
+    <variable cmd="--time-limit={}" value="30,100,30"/>
+    <variable cmd="--memory-limit={}" value="1024;2048" post="true"/>
 </setting>
 ```
 
 A `setting` element can have the following optional attributes:
 
 - `cmdline`: Any valid string, passed to the system after `system.cmdline` when
-this setting is selected.
+this setting is selected. Files should not be passed using the `cmdline`.
 - `cmdline_post`: Like `cmdline`, but placed after `system.cmdline_post` in the
 argument order.
 - `tag`: A space-separated identifier used within the runscript to select
 multiple settings at once.
-- Each setting can contain any number of `encoding` elements:
-    - `file`: A relative path from the directory where `btool gen` is run to the encoding file.
-    - If no `tag` is given, the encoding is passed to the system for all instances when this
-    setting is selected.
-    - If a `tag` is given, encoding usage is instance-dependent. Multiple encodings can
-    be selected by using the same tag.
 - `dist_template`: The default value is `templates/single.dist`, which refers
 to [single.dist]. This attribute is only relevant for distributed jobs. More information
 about dist templates can be found on the [templates] page.
@@ -151,12 +160,33 @@ about dist templates can be found on the [templates] page.
     The default template for distributed jobs uses SLURM; a comprehensive list of available
     options is provided in the [SLURM documentation].
 
-To summarize, the command-line arguments are always given to the system-under-test in
-the following order:
+- Each setting can contain any number of `encoding` elements. These encodings
+will be used together with instances when using this setting:
+    - `file`: A relative path from the directory where `btool gen` is run to the encoding file.
+    - If no `tag` is given, the encoding is passed to the system for all instances when this
+    setting is selected.
+    - If a `tag` is given, encoding usage is instance-dependent. Multiple encodings can
+    be selected by using the same tag.
+- Each setting can also include any number of `variable` elements, which can be used to
+define multiple settings at once. If several `variable` elements are present, settings
+are generated for every possible combination of their values. The names of these
+generated settings follow the pattern `<setting-name>_<value1>[_<value2>]...`.
+All attributes (such as cmdline, tag, and encodings) are inherited from the parent setting.
+    - `cmd`: Specifies the attribute or command. May contain `{}` as a placeholder for
+    the value. If `{}` is not present, `={}` is automatically appended to the command.
+    - `value`: Defines the values for the generated settings. Values can be provided as
+    a range (`<float>,<float>,<float>`, representing start, end, and step) or as a
+    pool (a `;`-separated list, i.e., `<any>;<any>;...`).
+    - By default, the `cmd` and `value` pairs are included with the other command-line
+    arguments in `cmdline`. The optional `post` attribute can be set to `true` to place
+    the arguments in `cmdline_post` instead.
 
-```
-system.cmdline setting.cmdline system.cmdline_post setting.cmdline_post
-```
+    For example, the setting at the start of the section would result in the following generated settings:
+
+    |                         | --time-limit=30   | --time-limit=60   | --time-limit=90   |
+    | ----------------------- | ----------------- | ----------------- | ----------------- |
+    | **--memory-limit=1024** | setting-1_30_1024 | setting-1_60_1024 | setting-1_90_1024 |
+    | **--memory-limit=2048** | setting-1_30_2048 | setting-1_60_2048 | setting-1_90_2048 |
 
 ## Job
 
@@ -229,7 +259,7 @@ searched recursively. Each sub-folder containing instances is treated as a
 benchmark class, and results are separated accordingly:
 
 ```xml
-<folder path="benchmarks/clasp" encoding_tag="tag1" group="true">
+<folder path="benchmarks/clasp" encoding_tag="tag1" group="true" cmdline_post="--text">
     <ignore prefix="pigeons"/>
     <encoding file="encodings/no-pigeons.lp"/>
 </folder>
@@ -244,6 +274,9 @@ is run. See the [encoding support] page for more details.
 same folder with the form `<instance>.<extension>` sharing the same prefix `<instance>`
 are grouped together and passed to the system. For example, files `inst1.1.lp` and
 `inst1.2.lp` in the same folder would be grouped as `inst1`.
+- Similiar to the system and setting elements, a `folder` element can also include
+`cmdline` and `cmdline_post` attributes, which adds the specified arguments to all
+instances defined in this folder.
 
 A `folder` element can contain any number of `encoding` and `ignore` elements:
 
@@ -258,8 +291,8 @@ manually add specific files using the `files` element:
 ```xml
 <files path="benchmarks/clasp" encoding_tag="tag1 tag2">
     <encoding file="default.lp"/>
-    <add file="dir/inst1.lp" group="group1"/>
-    <add file="dir/inst2.lp" group="group1"/>
+    <add file="dir/file1.lp" group="instance" cmdline="--text"/>
+    <add file="dir/file2.lp" group="instance" cmdline="-c n=4"/>
 </files>
 ```
 
@@ -272,9 +305,16 @@ The `files` element can contain any number of `encoding` and `add` elements:
 
 - `add`: Specifies a file to be added to the benchmark. The `file` attribute gives the
 path to the instance relative to the `path` attribute of its parent `files` element.
-- `group`: Instance files can optionally be grouped together using the `group` attribute.
+Instance files can optionally be grouped together using the `group` attribute.
 Groups of instances must be located in the same directory and are passed together to
-the system.
+the system. Similiar to the `system` and `setting` elements, `add` can also include
+`cmdline` and `cmdline_post` attributes. Command-line arguments always count for the
+entire group, e.g. with `files` element from above instance `instance` would be called
+with `--text -c n=4`.
+- `encoding`: Specifies files which are added to every group/instance.
+
+The example above would result in a single benchmark instance `instance` which includes
+the files `default.lp` `file1.lp` and `file2.lp`.
 
 ### Spec Elements
 
@@ -319,12 +359,12 @@ benchmark element in the runscript. Here is an example of a `spec.xml` with all 
 ```xml
 <spec>
     <class name="folder" encoding_tag="encTag">
-        <folder path="test_folder" instance_tag="tagA" group="true"/>
+        <folder path="test_folder" instance_tag="tagA" group="true" cmdline="-c n=4"/>
         <folder path="other_folder"/>
         <encoding file="enc1.lp"/>
     </class>
     <class name="instances">
-        <instance file="test_f1.2.1.lp" instance_tag="tagB" group="test_f1"/>
+        <instance file="test_f1.2.1.lp" instance_tag="tagB" group="test_f1" cmdline="-c n=10"/>
         <instance file="test_f1.2.2.lp" instance_tag="tagB" group="test_f1"/>
         <instance file="test_folder/test_foldered.lp" instance_tag="tagB tagA"/>
         <instance file="test_f2.lp" instance_tag="tagC"/>

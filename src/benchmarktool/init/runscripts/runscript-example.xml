@@ -6,7 +6,12 @@
 
 	<system name="clasp" version="3.4.0" measures="clasp" config="seq-generic">
 
-    		<setting name="setting-1" cmdline="--stats --quiet=1,0" tag="basic" />
+    	<setting name="setting-1" cmdline="--stats --quiet=1,0" tag="basic">
+			<!-- value: 'float,float,float' -> range: start,end,step -->
+			<variable cmd="--time-limit={}" value="30,600,30"/>
+			<!-- value: 'any;any;...' -> pool of values -->
+			<variable cmd="--memory-limit={}" value="1024;2048"/>
+		</setting>
 
     </system>
 
@@ -18,6 +23,9 @@
 		<folder path="benchmarks/clasp/">
 			<ignore prefix="pigeons"/>
 		</folder>
+		<files path="benchmarks/clasp">
+			<add file="pigeons/pigeonhole10-unsat.lp" cmdline="--text"/>
+		</files>
 	</benchmark>
 
 	<project name="clasp-seq-job" job="seq-gen">
