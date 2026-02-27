@@ -182,7 +182,7 @@ All attributes (such as cmdline, tag, and encodings) are inherited from the pare
     the arguments in `cmdline_post` instead.
 
     For example, the setting at the start of the section would result in the following generated settings:
-    
+
     |                         | --time-limit=30   | --time-limit=60   | --time-limit=90   |
     | ----------------------- | ----------------- | ----------------- | ----------------- |
     | **--memory-limit=1024** | setting-1_30_1024 | setting-1_60_1024 | setting-1_90_1024 |
