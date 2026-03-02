@@ -128,10 +128,16 @@ class Parser:
                     range_vals: list[Any] = []
                     if "," in range_str:
                         parts = range_str.split(",")
+                        # xml schema validates correct number of parts and their format
                         start = float(parts[0])
                         end = float(parts[1])
                         step = float(parts[2])
                         val = start
+                        if step == 0:
+                            raise ValueError(
+                                f"*** ERROR: Step value cannot be zero in range specification '{range_str}' "
+                                f"for variable '{grandchild.get('cmd')}' in setting '{name_base}'."
+                            )
                         while val <= end:
                             range_vals.append(val)
                             val += step

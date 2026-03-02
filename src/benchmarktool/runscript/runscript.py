@@ -872,9 +872,12 @@ class Benchmark:
         Describes a folder that should recursively be scanned for benchmarks.
         """
 
-        # pylint: disable=dangerous-default-value
         def __init__(
-            self, path: str, group: bool = False, class_name: Optional[str] = None, cmdline: dict[str, str] = {}
+            self,
+            path: str,
+            group: bool = False,
+            class_name: Optional[str] = None,
+            cmdline: Optional[dict[str, str]] = None,
         ) -> None:
             """
             Initializes a benchmark folder.
@@ -883,7 +886,7 @@ class Benchmark:
                 path (str):   The location of the folder.
                 group (bool): Whether to group instances by their file name prefix.
                 class_name (Optional[str]): The class name of the instances.
-                cmdline (dict[str, str]): Command line options for the instances in this folder.
+                cmdline (Optional[dict[str, str]]): Command line options for the instances in this folder.
             """
             self.path = path
             self.group = group
@@ -891,7 +894,7 @@ class Benchmark:
             self.prefixes: set[str] = set()
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
-            self.cmdline: dict[str, str] = cmdline
+            self.cmdline: dict[str, str] = cmdline if cmdline is not None else {}
 
         def add_ignore(self, prefix: str) -> None:
             """
@@ -999,16 +1002,17 @@ class Benchmark:
             self.encodings: set[str] = set()
             self.enctags: set[str] = set()
 
-        # pylint: disable=dangerous-default-value
-        def add_file(self, path: str, group: Optional[str] = None, cmdline: dict[str, str] = {}) -> None:
+        def add_file(self, path: str, group: Optional[str] = None, cmdline: Optional[dict[str, str]] = None) -> None:
             """
             Adds a file to the set of files.
 
             Attributes:
                 path (str):            Location of the file.
                 group (Optional[str]): Instance group.
-                cmdline (dict[str, str]): Command line options for the instance.
+                cmdline (Optional[dict[str, str]]): Command line options for the instance.
             """
+            if cmdline is None:
+                cmdline = {}
             if group is None:
                 m = re.match(r"^([^.]+(?:\.[^.]+)*)\.[^.]+$", path)
                 if m is None:
