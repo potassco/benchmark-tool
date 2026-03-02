@@ -274,7 +274,7 @@ is run. See the [encoding support] page for more details.
 same folder with the form `<instance>.<extension>` sharing the same prefix `<instance>`
 are grouped together and passed to the system. For example, files `inst1.1.lp` and
 `inst1.2.lp` in the same folder would be grouped as `inst1`.
-- Similiar to the system and setting elements, a `folder` element can also include
+- Similar to the system and setting elements, a `folder` element can also include
 `cmdline` and `cmdline_post` attributes, which adds the specified arguments to all
 instances defined in this folder.
 
@@ -307,7 +307,7 @@ The `files` element can contain any number of `encoding` and `add` elements:
 path to the instance relative to the `path` attribute of its parent `files` element.
 Instance files can optionally be grouped together using the `group` attribute.
 Groups of instances must be located in the same directory and are passed together to
-the system. Similiar to the `system` and `setting` elements, `add` can also include
+the system. Similar to the `system` and `setting` elements, `add` can also include
 `cmdline` and `cmdline_post` attributes. Command-line arguments always count for the
 entire group, e.g. with `files` element from above instance `instance` would be called
 with `--text -c n=4`.

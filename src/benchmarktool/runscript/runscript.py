@@ -96,7 +96,7 @@ class System:
             f'measures="{self.measures}" config="{self.config.name}"'
         )
         if self.cmdline.get("pre"):
-            out.write(f' cmdline="{self.cmdline["pre"]}" cmdline_post="{self.cmdline["post"]}"')
+            out.write(f' cmdline="{self.cmdline["pre"]}"')
         if self.cmdline.get("post"):
             out.write(f' cmdline_post="{self.cmdline["post"]}"')
         out.write(">\n")
@@ -1020,7 +1020,7 @@ class Benchmark:
                 self.files[group] = set()
                 self.cmdlines[group] = {"pre": set(), "post": set()}
             self.files[group].add(os.path.normpath(path))
-            # cmdlines for differrent files of the same instance are merged
+            # cmdlines for different files of the same instance are merged
             self.cmdlines[group]["pre"].add(cmdline.get("pre", ""))
             self.cmdlines[group]["post"].add(cmdline.get("post", ""))
 
