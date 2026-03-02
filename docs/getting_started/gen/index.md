@@ -14,12 +14,14 @@ command:
 btool gen ./runscripts/runscript-example.xml
 ```
 
-You can use the `-e, --exclude` option to exclude previously finished benchmarks
-in the start script, thus avoiding running them again.
-
 If the output directory, specified in the runscript, already exists, the program
-is interrupted. The `-f, --force` option can be used to disable this behaviour
-and overwrite existing files.
+is interrupted. The `-u, --update` option can be used to disable this behaviour
+and overwrite existing files without removing other files. Use `-c, --clean` for
+a new clean output folder, all previous files will be removed.
+
+You can use the `-e, --exclude` option to exclude previously finished benchmarks
+in the start script, thus avoiding running them again. This option implies
+`--update` so be careful with changes to the runscript.
 
 After generation, start your benchmarks by executing either the `start.sh` or
 `start.py` file found in the `machine` subfolder of the generated structure.

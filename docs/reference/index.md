@@ -6,6 +6,7 @@ learn about specific components, or access essential resources.
 
 ## What’s Inside
 
+- **Glossary:** Brief descriptions of important components.
 - **Encoding Support:** How to use different encodings for instances using the runscript.
 - **Modifying Resultparser:** How to modify the resultparser. How to add new measures.
 - **API Documentation:** Comprehensive details on general classes.

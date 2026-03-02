@@ -4,14 +4,16 @@
 	<machine name="hpc" cpu="24x8xE5520@2.27GHz" memory="24GB"/>
 
 	<config name="seq-generic" template="templates/seq-generic.sh"/>
-	<system name="clasp" version="3.4.0" measures="clasp" config="seq-generic" cmdline="--stats">
-		<setting name="default"  tag="seq" cmdline="1"/>
-		<setting name="vsids"    tag="seq" cmdline="--heu=vsids 1"/>
-		<setting name="progress" tag="seq" cmdline="--save-progress 1"/>
-		<setting name="estimate" tag="seq" cmdline="--estimate 1"/>
-		<setting name="recstr"   tag="seq" cmdline="--recursive-str 1"/>
-		<setting name="nodel"    tag="seq" cmdline="--del=no 1"/>
-		<setting name="norest"   tag="seq" cmdline="--restarts=no 1"/>
+	<system name="clasp" version="3.4.0" measures="clasp" config="seq-generic" cmdline="--stats" cmdline_post="--configuration=auto">
+		<setting name="default"  tag="seq" cmdline="-q" cmdline_post="1"/>
+		<setting name="tlimits"  tag="seq">
+			<variable cmd="--time-limit" value="1800,3600,600"/>
+			<encoding file ="encodings/setting_enc.lp"/>
+			<encoding file ="encodings/setting_inst_enc.lp" encoding_tag="use-enc"/>
+		</setting>
+		<setting name="models"   tag="seq">
+			<variable cmd="{}" value="2;4;6" post="true"/>
+		</setting>
 	</system>
 
 	<config name="dist-generic" template="templates/seq-generic.sh"/>
@@ -24,16 +26,18 @@
 	<distjob name="dist-generic" timeout="120s" runs="1" memout="1000" template_options="--single" script_mode="timeout" walltime="23h 59m 59s" cpt="4" partition="short"/>
 
 	<benchmark name="seq-suite">
-		<folder path="benchmarks/clasp" group="true">
+		<folder path="benchmarks/clasp" group="true" cmdline="--restarts=no">
 			<ignore prefix="pigeons"/>
+			<encoding file="encodings/folder_enc.lp"/>
 		</folder>
-		<files path="benchmarks/clasp">
-			<add file="pigeons/pigeonhole10-unsat.lp"/>
-			<add file="pigeons/pigeonhole11-unsat.lp"/>
+		<files path="benchmarks/clasp" encoding_tag="use-enc">
+			<add file="pigeons/pigeonhole10-unsat.lp" cmdline="--heu=vsids 1"/>
+			<add file="pigeons/pigeonhole11-unsat.lp" group="unsat"/>
+			<encoding file="encodings/files_enc.lp"/>
 		</files>
 	</benchmark>
 	<benchmark name="dist-suite">
-		<folder path="benchmarks/clasp"/>
+		<spec path="benchmarks/dist" instance_tag="set1"/>
 	</benchmark>
 
 	<project name="clasp-seq" job="seq-generic">

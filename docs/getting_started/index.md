@@ -54,7 +54,8 @@ btool <subcommand> -h
 ```
 
 A generic workflow and detailed descriptions on how to use each component is
-available via the sidebar.
+available via the sidebar. Additionally a brief description of each component
+can be found in the [glossary].
 
 !!! info
     When running benchmarks on a cluster, jobs may fail due to the following error:
@@ -66,10 +67,10 @@ available via the sidebar.
     This is a known [issue].
 
     For single-process systems under test (SUT), this issue can be avoided by
-    using the `runlim` option `--single` in the corresponding template script
-    (e.g., `templates/seq-generic-single.sh`). In that case, `{run.solver}`
-    should either be the SUT executable or you should use `exec` if
-    `{run.solver}` refers to a shell script.
+    using the `runlim` option `--single` in the `template_options` attribute of
+    the corresponding job element. In that case, `{run.solver}` should either
+    be the SUT executable or you should use `exec` if `{run.solver}` refers
+    to a shell script.
 
     If you cannot use `--single`, the `verify` subcommand can
     be used to identify jobs that failed due to a `runlim error` and remove the
@@ -78,6 +79,7 @@ available via the sidebar.
 
 [btool]: https://github.com/potassco/benchmark-tool
 [runlim]: https://github.com/arminbiere/runlim
+[glossary]: ../reference/glossary.md
 [resultparsers]: ../reference/resultparser.md
 [runscripts]: ./gen/runscript.md
 [templates]: ./gen/templates.md

@@ -23,7 +23,13 @@ The following references are available:
 - `timeout`: walltime for this run
 - `memout`: memory limit for this run in MB (default: 20000)
 - `solver`: solver or program used for this run
-- `args`: additional arguments for the solver/program
+- arguments for the solver/program:
+    - `sys_cmd`: commandline arguments defined via the system
+    - `setting_cmd`: commandline arguments defined via the setting
+    - `inst_cmd`: commandline arguments defined via the instance
+    - `sys_cmd_post`: commandline arguments defined via the system
+    - `setting_cmd_post`: commandline arguments defined via the setting
+    - `inst_cmd_post`:  commandline arguments defined via the instance
 - `options`: additional options
 
 Most templates use the [runlim] program to supervise benchmark runs.
