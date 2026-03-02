@@ -33,8 +33,8 @@ can be found inside the `programs/` folder as `clingo-latest`.
 Make sure your SUT is executable i.e., has the correct file permission.
 
 !!! info
-    When using `--single` avoid using pipes `|` in your scripts or make sure signals are properly propagated between processes.
-    In general the use of pipes is strongly discouraged.
+    When using `--single` avoid using pipes `|` in your scripts or make sure signals are properly
+    propagated between processes. In general the use of pipes is strongly discouraged.
 
 Check that all files/folders referenced in the runscript exist. These are most likely your benchmark
 instances/encodings, templates and SUT. Also make sure, that the the `runlim` executable is inside the
