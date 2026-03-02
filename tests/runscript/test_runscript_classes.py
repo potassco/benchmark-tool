@@ -77,7 +77,7 @@ class TestSystem(TestCase):
         self.assertEqual(
             o.getvalue(),
             '\t<system name="name" version="version" measures="clasp" config="config_name" '
-            'cmdline="pre" cmdline_post="post" cmdline_post="post">\n\t</system>\n',
+            'cmdline="pre" cmdline_post="post">\n\t</system>\n',
         )
 
         s1.to_xml.reset_mock()

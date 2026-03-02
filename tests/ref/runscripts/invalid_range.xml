@@ -1,0 +1,24 @@
+<runscript output="output">
+
+	<machine name="houat" cpu="8xE5520@2.27GHz" memory="24GB"/>
+
+	<config name="dist-generic" template="templates/dist-generic.sh"/>
+	<system name="claspar" version="2.1.0" measures="claspar" config="dist-generic" cmdline="--stats">
+		<setting name="one-as" tag="par one-as">
+			<variable cmd="range" value="1,2,0"/>
+		</setting>
+	</system>
+
+	<seqjob name="seq-generic" timeout="120s" runs="1" parallel="8"/>
+
+	<benchmark name="seq-suite">
+		<files path="benchmarks/clasp" encoding_tag="test2">
+			<add file="pigeons/pigeonhole10-unsat.lp"/>
+		</files>
+	</benchmark>
+
+	<project name="claspar-one-as" job="seq-generic">
+		<runspec machine="houat" benchmark="seq-suite" system="claspar" version="2.1.0" setting="one-as"/>
+	</project>
+
+</runscript>

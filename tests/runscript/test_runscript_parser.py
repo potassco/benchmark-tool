@@ -300,6 +300,9 @@ class TestParser(TestCase):
         if platform.system() == "Linux":
             self.assertEqual(foldered.class_name, "test_folder/foldered")
 
+        with self.assertRaisesRegex(ValueError, r"\*\*\* ERROR: Step value cannot be zero"):
+            p.parse("tests/ref/runscripts/invalid_range.xml")
+
     def test_filter_attr(self):
         """
         Test _filter_attr method.
