@@ -24,6 +24,8 @@
 		</setting>
 		<setting name="all-as" tag="par all-as" cmdline="-q 0" dist_template="templates/impi.dist"/>
 		<setting name="min">
+			<variable cmd="range" value="1,2,1"/>
+			<variable cmd="pool {}" value="ab;5" post="true"/>
 			<encoding file="test21.lp" encoding_tag="test"/>
 			<encoding file="test22.lp" encoding_tag="test2"/>
 		</setting>
@@ -34,7 +36,7 @@
 	<distjob name="dist-part" timeout="120s" runs="1" script_mode="timeout" walltime="23h 59m 59s" cpt="1" partition="test"/>
 
 	<benchmark name="seq-suite">
-		<folder path="benchmarks/clasp" encoding_tag="test test-no test2">
+		<folder path="benchmarks/clasp" encoding_tag="test test-no test2" cmdline="folder_cmd" cmdline_post="folder_cmd_post">
 			<encoding file="benchmarks/no_pigeons.lp"/>
 			<ignore prefix="pigeons"/>
 		</folder>
@@ -50,8 +52,8 @@
 	<benchmark name="dist-suite">
 		<folder path="benchmarks/clasp"/>
 		<files path="benchmarks/clasp">
-			<add file="pigeons/pigeonhole10-unsat.lp" group="pigeon1"/>
-			<add file="pigeons/pigeonhole11-unsat.lp" group="pigeon1"/>
+			<add file="pigeons/pigeonhole10-unsat.lp" group="pigeon1" cmdline="file_cmd" cmdline_post="file_cmd_post"/>
+			<add file="pigeons/pigeonhole11-unsat.lp" group="pigeon1" cmdline="file_cmd2" cmdline_post="file_cmd_post2"/>
 		</files>
 	</benchmark>
 
