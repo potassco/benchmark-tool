@@ -77,7 +77,6 @@ class XLSXDoc:
         self.class_sheet.finalize()
 
         self.chart_sheet.prepare()
-        self.helper_sheet.prepare()
         self.helper_sheet.finalize()
         self.chart_sheet.finalize(self.helper_sheet)
 
@@ -88,8 +87,6 @@ class XLSXDoc:
         Attributes:
             out (str): Name of the generated XLSX file.
         """
-        print(self.chart_sheet.content)
-        print(self.helper_sheet.content)
         self.workbook = Workbook(out)
 
         for sheet in (self.inst_sheet, self.merged_sheet, self.class_sheet, self.helper_sheet, self.chart_sheet):
@@ -1045,26 +1042,24 @@ class HelperSheet(Sheet):
         self.chart_sheet = chart_sheet
 
         self.setting_n = 0
-        self.col_offset = 0
         self.instance_n = 0
 
         self.float_occur: dict[str, list[int]] = {}
-        # self.sorted_cols: dict[str, int] = {}
-        # self.aggregated_cols: dict[str, int] = {}
+        self.start_cols: dict[str, int] = {}
+        self.clean_rows: dict[str, int] = {}
 
-    def prepare(self) -> None:
-        """
-        Prepare the helper sheet.
-        """
+    def finalize(self):
         for measure, cols in self.instance_sheet.float_occur.items():
             s_cols = sorted(cols)
             self.float_occur[measure] = s_cols
             if self.setting_n == 0:
                 self.setting_n = len(s_cols)
-            if self.col_offset == 0 and len(s_cols) > 1:
-                self.col_offset = s_cols[1] - s_cols[0]
+            if len(s_cols) > 1:
+                col_offset = s_cols[1] - s_cols[0]
+            else:
+                col_offset = 0
 
-        # self.instance_n = self.instance_sheet.result_offset - 2
+        # instance_n = self.instance_sheet.result_offset - 2
         self.content[0] = None
 
         # lookup table, col 0,1
@@ -1085,32 +1080,36 @@ class HelperSheet(Sheet):
                 sheet = "Merged_Runs"
                 sheet_ref = self.merged_run_sheet
 
-            self.instance_n = sheet_ref.result_offset - 2
+            instance_n = sheet_ref.result_offset - 2
 
             # get values + sorted + aggregated
             value_data_row = start_row + 3
             self.content.loc[value_data_row - 2, col] = "data"
             self.content.loc[value_data_row - 1, col] = "index"
             # add step
-            step_data_row = self.instance_n + 6
+            step_data_row = instance_n + 6
             self.content.loc[step_data_row - 1, col] = "step"
             # sort data
-            sorted_data_row = step_data_row + 2 * self.instance_n + 3
+            sorted_data_row = step_data_row + 2 * instance_n + 3
             self.content.loc[sorted_data_row - 1, col] = "sort"
             # clean data
-            clean_data_row = sorted_data_row + 2 * self.instance_n + 2
+            clean_data_row = sorted_data_row + 2 * instance_n + 2
             self.content.loc[clean_data_row - 1, col] = "clean"
+            self.clean_rows[sheet] = clean_data_row
             # final plot data
-            # if i == 0:
-            #    self.content.loc[clean_data_row - 1, col] = "plot"
-            #    self.content.loc[clean_data_row, col] = Formula(f"=Charts!{self.chart_sheet.merge_select}")
+            if i == 0:
+                plot_data_row = clean_data_row + 2 * instance_n + 2
+                self.content.loc[plot_data_row - 1, col] = "plot"
+                self.plot_data_row = plot_data_row
+                self.instance_n = instance_n
 
             # index
             index_col = col
-            for r in range(self.instance_n):
+            for r in range(instance_n):
                 self.content.loc[r + start_row + 3, col] = r + 1
 
             col += 1
+            self.start_cols[sheet] = col
             for setting in range(self.setting_n):
                 # setting refs
                 if setting == 0:
@@ -1122,23 +1121,25 @@ class HelperSheet(Sheet):
                     )
                 else:
                     self.content.loc[start_row, col] = Formula(
-                        f"={get_cell_index(start_col + 1, start_row)}+{setting*self.col_offset}"
+                        f"={get_cell_index(start_col + 1, start_row)}+{setting * col_offset}"
                     )
                 self.content.loc[start_row + 1, col] = Formula(
-                    f"={sheet}!{get_cell_index(1 + setting*self.col_offset, 0)}"
+                    f"={sheet}!{get_cell_index(1 + setting * col_offset, 0)}"
                 )
 
                 # headers
-                for row in (value_data_row, step_data_row, sorted_data_row, clean_data_row):
+                for row in (value_data_row, step_data_row, sorted_data_row, clean_data_row, plot_data_row):
                     if row == value_data_row:
                         self.content.loc[row - 1, col] = "values"
+                    elif row == plot_data_row and i == 1:
+                        continue
                     else:
                         self.content.loc[row - 1, col] = "index"
                         self.content.loc[row - 1, col + 2] = "index"
                     self.content.loc[row - 1, col + 1] = "sorted"
                     self.content.loc[row - 1, col + 3] = "aggregated"
 
-                for row in range(self.instance_n):
+                for row in range(instance_n):
                     # values
                     if i == 0:
                         ref = (
@@ -1155,7 +1156,7 @@ class HelperSheet(Sheet):
                             f"{get_cell_index(col, start_row, False, True)}+1,,,"
                             f'"{self.instance_sheet.name}") & ":" & '
                             f'ADDRESS({sheet_ref.run_refs[row+1]["inst_end"]}+3,'
-                            f'{get_cell_index(col, start_row, False, True)}+1,,,"{self.instance_sheet.name}")'
+                            f"{get_cell_index(col, start_row, False, True)}+1)"
                             ")"
                         )
                         self.content.loc[value_data_row + row, col] = Formula(
@@ -1173,7 +1174,7 @@ class HelperSheet(Sheet):
                     self.content.loc[value_data_row + row, col + 1] = Formula(
                         "IFERROR("
                         f"SMALL({get_cell_index(col, value_data_row)}"
-                        f":{get_cell_index(col, value_data_row + self.instance_n - 1)},"
+                        f":{get_cell_index(col, value_data_row + instance_n - 1)},"
                         f'ROW()-ROW({get_cell_index(col + 1, value_data_row, True, True)})+1),""'
                         ")"
                     )
@@ -1190,13 +1191,14 @@ class HelperSheet(Sheet):
                     self.content.loc[step_data_row + row, col + 3] = Formula(
                         f"={get_cell_index(col + 3, value_data_row + row)}"
                     )
-                    if row != self.instance_n - 1:
+                    if row != instance_n - 1:
                         # sorted
-                        self.content.loc[step_data_row + row + self.instance_n, col + 1] = Formula(
-                            f"={get_cell_index(col + 1, value_data_row + row)}"
+                        self.content.loc[step_data_row + row + instance_n, col + 1] = Formula(
+                            f'=IF({get_cell_index(col + 1, value_data_row + row + 1)}="","",'
+                            f"{get_cell_index(col + 1, value_data_row + row)})"
                         )
                         # aggregated
-                        self.content.loc[step_data_row + row + self.instance_n, col + 3] = Formula(
+                        self.content.loc[step_data_row + row + instance_n, col + 3] = Formula(
                             f"={get_cell_index(col + 3, value_data_row + row)}"
                         )
 
@@ -1205,53 +1207,88 @@ class HelperSheet(Sheet):
                         if c in (0, 2):
                             self.content.loc[step_data_row + row, col + c] = row + 1
                             if row != 0:
-                                self.content.loc[step_data_row + row + self.instance_n - 1, col + c] = row + 1
+                                self.content.loc[step_data_row + row + instance_n - 1, col + c] = row + 1
                         # data
                         for l in (0, 1):
-                            self.content.loc[sorted_data_row + row + l * self.instance_n, col + c] = Formula(
+                            # sort
+                            sorted_row_ref = sorted_data_row + row + l * instance_n
+                            self.content.loc[sorted_row_ref, col + c] = Formula(
                                 "IFERROR("
                                 "SMALL("
                                 f"{get_cell_index(col + c, step_data_row)}:"
-                                f"{get_cell_index(col + c, step_data_row + 2 * self.instance_n)},"
+                                f"{get_cell_index(col + c, step_data_row + 2 * instance_n)},"
                                 f"ROW()-ROW({get_cell_index(col + c, sorted_data_row, True, True)})+1"
                                 '),""'
                                 ")"
                             )
 
                             # clean
-                            if (row == 0 and l == 0) or (row == self.instance_n - 1 and l == 1):
-                                self.content.loc[clean_data_row + row + l * self.instance_n, col + c] = Formula(
-                                    f"={get_cell_index(col + c, sorted_data_row + row + l * self.instance_n)}"
-                                )
-                            else:
-                                self.content.loc[clean_data_row + row + l * self.instance_n, col + c] = Formula(
+                            clean_row_ref = clean_data_row + row + l * instance_n
+                            if c in (0, 2):
+                                self.content.loc[clean_row_ref, col + c] = Formula(
                                     "IF("
-                                    "AND("
-                                    f"{get_cell_index(col + c, sorted_data_row + row + l * self.instance_n)}"
-                                    f"={get_cell_index(col + c, sorted_data_row + row + l * self.instance_n - 1)},"
-                                    f"{get_cell_index(col + c, sorted_data_row + row + l * self.instance_n)}"
-                                    f"={get_cell_index(col + c, sorted_data_row + row + l * self.instance_n + 1)}"
-                                    "),"
-                                    f'"", {get_cell_index(col + c, sorted_data_row + row + l * self.instance_n)}'
+                                    f"ISNA({get_cell_index(col + c + 1, clean_row_ref)}),"
+                                    f"NA(),"
+                                    f"{get_cell_index(col + c, sorted_row_ref)}"
                                     ")"
                                 )
+                            elif c in (1, 3):
+                                if (row == 0 and l == 0) or (row == instance_n - 1 and l == 1):
+                                    self.content.loc[clean_row_ref, col + c] = Formula(
+                                        "IF("
+                                        f'{get_cell_index(col + c, sorted_row_ref)}="",'
+                                        f"NA(),"
+                                        f"{get_cell_index(col + c, sorted_row_ref)}"
+                                        ")"
+                                    )
+                                else:
+                                    self.content.loc[clean_row_ref, col + c] = Formula(
+                                        "IF("
+                                        "OR("
+                                        f'{get_cell_index(col + c, sorted_row_ref)}="",'
+                                        "AND("
+                                        f"{get_cell_index(col + c, sorted_row_ref)}"
+                                        f"={get_cell_index(col + c, sorted_row_ref - 1)},"
+                                        f"{get_cell_index(col + c, sorted_row_ref)}"
+                                        f"={get_cell_index(col + c, sorted_row_ref + 1)}"
+                                        ")),"
+                                        f"NA(), {get_cell_index(col + c, sorted_row_ref)}"
+                                        ")"
+                                    )
 
                 for c in range(4):
-                    self.content.loc[step_data_row + 2 * self.instance_n - 1, col + c] = 0
+                    self.content.loc[step_data_row + 2 * instance_n - 1, col + c] = 0
                     if c in (0, 2):
-                        self.content.loc[step_data_row + 2 * self.instance_n, col + c] = 1
+                        self.content.loc[step_data_row + 2 * instance_n, col + c] = 1
                     else:
-                        self.content.loc[step_data_row + 2 * self.instance_n, col + c] = 0
+                        self.content.loc[step_data_row + 2 * instance_n, col + c] = 0
 
                 col += 4
             col += 1
 
-        self.content = self.content.reindex(
-            index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
-        ).replace(np.nan, None)
+        col_i = self.start_cols["Instances"]
+        col_m = self.start_cols["Merged_Runs"]
+        for _ in range(self.setting_n):
+            for c in range(4):
+                for row in range(self.instance_n):
+                    for l in (0, 1):
+                        plot_row_offset = row + l * self.instance_n
+                        self.content.loc[self.plot_data_row + plot_row_offset, col_i + c] = Formula(
+                            f'=IF(Charts!{self.chart_sheet.merge_select}="none",'
+                            f'{get_cell_index(col_i + c, self.clean_rows["Instances"] + plot_row_offset)},'
+                            f'IF({get_cell_index(col_m + c, self.clean_rows["Merged_Runs"] + plot_row_offset)}="",NA(),'
+                            f'{get_cell_index(col_m + c, self.clean_rows["Merged_Runs"] + plot_row_offset)}))'
+                        )
+            col_i += 4
+            col_m += 4
 
-    def finalize(self):
-        self.content = self.content.fillna(np.nan).replace(np.nan, None)
+        self.content = (
+            self.content.reindex(
+                index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
+            )
+            .fillna(np.nan)
+            .replace(np.nan, None)
+        )
 
     def write_sheet(self, xlsxdoc: XLSXDoc) -> None:
         """
@@ -1271,6 +1308,7 @@ class HelperSheet(Sheet):
                         sheet.write(row, col, val)
         else:
             raise ValueError("Trying to write to uninitialized workbook.")
+
 
 class ChartSheet(Sheet):
     """
@@ -1329,7 +1367,7 @@ class ChartSheet(Sheet):
         """
         Finalize the chart sheet. Call after helper sheet is finalized.
         """
-        self.content = self.content.fillna(np.nan).replace(np.nan, None)
+        # self.content = self.content.fillna(np.nan).replace(np.nan, None)
 
     def write_sheet(self, xlsxdoc: XLSXDoc) -> None:
         """
