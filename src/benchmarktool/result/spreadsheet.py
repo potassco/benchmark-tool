@@ -13,7 +13,13 @@ from xlsxwriter import Workbook  # type: ignore[import-untyped]
 from xlsxwriter.color import Color  # type: ignore[import-untyped]
 from xlsxwriter.utility import cell_autofit_width  # type: ignore[import-untyped]
 
-from benchmarktool.result.spreadsheet_utils import DataValidation, Formula, SystemBlock, get_cell_index  # nocoverage
+from benchmarktool.result.spreadsheet_utils import (  # nocoverage
+    Chart,
+    DataValidation,
+    Formula,
+    SystemBlock,
+    get_cell_index,
+)
 
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
@@ -1542,15 +1548,58 @@ class ChartSheet(Sheet):
         )
         self.measure_select = get_cell_index(3, 2, True, True)
 
-        self.content = self.content.reindex(
-            index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
-        ).replace(np.nan, None)
-
     def finalize(self, helper_sheet: HelperSheet = None) -> None:
         """
         Finalize the chart sheet. Call after helper sheet is finalized.
         """
-        # self.content = self.content.fillna(np.nan).replace(np.nan, None)
+        assert helper_sheet is not None
+        survivor_chart = Chart("Survivor", "scatter", "straight")
+        cactus_chart = Chart("Cactus", "scatter", "straight")
+        cdf_chart = Chart("CDF", "scatter", "straight")
+
+        # offsets
+        sorted_index_offset = 0
+        sorted_offset = 1
+        aggregated_index_offset = 2
+        aggregated_offset = 3
+
+        for setting in range(helper_sheet.setting_n):
+            setting_offset = 4 * setting
+            survivor_chart.add_series(
+                {
+                    "name": f"Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset, helper_sheet.plot_row - 2)}",
+                    # x-axis aggregated values
+                    "categories": f"(Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + aggregated_offset, helper_sheet.plot_row)}:{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + aggregated_offset, helper_sheet.plot_row + 2*helper_sheet.instance_n)})",
+                    # y-axis index
+                    "values": f"(Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + aggregated_index_offset, helper_sheet.plot_row)}:{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + aggregated_index_offset, helper_sheet.plot_row + 2*helper_sheet.instance_n)})",
+                }
+            )
+            cactus_chart.add_series(
+                {
+                    "name": f"Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset, helper_sheet.plot_row - 2)}",
+                    # x-axis index
+                    "categories": f"(Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + sorted_index_offset, helper_sheet.plot_row)}:{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + sorted_index_offset, helper_sheet.plot_row + 2*helper_sheet.instance_n)})",
+                    # y-axis sorted values
+                    "values": f"(Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + sorted_offset, helper_sheet.plot_row)}:{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + sorted_offset, helper_sheet.plot_row + 2*helper_sheet.instance_n)})",
+                }
+            )
+            cdf_chart.add_series(
+                {
+                    "name": f"Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset, helper_sheet.plot_row - 2)}",
+                    # x-axis sorted values
+                    "categories": f"(Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + sorted_offset, helper_sheet.plot_row)}:{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + sorted_offset, helper_sheet.plot_row + 2*helper_sheet.instance_n)})",
+                    # y-axis index
+                    "values": f"(Helper!{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + sorted_index_offset, helper_sheet.plot_row)}:{get_cell_index(helper_sheet.start_cols['plot'] + setting_offset + sorted_index_offset, helper_sheet.plot_row + 2*helper_sheet.instance_n)})",
+                }
+            )
+
+        self.content.loc[4, 1] = survivor_chart
+        self.content.loc[4, 10] = cactus_chart
+        self.content.loc[4, 19] = cdf_chart
+
+        self.content = self.content.reindex(
+            index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
+        ).replace(np.nan, None)
 
     def write_sheet(self, xlsxdoc: XLSXDoc) -> None:
         """
@@ -1569,6 +1618,8 @@ class ChartSheet(Sheet):
                     if isinstance(val, (int, float, str, bool)) or val is None:
                         sheet.write(row, col, val)
                     elif isinstance(val, DataValidation):
+                        val.write(xlsxdoc, sheet, row, col)
+                    elif isinstance(val, Chart):
                         val.write(xlsxdoc, sheet, row, col)
         else:
             raise ValueError("Trying to write to uninitialized workbook.")

@@ -221,6 +221,9 @@ class Chart:
                 chart.set_legend(self.legend_params)
             chart.set_style(self.style)
 
+            chart.show_na_as_empty_cell()
+            chart.show_blanks_as("span")
+
             # add series
             for series in self.series:
                 chart.add_series(series)
