@@ -1139,9 +1139,6 @@ class HelperSheet(Sheet):
             value_data_row (int): Row index for first row of values.
             value_rows (int): Number of rows for values.
         """
-        # index
-        self.content.loc[value_data_row + row, col - 1] = row + 1
-
         # values
         if sheet == self.instance_sheet.name:
             ref = (
@@ -1363,9 +1360,9 @@ class HelperSheet(Sheet):
             if self.setting_n == 0:
                 self.setting_n = len(s_cols)
             if len(s_cols) > 1:
-                col_offset = s_cols[1] - s_cols[0]
+                setting_offset = s_cols[1] - s_cols[0]
             else:
-                col_offset = 0
+                setting_offset = 0
         self.content[0] = None
 
         # lookup table, col 0,1
@@ -1397,7 +1394,10 @@ class HelperSheet(Sheet):
                 # get values + sorted + aggregated
                 table_rows["data"] = setting_ref_row + 3
                 self.content.loc[table_rows["data"] - 2, col] = "data"
+                # index
                 self.content.loc[table_rows["data"] - 1, col] = "index"
+                for row in range(instance_n):
+                    self.content.loc[table_rows["data"] + row, col] = row + 1
                 # add step
                 table_rows["step"] = table_rows["data"] + instance_n + 2
                 self.content.loc[table_rows["step"] - 1, col] = "step"
@@ -1413,7 +1413,7 @@ class HelperSheet(Sheet):
             self.start_cols[sheet] = col
             for setting in range(self.setting_n):
                 # setting refs
-                self._add_setting_headers(sheet, col, setting, setting_ref_row, col_offset, lookup_row)
+                self._add_setting_headers(sheet, col, setting, setting_ref_row, setting_offset, lookup_row)
                 # headers
                 self._add_table_headers(sheet, table_rows, col)
                 for row in range(instance_n):
@@ -1458,6 +1458,8 @@ class HelperSheet(Sheet):
                                     self.start_cols[self.instance_sheet.name] + setting * 4,
                                     self.start_cols[self.merged_run_sheet.name] + setting * 4,
                                 )
+                # defragmentation (temporary workaround)
+                self.content = self.content.copy()
                 col += 4
             col += 1
 
@@ -1478,6 +1480,8 @@ class HelperSheet(Sheet):
         """
         if isinstance(xlsxdoc.workbook, Workbook):
             sheet = xlsxdoc.workbook.add_worksheet(self.name)
+            # hide sheet, can be unhidden via UI
+            sheet.hide()
             for col in range(len(self.content.columns)):
                 for row, cell in enumerate(list(self.content.iloc[:, col])):
                     val = cell
