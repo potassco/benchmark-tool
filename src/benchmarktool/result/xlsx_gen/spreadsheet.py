@@ -1,5 +1,5 @@
 """
-Created on Feb 13, 2026
+Created on Mar 20, 2026
 
 @author: Tom Schmidt
 """
@@ -13,7 +13,34 @@ from xlsxwriter.worksheet import Worksheet  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
-    from benchmarktool.result import spreadsheet  # nocoverage
+    from benchmarktool.result.xlsx_gen import xlsx_gen  # nocoverage
+
+
+class Sheet:
+    """
+    Class representing a sheet in the XLSX document.
+    """
+
+    def __init__(self, name: str, benchmark: "result.BenchmarkMerge", measures: dict[str, Any]):
+        self.name = name
+        self.benchmark = benchmark
+        self.measures = measures
+        self.content = pd.DataFrame()
+
+    def finalize(self) -> None:
+        """
+        Finalize the sheet, e.g., by collecting content and adding summaries.
+        """
+        raise NotImplementedError
+
+    def write_sheet(self, xlsxdoc: "xlsx_gen.XLSXDoc") -> None:
+        """
+        Write sheet to XLSX document.
+
+        Attributes:
+            xlsxdoc (XLSXDoc): XLSX document.
+        """
+        raise NotImplementedError
 
 
 class Formula:
@@ -61,7 +88,7 @@ class DataValidation:
         self.default = default
         self.color = color
 
-    def write(self, xlsxdoc: "spreadsheet.XLSXDoc", sheet: Worksheet, row: int, col: int) -> None:
+    def write(self, xlsxdoc: "xlsx_gen.XLSXDoc", sheet: Worksheet, row: int, col: int) -> None:
         """
         Write to XLSX document sheet.
 
@@ -192,7 +219,7 @@ class Chart:
         if style is not None:
             self.style = style
 
-    def write(self, xlsxdoc: "spreadsheet.XLSXDoc", sheet: Worksheet, row: int, col: int) -> None:
+    def write(self, xlsxdoc: "xlsx_gen.XLSXDoc", sheet: Worksheet, row: int, col: int) -> None:
         """
         Write to XLSX document sheet.
 

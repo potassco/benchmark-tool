@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from benchmarktool.result.spreadsheet import XLSXDoc
+from benchmarktool.result.xlsx_gen.xlsx_gen import XLSXDoc
 
 
 class Result:
