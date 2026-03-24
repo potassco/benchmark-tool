@@ -49,6 +49,15 @@ class ResultSheet(Sheet):
         """
         raise NotImplementedError
 
+    def add_runspec(self, runspec: "result.Runspec") -> None:
+        """
+        Add a run specification to the sheet.
+
+        Attributes:
+            runspec (Runspec): Run specification.
+        """
+        raise NotImplementedError
+
     def finalize(self) -> None:
         """
         Finalize the sheet, e.g., by collecting content and adding summaries.
@@ -103,7 +112,7 @@ class ResultSheet(Sheet):
             block = SystemBlock(None, None)
             block.offset = col
             self.summary_refs[col_name] = {"col": col}
-            # measures = sorted(self.float_occur.keys()) if not self.measures else list(self.measures.keys())
+            self.values.at[0, block.offset] = col_name
             for measure in sorted(self.float_occur.keys()):
                 # if measure in self.float_occur:
                 self.values.at[1, col] = measure
@@ -117,7 +126,6 @@ class ResultSheet(Sheet):
             self.content = self.content.join(block.content)
             self.content = self.content.set_axis(list(range(len(self.content.columns))), axis=1)
             self.content.at[0, block.offset] = col_name
-            self.values.at[0, block.offset] = col_name
 
     # pylint: disable=too-many-positional-arguments
     def _add_summary_formula(
@@ -137,10 +145,10 @@ class ResultSheet(Sheet):
         for row in range(self.result_offset - 2):
             ref_range = ",".join(get_cell_index(col_ref, row + 2, True) for col_ref in sorted(float_occur[measure]))
             values = np.array(self.values.loc[2 + row, sorted(float_occur[measure])], float)
+            # don't write formula if full row is nan
             if np.isnan(values).all():
                 self.values.at[2 + row, col] = np.nan
             else:
-                # don't write formula if full row is nan
                 block.add_cell(row, measure, "formula", Formula(f"{operator.upper()}({ref_range})"))
                 self.values.at[2 + row, col] = getattr(np, "nan" + operator)(values)
 
@@ -291,6 +299,7 @@ class ResultSheet(Sheet):
                     )
                     .combine_first(self.content)
                 )
+        self.content = self.content.reindex(sorted(self.content.columns), axis=1)
 
     # pylint: disable=too-many-branches, too-many-nested-blocks
     def write_sheet(self, xlsxdoc: "XLSXDoc") -> None:
