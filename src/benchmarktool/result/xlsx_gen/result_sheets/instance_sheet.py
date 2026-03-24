@@ -66,7 +66,9 @@ class InstanceSheet(ResultSheet):
                 self.content.loc[self.result_offset + idx] = label
 
         # fill missing rows
-        self.content = self.content.reindex(list(range(self.content.index.max() + 1))).replace(np.nan, None)
+        self.content = (
+            self.content.astype(object).reindex(list(range(self.content.index.max() + 1))).replace(np.nan, None)
+        )
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """

@@ -538,6 +538,7 @@ class HelperSheet(Sheet):
             self.content.reindex(
                 index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
             )
+            .infer_objects(copy=False)
             .fillna(np.nan)
             .replace(np.nan, None)
         )
