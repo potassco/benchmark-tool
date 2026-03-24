@@ -65,7 +65,7 @@ class ChartSheet(Sheet):
         """
         assert helper_sheet is not None
         # measure select
-        measures = sorted(self.instance_sheet.float_occur.keys()) if not self.measures else list(self.measures.keys())
+        measures = sorted(self.instance_sheet.float_occur.keys())
         self.content.loc[2, 5] = DataValidation(
             {
                 "validate": "list",
@@ -187,7 +187,7 @@ class ChartSheet(Sheet):
                         sheet.write(row, col, val)
                     elif isinstance(val, DataValidation):
                         val.write(xlsxdoc, sheet, row, col)
-                    elif isinstance(val, Chart):
+                    elif isinstance(val, Chart) and len(val.series) > 0:
                         val.write(xlsxdoc, sheet, row, col)
         else:
             raise ValueError("Trying to write to uninitialized workbook.")
