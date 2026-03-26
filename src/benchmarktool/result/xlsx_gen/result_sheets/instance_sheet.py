@@ -67,7 +67,7 @@ class InstanceSheet(ResultSheet):
 
         # fill missing rows
         self.content = (
-            self.content.astype(object).reindex(list(range(self.content.index.max() + 1))).replace(np.nan, None)
+            self.content.astype(object).reindex(list(range(self.content.index.max() + 1))).replace({np.nan: None})
         )
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
@@ -84,7 +84,7 @@ class InstanceSheet(ResultSheet):
 
         for benchclass_result in runspec:
             for instance_result in benchclass_result:
-                self.add_instance_results(block, instance_result)
+                self._add_instance_results(block, instance_result)
                 for m in block.columns:
                     if m not in self.types or self.types[m] in {"None", "empty"}:
                         self.types[m] = block.columns[m]
@@ -92,7 +92,7 @@ class InstanceSheet(ResultSheet):
                     elif block.columns[m] not in {self.types[m], "None", "empty"}:
                         self.types[m] = "string"
 
-    def add_instance_results(
+    def _add_instance_results(
         self,
         block: SystemBlock,
         instance_result: "result.InstanceResult",
@@ -126,7 +126,7 @@ class InstanceSheet(ResultSheet):
         """
         for column in self.content:
             name = self.content.at[1, column]
-            if self.types.get(name, "") in ["float", "classresult", "merged_runs"]:
+            if self.types.get(name, "") == "float":
                 self.float_occur.setdefault(name, set()).add(column)
             # defragmentation (temporary workaround)
             self.content = self.content.copy()
@@ -172,7 +172,7 @@ class InstanceSheet(ResultSheet):
         run_select_cell = f"{get_cell_index(0, self.result_offset + 11, True, True)}"
         for col in self.content:
             name = self.content.at[1, col]
-            if self.types.get(name, "") in {"float", "classresult", "merged_runs"}:
+            if self.types.get(name, "") == "float":
 
                 # skip empty columns
                 values = np.array(self.values.loc[2 : self.result_offset - 1, col], dtype=float)
@@ -206,7 +206,8 @@ class InstanceSheet(ResultSheet):
                 self._add_default_col_summary_formulas(col, summaries)
                 self._add_default_col_summary_values(col, name, values)
 
-    def export_values(self, file_name: str, metadata: dict[str, list[Any]]) -> None:
+    # to be reworked
+    def export_values(self, file_name: str, metadata: dict[str, list[Any]]) -> None:  # nocoverage
         """
         Export values to parquet file.
 

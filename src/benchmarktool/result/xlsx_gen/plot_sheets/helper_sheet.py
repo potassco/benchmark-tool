@@ -62,6 +62,10 @@ class HelperSheet(Sheet):
             col (int): Column index.
             setting_ref_row (int): Row index for setting reference.
         """
+        # support mixed columns -> object dtype
+        if col not in self.content.columns:
+            self.content[col] = None
+
         table_rows: dict[str, int] = {}
         if sheet == "plot":
             instance_n = self.instance_n
@@ -162,7 +166,7 @@ class HelperSheet(Sheet):
         for table, row in table_rows.items():
             if table == "data":
                 self.content.loc[row - 1, col] = "values"
-            elif table == "plot" and sheet == self.instance_sheet.name:
+            elif table == "plot" and sheet != "plot":
                 continue
             else:
                 self.content.loc[row - 1, col] = "index"
@@ -479,7 +483,7 @@ class HelperSheet(Sheet):
         lookup_row = 1
         for measure, ref in self.float_occur.items():
             self.content.loc[lookup_row, 0] = measure
-            self.content.loc[lookup_row, 1] = ref[0]
+            self.content.loc[lookup_row, 1] = min(ref)
             lookup_row += 1
 
         start_col = 3

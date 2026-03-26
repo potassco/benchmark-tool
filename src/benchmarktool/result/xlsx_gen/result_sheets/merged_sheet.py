@@ -55,7 +55,9 @@ class MergedRunSheet(ResultSheet):
             self.content.loc[self.result_offset + idx] = label
 
         # fill missing rows
-        self.content = self.content.reindex(list(range(self.content.index.max() + 1))).replace(np.nan, None)
+        self.content = (
+            self.content.astype(object).reindex(list(range(self.content.index.max() + 1))).replace({np.nan: None})
+        )
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
@@ -72,21 +74,20 @@ class MergedRunSheet(ResultSheet):
         for benchclass_result in runspec:
             instance_summary: dict[result.InstanceResult, dict[str, Any]] = {}
             for instance_result in benchclass_result:
-                self.add_instance_results_to_instance_summary(instance_result, instance_summary)
+                self._add_instance_results_to_instance_summary(instance_result, instance_summary)
                 for m in block.columns:
                     if m not in self.types or self.types[m] in {"None", "empty"}:
                         self.types[m] = block.columns[m]
-                    # mixed measure
-                    elif block.columns[m] not in {self.types[m], "None", "empty"}:
-                        self.types[m] = "string"
-            if self.ref_sheet:
-                for instance_result in benchclass_result:
-                    self.add_merged_instance_results(block, instance_result, instance_summary)
-                for m in block.columns:
-                    if m not in self.types or self.types[m] in {"None", "empty"}:
-                        self.types[m] = block.columns[m]
+                    # should never occur, all mixed columns are treated as None or merged_runs
+                    elif block.columns[m] not in {self.types[m], "None", "empty"}:  # nocoverage
+                        self.types[m] = "None"
+            for instance_result in benchclass_result:
+                self._add_merged_instance_results(block, instance_result, instance_summary)
+            for m in block.columns:
+                if m not in self.types or self.types[m] in {"None", "empty"}:
+                    self.types[m] = block.columns[m]
 
-    def add_instance_results_to_instance_summary(
+    def _add_instance_results_to_instance_summary(
         self,
         instance_result: "result.InstanceResult",
         instance_summary: dict["result.InstanceResult", dict[str, Any]],
@@ -110,7 +111,7 @@ class MergedRunSheet(ResultSheet):
                 if value_type == "float" and self.ref_sheet.types.get(name, "") == "float":
                     instance_summary[instance_result][name] = True
 
-    def add_merged_instance_results(
+    def _add_merged_instance_results(
         self,
         block: SystemBlock,
         instance_result: "result.InstanceResult",
@@ -172,7 +173,6 @@ class MergedRunSheet(ResultSheet):
                             f'"diff", MAX{cell_range}-MIN{cell_range}'
                             ")"
                         )
-            if self.types.get(name, "") in ["float", "classresult", "merged_runs"]:
                 self.float_occur.setdefault(name, set()).add(column)
             # defragmentation (temporary workaround)
             self.content = self.content.copy()
@@ -191,7 +191,7 @@ class MergedRunSheet(ResultSheet):
         """
         for col in self.content:
             name = self.content.at[1, col]
-            if self.types.get(name, "") in {"float", "classresult", "merged_runs"}:
+            if self.types.get(name, "") == "merged_runs":
 
                 # skip empty columns
                 values = np.array(self.values.loc[2 : self.result_offset - 1, col], dtype=float)

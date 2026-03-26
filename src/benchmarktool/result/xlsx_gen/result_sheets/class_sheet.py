@@ -44,7 +44,9 @@ class ClassSheet(ResultSheet):
             self.content.loc[self.result_offset + idx] = label
 
         # fill missing rows
-        self.content = self.content.reindex(list(range(self.content.index.max() + 1))).replace(np.nan, None)
+        self.content = (
+            self.content.astype(object).reindex(list(range(self.content.index.max() + 1))).replace({np.nan: None})
+        )
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
@@ -63,19 +65,19 @@ class ClassSheet(ResultSheet):
         for benchclass_result in runspec:
             benchclass_summary: dict[str, Any] = {}
             for instance_result in benchclass_result:
-                self.add_instance_results_to_benchclass_summary(instance_result, benchclass_summary)
+                self._add_instance_results_to_benchclass_summary(instance_result, benchclass_summary)
                 for m in block.columns:
                     if m not in self.types or self.types[m] in {"None", "empty"}:
                         self.types[m] = block.columns[m]
-                    # mixed measure
-                    elif block.columns[m] not in {self.types[m], "None", "empty"}:
-                        self.types[m] = "string"
-            self.add_benchclass_summary(block, benchclass_result, benchclass_summary)
+                    # should never occur, all mixed columns are treated as None or classresult
+                    elif block.columns[m] not in {self.types[m], "None", "empty"}:  # nocoverage
+                        self.types[m] = "None"
+            self._add_benchclass_summary(block, benchclass_result, benchclass_summary)
             for m in block.columns:
                 if m not in self.types or self.types[m] in {"None", "empty"}:
                     self.types[m] = block.columns[m]
 
-    def add_instance_results_to_benchclass_summary(
+    def _add_instance_results_to_benchclass_summary(
         self,
         instance_result: "result.InstanceResult",
         benchclass_summary: dict[str, Any],
@@ -105,7 +107,7 @@ class ClassSheet(ResultSheet):
                     if name not in benchclass_summary:
                         benchclass_summary[name] = None
 
-    def add_benchclass_summary(
+    def _add_benchclass_summary(
         self, block: SystemBlock, benchclass_result: "result.ClassResult", benchclass_summary: dict[str, Any]
     ) -> None:
         """
@@ -149,7 +151,6 @@ class ClassSheet(ResultSheet):
                             f"{op}(Instances!{get_cell_index(column, self.content.at[row, column]['inst_start'] + 2)}:"
                             f"Instances!{get_cell_index(column, self.content.at[row, column]['inst_end'] + 2)})"
                         )
-            if self.types.get(name, "") in ["float", "classresult", "merged_runs"]:
                 self.float_occur.setdefault(name, set()).add(column)
             # defragmentation (temporary workaround)
             self.content = self.content.copy()
@@ -168,7 +169,7 @@ class ClassSheet(ResultSheet):
         """
         for col in self.content:
             name = self.content.at[1, col]
-            if self.types.get(name, "") in {"float", "classresult", "merged_runs"}:
+            if self.types.get(name, "") == "classresult":
 
                 # skip empty columns
                 values = np.array(self.values.loc[2 : self.result_offset - 1, col], dtype=float)

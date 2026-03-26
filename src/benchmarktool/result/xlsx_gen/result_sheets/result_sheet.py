@@ -34,7 +34,7 @@ class ResultSheet(Sheet):
 
         self.summary_refs: dict[str, Any] = {}
         self.values = pd.DataFrame()
-        self.float_occur: dict[str, set[Any]] = {}
+        self.float_occur: dict[str, set[int]] = {}
 
         self.result_offset = 0
         self.col_offset = 0
@@ -129,7 +129,7 @@ class ResultSheet(Sheet):
 
     # pylint: disable=too-many-positional-arguments
     def _add_summary_formula(
-        self, block: SystemBlock, operator: str, measure: str, float_occur: dict[str, Any], col: int
+        self, block: SystemBlock, operator: str, measure: str, float_occur: dict[str, set[int]], col: int
     ) -> None:
         """
         Add row summary formula.
@@ -138,7 +138,7 @@ class ResultSheet(Sheet):
             block (SystemBlock):          SystemBlock to which summary is added.
             operator (str):               Summary operator.
             measure (str):                Name of the measure to be summarized.
-            float_occur (dict[str, Any]): Dict containing column references of float columns.
+            float_occur (dict[str, set[int]]): Dict containing column references of float columns.
             col (int):                    Current column index.
         """
         self.values[col] = self.values[col].astype(object)
