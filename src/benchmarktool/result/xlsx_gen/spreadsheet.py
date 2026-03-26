@@ -68,6 +68,17 @@ class Formula:
             return s
         return f"={s}"
 
+    def __eq__(self, other: object) -> bool:
+        """
+        Equality operator.
+
+        Attributes:
+            other (object): Other Formula object.
+        """
+        if not isinstance(other, Formula):
+            raise TypeError("Comparison with non Formula object.")
+        return str(self) == str(other)
+
 
 # pylint: disable=too-few-public-methods, dangerous-default-value
 class DataValidation:
