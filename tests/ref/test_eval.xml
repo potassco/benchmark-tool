@@ -32,8 +32,10 @@
 						<measure name="error" type="float" val="0"/>
 						<measure name="mem" type="float" val="8.0"/>
 						<measure name="memout" type="float" val="0"/>
-						<measure name="models" type="int" val="0"/>
-						<measure name="status" type="string" val="UNSATISFIABLE"/>
+						<!--first values missing-->
+						<!--measure name="models" type="int" val="0"/>-->
+						<!--Mixed measure block type-->
+						<measure name="status" type="float" val="5"/>
 						<measure name="time" type="float" val="7.0"/>
 						<measure name="timeout" type="float" val="0"/>
 					</run>
@@ -42,9 +44,10 @@
 						<measure name="error" type="float" val="0"/>
 						<measure name="mem" type="float" val="8.0"/>
 						<measure name="memout" type="float" val="0"/>
-						<measure name="models" type="float" val="0"/>
+						<!--first values missing-->
+						<!--<measure name="models" type="float" val="0"/>-->
 						<!--Mixed measure block type-->
-						<measure name="status" type="string" val="5"/>
+						<measure name="status" type="float" val="5"/>
 						<measure name="time" type="float" val="10.0"/>
 						<!--Missing value: <measure name="timeout" type="float" val="1"/>-->
 					</run>

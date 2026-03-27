@@ -5,7 +5,9 @@ Test cases for result classes.
 from dataclasses import FrozenInstanceError
 from unittest import TestCase, mock
 
-from benchmarktool.result import result, xlsx_gen
+from benchmarktool.result import result
+from benchmarktool.result.xlsx_gen import xlsx_gen
+from benchmarktool.result.xlsx_gen.result_sheets.instance_sheet import InstanceSheet
 
 
 class TestResult(TestCase):
@@ -54,7 +56,7 @@ class TestResult(TestCase):
         self.res.jobs = {"job": job}
 
         xlsx_doc = mock.create_autospec(xlsx_gen.XLSXDoc, instance=True)
-        xlsx_doc.inst_sheet = mock.create_autospec(xlsx_gen.Sheet, instance=True)
+        xlsx_doc.inst_sheet = mock.create_autospec(InstanceSheet, instance=True)
 
         with (
             mock.patch("benchmarktool.result.result.Result.merge", return_value="bench_merge") as bm,
@@ -65,7 +67,7 @@ class TestResult(TestCase):
             bm.assert_called_once_with([p1])
             xlsx_init.assert_called_once_with("bench_merge", [("time", "to")], 300)
             xlsx_doc.add_runspec.assert_called_once_with(run)
-            xlsx_doc.finish.assert_called_once()
+            xlsx_doc.finalize.assert_called_once()
             xlsx_doc.make_xlsx.assert_called_once_with("out.xlsx")
             xlsx_doc.inst_sheet.export_values.assert_not_called()
 
