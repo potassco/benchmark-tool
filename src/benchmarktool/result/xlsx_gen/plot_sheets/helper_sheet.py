@@ -6,7 +6,6 @@ Created on Mar 20, 2026
 
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
 from xlsxwriter import Workbook  # type: ignore[import-untyped]
 
 from benchmarktool.result.xlsx_gen.plot_sheets.chart_sheet import ChartSheet
@@ -181,8 +180,8 @@ class HelperSheet(Sheet):
         col: int,
         row: int,
         setting_ref_row: int,
-        value_data_row: int,
         value_rows: int,
+        value_data_row: int,
     ) -> None:
         """
         Add data table.
@@ -192,8 +191,8 @@ class HelperSheet(Sheet):
             col (int): Column index for first column of row.
             row (int): Row index for current row.
             setting_ref_row (int): Row index for setting reference.
-            value_data_row (int): Row index for first row of values.
             value_rows (int): Number of rows for values.
+            value_data_row (int): Row index for first row of values.
         """
         # values
         # if sheet == self.instance_sheet.name:
@@ -245,15 +244,15 @@ class HelperSheet(Sheet):
             ")"
         )
 
-    def _add_step_table(self, *, col: int, row: int, value_data_row: int, value_rows: int, step_data_row: int) -> None:
+    def _add_step_table(self, *, col: int, row: int, value_rows: int, value_data_row: int, step_data_row: int) -> None:
         """
         Add step table.
 
         Attributes:
             col (int): Column index for first column of row.
             row (int): Row index for current row.
-            value_data_row (int): Row index for first row of values.
             value_rows (int): Number of rows for values.
+            value_data_row (int): Row index for first row of values.
             step_data_row (int): Row index for first row of step data.
         """
         # copy values from value table
@@ -294,8 +293,8 @@ class HelperSheet(Sheet):
         row: int,
         row_offset: int,
         value_rows: int,
-        sorted_data_row: int,
         step_data_row: int,
+        sorted_data_row: int,
     ) -> None:
         """
         Add sorted table.
@@ -306,13 +305,13 @@ class HelperSheet(Sheet):
             row (int): Row index for current row.
             row_offset (int): Row offset.
             value_rows (int): Number of rows for values.
-            sorted_data_row (int): Row index for first row of sorted data.
             step_data_row (int): Row index for first row of step data.
+            sorted_data_row (int): Row index for first row of sorted data.
         """
         c = col + col_offset
         # sorted
         # sort values/indices from step table, empty if no value
-        # index-value pairs stay cooherent since step table columns are sorted
+        # index-value pairs stay coherent since step table columns are sorted
         self.content.loc[sorted_data_row + row + row_offset, c] = Formula(
             "IFERROR("
             "SMALL("
@@ -364,7 +363,7 @@ class HelperSheet(Sheet):
         # sorted and aggregated values
         elif col_offset in (1, 3):
             # edges (first and last row)
-            if (row == 0 and row_offset == 0) or (row == value_rows - 1 and row_offset == 1):
+            if (row == 0 and row_offset == 0) or (row == value_rows - 1 and row_offset != 0):
                 # if value in sorted table is empty return NA, else copy value
                 self.content.loc[clean_row_ref, c] = Formula(
                     "IF(" f'{get_cell_index(c, sorted_row_ref)}="",' f"NA()," f"{get_cell_index(c, sorted_row_ref)}" ")"
@@ -416,7 +415,14 @@ class HelperSheet(Sheet):
         )
 
     def _add_stepped_tables(
-        self, *, sheet: str, col: int, row: int, table_rows: dict[str, int], value_rows: int, setting_idx: int
+        self,
+        *,
+        sheet: str,
+        col: int,
+        row: int,
+        setting_idx: int,
+        value_rows: int,
+        table_rows: dict[str, int],
     ) -> None:
         """
         Add stepped tables sort, clean and plot.
@@ -425,9 +431,9 @@ class HelperSheet(Sheet):
             sheet (str): Name of the sheet.
             col (int): Column index for current column.
             row (int): Row index for current row.
-            table_rows (dict[str, int]): Dictionary of row indices for each table type.
-            value_rows (int): Number of value rows.
             setting_idx (int): Index of the setting.
+            value_rows (int): Number of value rows.
+            table_rows (dict[str, int]): Dictionary of row indices for each table type.
         """
         for pair_idx in range(8):
             # data
@@ -440,8 +446,8 @@ class HelperSheet(Sheet):
                     row=row,
                     row_offset=row_mult * value_rows,
                     value_rows=value_rows,
-                    sorted_data_row=table_rows["sort"],
                     step_data_row=table_rows["step"],
+                    sorted_data_row=table_rows["sort"],
                 )
                 # clean
                 self._add_clean_table(
@@ -519,33 +525,30 @@ class HelperSheet(Sheet):
                             col=col,
                             row=row,
                             setting_ref_row=setting_ref_row,
-                            value_data_row=table_rows["data"],
                             value_rows=instance_n,
+                            value_data_row=table_rows["data"],
                         )
                         # step
                         self._add_step_table(
                             col=col,
                             row=row,
-                            value_data_row=table_rows["data"],
                             value_rows=instance_n,
+                            value_data_row=table_rows["data"],
                             step_data_row=table_rows["step"],
                         )
                     self._add_stepped_tables(
-                        sheet=sheet, col=col, row=row, table_rows=table_rows, value_rows=instance_n, setting_idx=setting
+                        sheet=sheet, col=col, row=row, setting_idx=setting, value_rows=instance_n, table_rows=table_rows
                     )
                 # defragmentation (temporary workaround)
                 self.content = self.content.copy()
                 col += 4
             col += 1
 
-        self.content = (
-            self.content.reindex(
-                index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
-            )
-            .infer_objects(copy=False)
-            .fillna(np.nan)
-            .replace(np.nan, None)
+        self.content = self.content.reindex(
+            index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
         )
+        # replace all undefined cells with None (empty cell)
+        self.content = self.content.astype(object).where(self.content.notna(), None)
 
     def write_sheet(self, xlsxdoc: "XLSXDoc") -> None:
         """
