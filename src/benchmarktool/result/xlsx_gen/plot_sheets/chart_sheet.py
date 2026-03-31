@@ -6,7 +6,6 @@ Created on Mar 20, 2026
 
 from typing import TYPE_CHECKING, Any, Optional
 
-import numpy as np
 from xlsxwriter import Workbook  # type: ignore[import-untyped]
 
 from benchmarktool.result.xlsx_gen.result_sheets.instance_sheet import InstanceSheet
@@ -55,6 +54,7 @@ class ChartSheet(Sheet):
         self.content.loc[1, 5] = "Select measure:"
         self.content.loc[2, 5] = "PLACEHOLDER: Measure select"
         self.measure_select = get_cell_index(5, 2, True, True)
+        self.content = self.content.astype(object)
 
     def finalize(self, helper_sheet: Optional["HelperSheet"] = None) -> None:
         """
@@ -63,13 +63,14 @@ class ChartSheet(Sheet):
         Attributes:
             helper_sheet (Optional[HelperSheet]): Helper sheet for chart data. Required for adding charts
         """
-        assert helper_sheet is not None
+        if helper_sheet is None:
+            raise ValueError("Helper sheet is required to finalize chart sheet.")
         # measure select
         measures = sorted(self.instance_sheet.float_occur.keys())
         self.content.loc[2, 5] = DataValidation(
             {
                 "validate": "list",
-                "source": list(self.instance_sheet.float_occur.keys()),
+                "source": measures,
                 "input_message": "Select measure to display.",
             },
             measures[0] if measures else "",
@@ -112,6 +113,9 @@ class ChartSheet(Sheet):
                     )})""",
                 }
             )
+            survivor_chart.set_params(
+                x_axis={"name": f"={self.name}!{self.measure_select}"}, y_axis={"name": "# of Instances"}
+            )
             cactus_chart.add_series(
                 {
                     "name": f"""Helper!{get_cell_index(
@@ -135,6 +139,9 @@ class ChartSheet(Sheet):
                         helper_sheet.plot_row + 2*helper_sheet.instance_n,
                     )})""",
                 }
+            )
+            cactus_chart.set_params(
+                x_axis={"name": "# of Instances"}, y_axis={"name": f"={self.name}!{self.measure_select}"}
             )
             cdf_chart.add_series(
                 {
@@ -160,6 +167,9 @@ class ChartSheet(Sheet):
                     )})""",
                 }
             )
+            cdf_chart.set_params(
+                x_axis={"name": f"={self.name}!{self.measure_select}"}, y_axis={"name": "# of Instances"}
+            )
 
         self.content.loc[4, 1] = survivor_chart
         self.content.loc[4, 10] = cactus_chart
@@ -167,7 +177,8 @@ class ChartSheet(Sheet):
 
         self.content = self.content.reindex(
             index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
-        ).replace(np.nan, None)
+        )
+        self.content = self.content.astype(object).where(self.content.notna(), None)
 
     def write_sheet(self, xlsxdoc: "XLSXDoc") -> None:
         """

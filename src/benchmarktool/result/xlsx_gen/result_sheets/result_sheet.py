@@ -89,7 +89,7 @@ class ResultSheet(Sheet):
         self.add_styles()
 
         # replace all undefined cells with None (empty cell)
-        self.content = self.content.fillna(np.nan).replace(np.nan, None)
+        self.content = self.content.astype(object).where(self.content.notna(), None)
 
     def _finalize_results(self) -> None:
         """
