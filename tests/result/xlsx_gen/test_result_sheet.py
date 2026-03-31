@@ -82,7 +82,10 @@ class TestResultSheet(TestSheet):
 
         pd.testing.assert_frame_equal(
             self.sheet.content,
-            pd.DataFrame({0: [1, 2, 3, 4], 1: ["s1", "time", 1.0, 4.0], 2: [None, "timeout", 0, None]}),
+            pd.DataFrame(
+                {0: [1, 2, 3, 4], 1: ["s1", "time", 1.0, 4.0], 2: pd.Series([None, "timeout", 0, None], dtype=object)},
+                dtype=object,
+            ),
         )
 
     def test_finalize_results(self) -> None:

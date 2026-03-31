@@ -47,7 +47,6 @@ class TestParser(TestCase):
         self.assertSetEqual(args.projects, set())
         self.assertEqual(args.measures, {"time": "t", "timeout": "to"})
         self.assertFalse(args.export)
-        self.assertIsNone(args.jupyter_notebook)
         self.assertIsInstance(args.func, Callable)
 
         # resultfile
@@ -73,16 +72,11 @@ class TestParser(TestCase):
         args = self.parser.parse_args(["conv", "-e", "rs.xml"])
         self.assertTrue(args.export)
 
-        # jupyter notebook
-        args = self.parser.parse_args(["conv", "-j", "notebook.ipynb"])
-        self.assertEqual(args.jupyter_notebook, "notebook.ipynb")
-
         # run function
         result_mock = mock.MagicMock()
         with (
             mock.patch("benchmarktool.entry_points.ResParser.parse", return_value=result_mock) as parse_mock,
             mock.patch("benchmarktool.entry_points.open"),
-            mock.patch("benchmarktool.entry_points.gen_ipynb") as gen_mock,
         ):
             result_mock.gen_spreadsheet.return_value = None
 
@@ -92,7 +86,6 @@ class TestParser(TestCase):
             result_mock.gen_spreadsheet.assert_called_once_with(
                 "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300
             )
-            gen_mock.assert_not_called()
 
             parse_mock.reset_mock()
             result_mock.gen_spreadsheet.reset_mock()
@@ -101,7 +94,6 @@ class TestParser(TestCase):
             result_mock.gen_spreadsheet.assert_called_once_with(
                 "out.xlsx", set(), {"time": "t", "timeout": "to"}, True, 300
             )
-            gen_mock.assert_not_called()
 
             parse_mock.reset_mock()
             result_mock.gen_spreadsheet.reset_mock()
@@ -115,20 +107,16 @@ class TestParser(TestCase):
                     "p1,p2",
                     "-m",
                     "all",
-                    "-j",
-                    "notebook.ipynb",
                     "--max-col-width=50",
                 ]
             )
             args.func(args)
             parse_mock.assert_called_once()
-            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, {}, True, 50)
-            gen_mock.assert_not_called()
+            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, {}, False, 50)
 
             ex_file = mock.Mock()
             result_mock.gen_spreadsheet.return_value = ex_file
             args.func(args)
-            gen_mock.assert_called_once_with(ex_file, "notebook.ipynb")
 
         with mock.patch("sys.stderr", new=StringIO()) as mock_stderr:
             with self.assertRaises(SystemExit):
