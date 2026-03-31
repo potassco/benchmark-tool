@@ -12,7 +12,6 @@ from argparse import ArgumentParser, ArgumentTypeError, RawTextHelpFormatter, _S
 from textwrap import dedent
 from typing import Any
 
-from benchmarktool.result.ipynb_gen import gen_ipynb
 from benchmarktool.result.parser import Parser as ResParser
 from benchmarktool.runscript.parser import Parser as RunParser
 
@@ -44,11 +43,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         else:
             res = p.parse(sys.stdin)
         export: bool = args.export
-        if args.jupyter_notebook is not None:
-            export = True
-        ex_file = res.gen_spreadsheet(args.output, args.projects, args.measures, export, args.max_col_width)
-        if args.jupyter_notebook is not None and ex_file is not None:
-            gen_ipynb(ex_file, args.jupyter_notebook)
+        res.gen_spreadsheet(args.output, args.projects, args.measures, export, args.max_col_width)
 
     def parse_set(s: str) -> set[str]:
         return set(filter(None, (x.strip() for x in s.split(","))))
@@ -123,19 +118,6 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         "--export",
         action="store_true",
         help="Export instance data to parquet file (same name as .xlsx file)",
-    )
-    conv_parser.add_argument(
-        "-j",
-        "--jupyter-notebook",
-        type=str,
-        help=dedent(
-            """\
-            Name of generated .ipynb file
-            Can be started using 'jupyter notebook <notebook>'
-            All dependencies for the notebook can be installed using 'pip install .[plot]'
-            """
-        ),
-        metavar="<file.ipynb>",
     )
     conv_parser.set_defaults(func=run)
 
