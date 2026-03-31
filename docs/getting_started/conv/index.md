@@ -8,6 +8,8 @@ spreadsheet, which should be used with Excel. Other programs, such as LibreOffic
 or OpenOffice, should also work. Keep in mind that by default LibreOffice does not automatically
 recalculate formulas. Therefore, after opening the spreadsheet, use `CTRL + SHIFT + F9` to
 manually recalculate all formulas. You can also enable automatic recalculation in the settings.
+The spreadsheet will also include some basic plots. When using LibreOffice some features, such
+as dynamic axis titles, will not work and will have to be changed manually.
 
 To convert your benchmark results to a spreadsheet, use the following command:
 
@@ -35,11 +37,6 @@ You can chose to export the instance data to a `.parquet` file using the `-e, --
 option. The name of the file will be the same as the specified output, i.e. `-o res.xlsx -e`
 -> `res.parquet`.
 
-The `-j, --jupyter-notebook` option can be used to generate a `.ipynb` file, which contains
-some basic visualization of the instance data, specifically survivor, cactus and CDF diagrams.
-The notebook can be started using `jupyter notebook <notebook.ipynb>` and dependencies for the notebook can be installed using `pip install .[plot]`. This option also automatically enables
-the `-e` option.
-
 ## Spreadsheet Generation
 
 When generating a spreadsheet in XLSX format, two sheets are created:
@@ -52,9 +49,22 @@ When generating a spreadsheet in XLSX format, two sheets are created:
     - Each column with float measures also has a summary, including the sum,
     average, standard deviation, distance from the minimum, and counts of best,
     better, worse, and worst values.
-2. **Class Sheet**
+2. **Merged Run Sheet**
+    - The merged run sheet merges all runs of a single instance depending on
+    a selectable criteria
+3. **Class Sheet**
     - The class sheet summarizes all runs for each benchmark class, enabling
     comparisons between classes.
+4. **Chart Sheet**
+    - The chart sheet contains some basics plots (survivor, cactus and cdf)
+    - Which measures should be plotted and how runs should be merged can be selected
+    by the user.
+    - For additional fine-tuning, such as using log-scale or disabling certain series,
+    the charts have to be adjusted manually.
+5. **Helper Sheet**
+    - The helper sheet contains all data and calculations used for the charts and is
+    by default hidden.
+    - The sheet can be unhidden via the sheet selection UI.
 
 !!! info
     All summaries are written as formulas in the .xlsx file. The calculated
