@@ -101,6 +101,11 @@ class TestDataValidation(TestCase):
         """
         Test DataValidation initialization.
         """
+        dv = spreadsheet.DataValidation()
+        self.assertDictEqual(dv.params, {})
+        self.assertIsNone(dv.default)
+        self.assertIsNone(dv.color)
+
         params = {
             "validate": "list",
             "source": [1, 2, 3],
@@ -188,10 +193,10 @@ class TestChart(TestCase):
         self.assertEqual(chart.chart_type, "line")
         self.assertEqual(chart.chart_subtype, "stacked")
         self.assertListEqual(chart.series, [])
-        self.assertDictEqual(chart.x_axis_params, {})
-        self.assertDictEqual(chart.y_axis_params, {})
-        self.assertDictEqual(chart.size_params, {})
-        self.assertDictEqual(chart.legend_params, {})
+        self.assertIsNone(chart.x_axis_params)
+        self.assertIsNone(chart.y_axis_params)
+        self.assertIsNone(chart.size_params)
+        self.assertIsNone(chart.legend_params)
         self.assertEqual(chart.style, 2)
 
     def test_add_series(self) -> None:
@@ -268,6 +273,10 @@ class TestChart(TestCase):
         self.assertEqual(chart1, chart2)
 
         chart2.add_series({"name": "Series 2", "categories": "=Sheet1!$A$1:$A$5", "values": "=Sheet1!$C$1:$C$5"})
+        self.assertNotEqual(chart1, chart2)
+
+        chart2 = spreadsheet.Chart("test_chart", "line", "stacked")
+        chart2.set_params(x_axis={"name": "X-Axis"})
         self.assertNotEqual(chart1, chart2)
 
         with self.assertRaises(TypeError):
