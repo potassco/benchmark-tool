@@ -85,15 +85,17 @@ class DataValidation:
     Helper class representing a spreadsheet data validation.
     """
 
-    def __init__(self, params: dict[str, Any] = {}, default: Any = None, color: Optional[str] = None):
+    def __init__(self, params: Optional[dict[str, Any]] = None, default: Any = None, color: Optional[str] = None):
         """
         Initialize DataValidation.
 
         Attributes:
-            params (dict[str, Any]): Data validation parameters.
+            params (Optional[dict[str, Any]]): Data validation parameters.
             default (Any):           Default value.
             color (Optional[str]):   Color reference.
         """
+        if params is None:
+            params = {}
         self.params = params
         self.default = default
         self.color = color
@@ -184,10 +186,10 @@ class Chart:
 
         self.series: list[dict[str, Any]] = []
 
-        self.x_axis_params: dict[str, Any] = {}
-        self.y_axis_params: dict[str, Any] = {}
-        self.size_params: dict[str, Any] = {}
-        self.legend_params: dict[str, Any] = {}
+        self.x_axis_params: Optional[dict[str, Any]] = None
+        self.y_axis_params: Optional[dict[str, Any]] = None
+        self.size_params: Optional[dict[str, Any]] = None
+        self.legend_params: Optional[dict[str, Any]] = None
         self.style: int = 2
 
     def add_series(self, series_options: dict[str, Any]) -> None:
@@ -202,29 +204,29 @@ class Chart:
     def set_params(
         self,
         *,
-        x_axis: dict[str, Any] = {},
-        y_axis: dict[str, Any] = {},
-        size: dict[str, Any] = {},
-        legend: dict[str, Any] = {},
+        x_axis: Optional[dict[str, Any]] = None,
+        y_axis: Optional[dict[str, Any]] = None,
+        size: Optional[dict[str, Any]] = None,
+        legend: Optional[dict[str, Any]] = None,
         style: Optional[int] = None,
     ) -> None:
         """
         Set chart parameters.
 
         Attributes:
-            x_axis (dict[str, Any]): X axis parameters.
-            y_axis (dict[str, Any]): Y axis parameters.
-            size (dict[str, Any]):   Size parameters.
-            legend (dict[str, Any]): Legend parameters.
+            x_axis (Optional[dict[str, Any]]): X axis parameters.
+            y_axis (Optional[dict[str, Any]]): Y axis parameters.
+            size (Optional[dict[str, Any]]):   Size parameters.
+            legend (Optional[dict[str, Any]]): Legend parameters.
             style (Optional[int]):   Chart style (1-48).
         """
-        if x_axis:
+        if x_axis is not None:
             self.x_axis_params = x_axis
-        if y_axis:
+        if y_axis is not None:
             self.y_axis_params = y_axis
-        if size:
+        if size is not None:
             self.size_params = size
-        if legend:
+        if legend is not None:
             self.legend_params = legend
         if style is not None:
             self.style = style
