@@ -131,13 +131,7 @@ class DataValidation:
         """
         if not isinstance(other, DataValidation):
             raise TypeError("Comparison with non DataValidation object.")
-        return hash(self) == hash(other)
-
-    def __hash__(self) -> int:
-        """
-        Hash function.
-        """
-        return hash((repr(sorted(self.params.items())), self.default, self.color))
+        return self.params == other.params and self.default == other.default and self.color == other.color
 
 
 # pylint: disable=too-many-instance-attributes
@@ -286,19 +280,16 @@ class Chart:
         """
         if not isinstance(other, Chart):
             raise TypeError("Comparison with non Chart object.")
-        return hash(self) == hash(other)
-
-    def __hash__(self) -> int:
-        """
-        Hash function.
-        """
-        return hash(
-            (
-                self.title,
-                self.chart_type,
-                self.chart_subtype,
-                repr(sorted(list(map(lambda x: repr(x.items()), self.series)))),
-            )
+        return (
+            self.title == other.title
+            and self.chart_type == other.chart_type
+            and self.chart_subtype == other.chart_subtype
+            and self.series == other.series
+            and self.x_axis_params == other.x_axis_params
+            and self.y_axis_params == other.y_axis_params
+            and self.size_params == other.size_params
+            and self.legend_params == other.legend_params
+            and self.style == other.style
         )
 
 
