@@ -53,7 +53,7 @@ class XLSXDoc:
         }
 
         self.inst_sheet = InstanceSheet("Instances", benchmark, measures)
-        self.merged_sheet = MergedRunSheet("Merged_Runs", benchmark, measures, self.inst_sheet)
+        self.merged_sheet = MergedRunSheet("Merged Runs", benchmark, measures, self.inst_sheet)
         self.class_sheet = ClassSheet("Classes", benchmark, measures, self.inst_sheet)
         self.chart_sheet = ChartSheet("Charts", benchmark, measures, self.inst_sheet)
         self.helper_sheet = HelperSheet(
