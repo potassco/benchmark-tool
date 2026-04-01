@@ -6,8 +6,6 @@ Created on Mar 20, 2026
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from xlsxwriter import Workbook  # type: ignore[import-untyped]
-
 from benchmarktool.result.xlsx_gen.result_sheets.instance_sheet import InstanceSheet
 from benchmarktool.result.xlsx_gen.spreadsheet import Chart, DataValidation, Formula, Sheet, get_cell_index
 
@@ -187,18 +185,17 @@ class ChartSheet(Sheet):
         Attributes:
             xlsxdoc (XLSXDoc): XLSX document.
         """
-        if isinstance(xlsxdoc.workbook, Workbook):
-            sheet = xlsxdoc.workbook.add_worksheet(self.name)
-            for col in range(len(self.content.columns)):
-                for row, cell in enumerate(list(self.content.iloc[:, col])):
-                    val = cell
-                    if isinstance(val, Formula):
-                        val = str(val)
-                    if isinstance(val, (int, float, str, bool)) or val is None:
-                        sheet.write(row, col, val)
-                    elif isinstance(val, DataValidation):
-                        val.write(xlsxdoc, sheet, row, col)
-                    elif isinstance(val, Chart) and len(val.series) > 0:
-                        val.write(xlsxdoc, sheet, row, col)
-        else:
+        if xlsxdoc.workbook is None:
             raise ValueError("Trying to write to uninitialized workbook.")
+        sheet = xlsxdoc.workbook.add_worksheet(self.name)
+        for col in range(len(self.content.columns)):
+            for row, cell in enumerate(list(self.content.iloc[:, col])):
+                val = cell
+                if isinstance(val, Formula):
+                    val = str(val)
+                if isinstance(val, (int, float, str, bool)) or val is None:
+                    sheet.write(row, col, val)
+                elif isinstance(val, DataValidation):
+                    val.write(xlsxdoc, sheet, row, col)
+                elif isinstance(val, Chart) and len(val.series) > 0:
+                    val.write(xlsxdoc, sheet, row, col)

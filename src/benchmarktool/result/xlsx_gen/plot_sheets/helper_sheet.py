@@ -6,8 +6,6 @@ Created on Mar 20, 2026
 
 from typing import TYPE_CHECKING, Any
 
-from xlsxwriter import Workbook  # type: ignore[import-untyped]
-
 from benchmarktool.result.xlsx_gen.plot_sheets.chart_sheet import ChartSheet
 from benchmarktool.result.xlsx_gen.result_sheets.instance_sheet import InstanceSheet
 from benchmarktool.result.xlsx_gen.result_sheets.merged_sheet import MergedRunSheet
@@ -557,16 +555,15 @@ class HelperSheet(Sheet):
         Attributes:
             xlsxdoc (XLSXDoc): XLSX document.
         """
-        if isinstance(xlsxdoc.workbook, Workbook):
-            sheet = xlsxdoc.workbook.add_worksheet(self.name)
-            # hide sheet, can be unhidden via UI
-            sheet.hide()
-            for col in range(len(self.content.columns)):
-                for row, cell in enumerate(list(self.content.iloc[:, col])):
-                    val = cell
-                    if isinstance(val, Formula):
-                        val = str(val)
-                    if isinstance(val, (int, float, str, bool)) or val is None:
-                        sheet.write(row, col, val)
-        else:
+        if xlsxdoc.workbook is None:
             raise ValueError("Trying to write to uninitialized workbook.")
+        sheet = xlsxdoc.workbook.add_worksheet(self.name)
+        # hide sheet, can be unhidden via UI
+        sheet.hide()
+        for col in range(len(self.content.columns)):
+            for row, cell in enumerate(list(self.content.iloc[:, col])):
+                val = cell
+                if isinstance(val, Formula):
+                    val = str(val)
+                if isinstance(val, (int, float, str, bool)) or val is None:
+                    sheet.write(row, col, val)

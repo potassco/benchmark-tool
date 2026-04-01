@@ -8,7 +8,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Optional
 
 import pandas as pd  # type: ignore[import-untyped]
-from xlsxwriter import Workbook  # type: ignore[import-untyped]
 from xlsxwriter.worksheet import Worksheet  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
@@ -109,17 +108,17 @@ class DataValidation:
             row (int):         Row index.
             col (int):         Column index.
         """
-        if isinstance(xlsxdoc.workbook, Workbook):
-            if self.default is not None:
-                if self.color is not None:
-                    sheet.write(
-                        row, col, self.default, xlsxdoc.workbook.add_format({"bg_color": xlsxdoc.colors[self.color]})
-                    )
-                else:
-                    sheet.write(row, col, self.default)
-            sheet.data_validation(row, col, row, col, self.params)
-        else:
+        if xlsxdoc.workbook is None:
             raise ValueError("Trying to write to uninitialized workbook.")
+
+        if self.default is not None:
+            if self.color is not None:
+                sheet.write(
+                    row, col, self.default, xlsxdoc.workbook.add_format({"bg_color": xlsxdoc.colors[self.color]})
+                )
+            else:
+                sheet.write(row, col, self.default)
+        sheet.data_validation(row, col, row, col, self.params)
 
     def __eq__(self, other: object) -> bool:
         """
@@ -240,40 +239,41 @@ class Chart:
             row (int):         Row index.
             col (int):         Column index.
         """
-        if isinstance(xlsxdoc.workbook, Workbook):
-            # create chart
-            if self.chart_subtype:
-                chart = xlsxdoc.workbook.add_chart({"type": self.chart_type, "subtype": self.chart_subtype})
-            else:
-                chart = xlsxdoc.workbook.add_chart({"type": self.chart_type})
-
-            # set parameters
-            chart.set_title({"name": self.title})
-            if self.x_axis_params:
-                chart.set_x_axis(self.x_axis_params)
-            if self.y_axis_params:
-                chart.set_y_axis(self.y_axis_params)
-            if self.size_params:
-                chart.set_size(self.size_params)
-            if self.legend_params:
-                chart.set_legend(self.legend_params)
-            chart.set_style(self.style)
-
-            chart.show_na_as_empty_cell()
-            chart.show_blanks_as("span")
-
-            # add series
-            for series in self.series:
-                chart.add_series(series)
-
-            # write to sheet
-            sheet.insert_chart(
-                row,
-                col,
-                chart,
-            )
-        else:
+        workbook = xlsxdoc.workbook
+        if workbook is None:
             raise ValueError("Trying to write to uninitialized workbook.")
+
+        # create chart
+        if self.chart_subtype:
+            chart = workbook.add_chart({"type": self.chart_type, "subtype": self.chart_subtype})
+        else:
+            chart = workbook.add_chart({"type": self.chart_type})
+
+        # set parameters
+        chart.set_title({"name": self.title})
+        if self.x_axis_params is not None:
+            chart.set_x_axis(self.x_axis_params)
+        if self.y_axis_params is not None:
+            chart.set_y_axis(self.y_axis_params)
+        if self.size_params is not None:
+            chart.set_size(self.size_params)
+        if self.legend_params is not None:
+            chart.set_legend(self.legend_params)
+        chart.set_style(self.style)
+
+        chart.show_na_as_empty_cell()
+        chart.show_blanks_as("span")
+
+        # add series
+        for series in self.series:
+            chart.add_series(series)
+
+        # write to sheet
+        sheet.insert_chart(
+            row,
+            col,
+            chart,
+        )
 
     def __eq__(self, other: object) -> bool:
         """

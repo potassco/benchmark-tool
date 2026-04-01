@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
-from xlsxwriter import Workbook  # type: ignore[import-untyped]
 from xlsxwriter.utility import cell_autofit_width  # type: ignore[import-untyped]
 
 from benchmarktool.result.xlsx_gen.spreadsheet import DataValidation, Formula, Sheet, SystemBlock, get_cell_index
@@ -309,47 +308,46 @@ class ResultSheet(Sheet):
         Attributes:
             xlsxdoc (XLSXDoc): XLSX document.
         """
-        if isinstance(xlsxdoc.workbook, Workbook):
-            sheet = xlsxdoc.workbook.add_worksheet(self.name)
-            measure_count = len(self.measures.keys())
-            for col in range(len(self.content.columns)):
-                num_format = xlsxdoc.num_formats.get(self.formats.get(col, "defaultNumber"), "0.00")
-                col_width = xlsxdoc.header_width
-                for row, cell in enumerate(list(self.content.iloc[:, col])):
-                    val = cell
-                    color: Optional[str] = None
-                    if isinstance(cell, tuple):
-                        val, color = cell
-                    if isinstance(val, Formula):
-                        val = str(val)
-                        num_format = xlsxdoc.num_formats.get("formula", "0.00")
-                    elif isinstance(val, str):
-                        # header
-                        if row == 0:
-                            if measure_count > 0:
-                                xlsxdoc.header_width = min(
-                                    xlsxdoc.max_col_width, max(80, cell_autofit_width(val) // measure_count)
-                                )
-                            else:
-                                xlsxdoc.header_width = min(xlsxdoc.max_col_width, 80)
-                            col_width = xlsxdoc.header_width
-                        else:
-                            col_width = min(xlsxdoc.max_col_width, max(col_width, cell_autofit_width(val)))
-                    if isinstance(val, (int, float, str, bool)) or val is None:
-                        if isinstance(color, str):
-                            sheet.write(
-                                row,
-                                col,
-                                val,
-                                xlsxdoc.workbook.add_format(
-                                    {"bg_color": xlsxdoc.colors[color], "num_format": num_format}
-                                ),
+        workbook = xlsxdoc.workbook
+        if workbook is None:
+            raise ValueError("Trying to write to uninitialized workbook.")
+
+        sheet = workbook.add_worksheet(self.name)
+        measure_count = len(self.measures.keys())
+        for col in range(len(self.content.columns)):
+            num_format = xlsxdoc.num_formats.get(self.formats.get(col, "defaultNumber"), "0.00")
+            col_width = xlsxdoc.header_width
+            for row, cell in enumerate(list(self.content.iloc[:, col])):
+                val = cell
+                color: Optional[str] = None
+                if isinstance(cell, tuple):
+                    val, color = cell
+                if isinstance(val, Formula):
+                    val = str(val)
+                    num_format = xlsxdoc.num_formats.get("formula", "0.00")
+                elif isinstance(val, str):
+                    # header
+                    if row == 0:
+                        if measure_count > 0:
+                            xlsxdoc.header_width = min(
+                                xlsxdoc.max_col_width, max(80, cell_autofit_width(val) // measure_count)
                             )
                         else:
-                            sheet.write(row, col, val, xlsxdoc.workbook.add_format({"num_format": num_format}))
-                    elif isinstance(val, DataValidation):
-                        val.write(xlsxdoc, sheet, row, col)
-                sheet.set_column_pixels(col, col, col_width)
-                sheet.freeze_panes(2, 1)
-        else:
-            raise ValueError("Trying to write to uninitialized workbook.")
+                            xlsxdoc.header_width = min(xlsxdoc.max_col_width, 80)
+                        col_width = xlsxdoc.header_width
+                    else:
+                        col_width = min(xlsxdoc.max_col_width, max(col_width, cell_autofit_width(val)))
+                if isinstance(val, (int, float, str, bool)) or val is None:
+                    if isinstance(color, str):
+                        sheet.write(
+                            row,
+                            col,
+                            val,
+                            workbook.add_format({"bg_color": xlsxdoc.colors[color], "num_format": num_format}),
+                        )
+                    else:
+                        sheet.write(row, col, val, workbook.add_format({"num_format": num_format}))
+                elif isinstance(val, DataValidation):
+                    val.write(xlsxdoc, sheet, row, col)
+            sheet.set_column_pixels(col, col, col_width)
+        sheet.freeze_panes(2, 1)
