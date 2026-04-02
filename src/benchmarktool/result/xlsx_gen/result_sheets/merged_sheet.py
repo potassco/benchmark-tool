@@ -51,8 +51,7 @@ class MergedRunSheet(ResultSheet):
                 row += 1
 
         self.result_offset = row
-        for idx, label in enumerate(["SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"], 1):
-            self.content.loc[self.result_offset + idx] = label
+        self._set_col_summary_headers(self.result_offset + 1)
 
         # fill missing rows
         self.content = (

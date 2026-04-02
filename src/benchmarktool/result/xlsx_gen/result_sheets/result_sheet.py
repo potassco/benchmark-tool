@@ -42,6 +42,16 @@ class ResultSheet(Sheet):
 
         self.prepare()
 
+    def _set_col_summary_headers(self, offset: int) -> None:
+        """
+        Set column summary header.
+
+        Attributes:
+            offset (int): Row offset for the summary headers.
+        """
+        for idx, label in enumerate(["SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"]):
+            self.content.loc[offset + idx, 0] = label
+
     def prepare(self) -> None:
         """
         Prepare the sheet.

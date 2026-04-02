@@ -45,8 +45,7 @@ class InstanceSheet(ResultSheet):
                     run_summary = False
 
         self.result_offset = row
-        for idx, label in enumerate(["SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"], 1):
-            self.content.loc[self.result_offset + idx] = label
+        self._set_col_summary_headers(self.result_offset + 1)
 
         # run summary
         if run_summary and self.runs and self.runs > 1:
@@ -60,10 +59,9 @@ class InstanceSheet(ResultSheet):
                 "input",
             )
 
-            for idx, label in enumerate(  # type: ignore[assignment]
-                ["Select run:", selection, "SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"], 10
-            ):
-                self.content.loc[self.result_offset + idx] = label
+            self.content.loc[self.result_offset + 10] = "Select run:"
+            self.content.loc[self.result_offset + 11] = selection
+            self._set_col_summary_headers(self.result_offset + 12)
 
         # fill missing rows
         self.content = (
