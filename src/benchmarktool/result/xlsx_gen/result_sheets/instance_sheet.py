@@ -122,7 +122,7 @@ class InstanceSheet(ResultSheet):
         """
         Finalize the results of the sheet.
         """
-        for column in self.content:
+        for column in self.content.loc[:, 1:]:
             name = self.content.at[1, column]
             if self.types.get(name, "") == "float":
                 self.float_occur.setdefault(name, set()).add(column)
@@ -168,7 +168,7 @@ class InstanceSheet(ResultSheet):
             return f"FILTER({base_range},MOD(ROW({base_range})-{choose_rows},{self.runs})=0)"
 
         run_select_cell = f"{get_cell_index(0, self.result_offset + 11, True, True)}"
-        for col in self.content:
+        for col in self.content.loc[:, 1:]:
             name = self.content.at[1, col]
             if self.types.get(name, "") == "float":
 

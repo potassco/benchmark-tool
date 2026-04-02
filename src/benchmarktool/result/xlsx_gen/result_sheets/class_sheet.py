@@ -139,7 +139,7 @@ class ClassSheet(ResultSheet):
         """
         Finalize the results of the sheet.
         """
-        for column in self.content:
+        for column in self.content.loc[:, 1:]:
             name = self.content.at[1, column]
             if self.types.get(name, "") == "classresult":
                 for row in range(2, self.result_offset):
@@ -166,7 +166,7 @@ class ClassSheet(ResultSheet):
         """
         Add column summary if applicable to column type.
         """
-        for col in self.content:
+        for col in self.content.loc[:, 1:]:
             name = self.content.at[1, col]
             if self.types.get(name, "") == "classresult":
 
