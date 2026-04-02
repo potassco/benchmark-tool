@@ -99,6 +99,12 @@ class TestMergedSheet(TestResultSheet):
             ),
         )
 
+    def test_set_col_summary_headers(self) -> None:
+        """
+        Tested via test_init, as it is called in prepare method.
+        """
+        return
+
     def test_add_runspec(self) -> None:
         """
         Test add_runspec, _add_merged_instance_results
@@ -152,13 +158,14 @@ class TestMergedSheet(TestResultSheet):
         self.sheet.result_offset = 4
         self.sheet.content = pd.DataFrame(
             {
-                0: [
+                0: [np.nan, "header", 1, 2],
+                1: [
                     np.nan,
                     "time",
                     {"inst_start": 0, "inst_end": 1, "value": 1},
                     {"inst_start": 2, "inst_end": 3, "value": 1},
                 ],
-                1: [np.nan, "col2", np.nan, np.nan],
+                2: [np.nan, "col2", np.nan, np.nan],
             }
         )
         self.sheet.types = {"time": "merged_runs", "col2": "None"}
@@ -169,25 +176,26 @@ class TestMergedSheet(TestResultSheet):
             self.sheet.content,
             pd.DataFrame(
                 {
-                    0: [
+                    0: [np.nan, "header", 1, 2],
+                    1: [
                         np.nan,
                         "time",
                         spreadsheet.Formula(
-                            '=SWITCH($A$2,"average", AVERAGE(Instances!A3:Instances!A4),'
-                            '"median", MEDIAN(Instances!A3:Instances!A4),'
-                            '"min", MIN(Instances!A3:Instances!A4),'
-                            '"max", MAX(Instances!A3:Instances!A4),'
-                            '"diff", MAX(Instances!A3:Instances!A4)-MIN(Instances!A3:Instances!A4))'
+                            '=SWITCH($A$2,"average", AVERAGE(Instances!B3:Instances!B4),'
+                            '"median", MEDIAN(Instances!B3:Instances!B4),'
+                            '"min", MIN(Instances!B3:Instances!B4),'
+                            '"max", MAX(Instances!B3:Instances!B4),'
+                            '"diff", MAX(Instances!B3:Instances!B4)-MIN(Instances!B3:Instances!B4))'
                         ),
                         spreadsheet.Formula(
-                            '=SWITCH($A$2,"average", AVERAGE(Instances!A5:Instances!A6),'
-                            '"median", MEDIAN(Instances!A5:Instances!A6),'
-                            '"min", MIN(Instances!A5:Instances!A6),'
-                            '"max", MAX(Instances!A5:Instances!A6),'
-                            '"diff", MAX(Instances!A5:Instances!A6)-MIN(Instances!A5:Instances!A6))'
+                            '=SWITCH($A$2,"average", AVERAGE(Instances!B5:Instances!B6),'
+                            '"median", MEDIAN(Instances!B5:Instances!B6),'
+                            '"min", MIN(Instances!B5:Instances!B6),'
+                            '"max", MAX(Instances!B5:Instances!B6),'
+                            '"diff", MAX(Instances!B5:Instances!B6)-MIN(Instances!B5:Instances!B6))'
                         ),
                     ],
-                    1: [np.nan, "col2", np.nan, np.nan],
+                    2: [np.nan, "col2", np.nan, np.nan],
                 }
             ),
             check_dtype=False,
@@ -196,14 +204,14 @@ class TestMergedSheet(TestResultSheet):
             self.sheet.values,
             pd.DataFrame(
                 {
-                    0: [1.0, 1.0],
+                    1: [1.0, 1.0],
                 },
                 index=[2, 3],
             ),
         )
         self.assertDictEqual(
             self.sheet.float_occur,
-            {"time": set([0])},
+            {"time": set([1])},
         )
 
     def test_obtain_values(self) -> None:
@@ -212,30 +220,30 @@ class TestMergedSheet(TestResultSheet):
         """
         self.sheet.content = pd.DataFrame(
             {
-                0: [
+                1: [
                     np.nan,
                     "time",
                     spreadsheet.Formula(
-                        '=SWITCH($A$2,"average", AVERAGE(Instances!A3:Instances!A4),'
-                        '"median", MEDIAN(Instances!A3:Instances!A4),'
-                        '"min", MIN(Instances!A3:Instances!A4),'
-                        '"max", MAX(Instances!A3:Instances!A4),'
-                        '"diff", MAX(Instances!A3:Instances!A4)-MIN(Instances!A3:Instances!A4))'
+                        '=SWITCH($A$2,"average", AVERAGE(Instances!B3:Instances!B4),'
+                        '"median", MEDIAN(Instances!B3:Instances!B4),'
+                        '"min", MIN(Instances!B3:Instances!B4),'
+                        '"max", MAX(Instances!B3:Instances!B4),'
+                        '"diff", MAX(Instances!B3:Instances!B4)-MIN(Instances!B3:Instances!B4))'
                     ),
                     spreadsheet.Formula(
-                        '=SWITCH($A$2,"average", AVERAGE(Instances!A5:Instances!A6),'
-                        '"median", MEDIAN(Instances!A5:Instances!A6),'
-                        '"min", MIN(Instances!A5:Instances!A6),'
-                        '"max", MAX(Instances!A5:Instances!A6),'
-                        '"diff", MAX(Instances!A5:Instances!A6)-MIN(Instances!A5:Instances!A6))'
+                        '=SWITCH($A$2,"average", AVERAGE(Instances!B5:Instances!B6),'
+                        '"median", MEDIAN(Instances!B5:Instances!B6),'
+                        '"min", MIN(Instances!B5:Instances!B6),'
+                        '"max", MAX(Instances!B5:Instances!B6),'
+                        '"diff", MAX(Instances!B5:Instances!B6)-MIN(Instances!B5:Instances!B6))'
                     ),
                 ],
-                1: [np.nan, "col2", np.nan, np.nan],
+                2: [np.nan, "col2", np.nan, np.nan],
             }
         )
         self.sheet.values = pd.DataFrame(
             {
-                0: [1.0, 1.0],
+                1: [1.0, 1.0],
             },
             index=[2, 3],
         )
@@ -246,8 +254,8 @@ class TestMergedSheet(TestResultSheet):
             self.sheet.values,
             pd.DataFrame(
                 {
-                    0: [np.nan, "time", 1.0, 1.0],
-                    1: [np.nan, "col2", np.nan, np.nan],
+                    1: [np.nan, "time", 1.0, 1.0],
+                    2: [np.nan, "col2", np.nan, np.nan],
                 }
             ),
             check_dtype=False,
@@ -259,36 +267,38 @@ class TestMergedSheet(TestResultSheet):
         """
         self.sheet.content = pd.DataFrame(
             {
-                0: [
-                    None,
-                    "col1",
-                    spreadsheet.Formula("=AVERAGE(Instances!A3:Instances!A4)"),
-                    spreadsheet.Formula("=AVERAGE(Instances!A5:Instances!A8)"),
-                ],
+                0: [np.nan, "header", 1, 2],
                 1: [
                     None,
-                    "col2",
-                    spreadsheet.Formula("=AVERAGE(Instances!A3:Instances!A4)"),
-                    spreadsheet.Formula("=AVERAGE(Instances!A5:Instances!A8)"),
+                    "col1",
+                    spreadsheet.Formula("=AVERAGE(Instances!B3:Instances!B4)"),
+                    spreadsheet.Formula("=AVERAGE(Instances!B5:Instances!B8)"),
                 ],
-                2: [None, "col3", None, None],
+                2: [
+                    None,
+                    "col2",
+                    spreadsheet.Formula("=AVERAGE(Instances!C3:Instances!C4)"),
+                    spreadsheet.Formula("=AVERAGE(Instances!C5:Instances!C8)"),
+                ],
+                3: [None, "col3", None, None],
             }
         )
         self.sheet.values = pd.DataFrame(
             {
-                0: [np.nan, "time", 1.0, 1.0],
-                1: [np.nan, "col2", np.nan, np.nan],
-                2: [np.nan, "col3", np.nan, np.nan],
+                0: [np.nan, "header", 1, 2],
+                1: [np.nan, "time", 1.0, 1.0],
+                2: [np.nan, "col2", np.nan, np.nan],
+                3: [np.nan, "col3", np.nan, np.nan],
             }
         )
         self.sheet.result_offset = 4
         self.sheet.types = {"col1": "merged_runs", "col2": "None", "col3": "merged_runs"}
         self.sheet.summary_refs = {
-            "min": {"col": 3, "col1": (5, "$E$3$E$6")},
+            "min": {"col": 4, "col1": (5, "$E$3$E$6")},
             "median": {"col1": (6, "$F$3$F$6")},
             "max": {"col1": (7, "$G$3$G$6")},
         }
 
         with patch.object(MergedRunSheet, "_add_default_col_summary_formulas") as add_def_sum:
             self.sheet.add_col_summary()
-            add_def_sum.assert_called_once_with(0, [(0, "A$3:A$4", "$E$3$E$6", "$F$3$F$6", "$G$3$G$6")])
+            add_def_sum.assert_called_once_with(1, [(0, "B$3:B$4", "$E$3$E$6", "$F$3$F$6", "$G$3$G$6")])

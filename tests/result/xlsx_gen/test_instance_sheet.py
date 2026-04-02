@@ -97,6 +97,12 @@ class TestInstSheet(TestResultSheet):
             ),
         )
 
+    def test_set_col_summary_headers(self) -> None:
+        """
+        Tested via test_init, as it is called in prepare method.
+        """
+        return
+
     def test_add_runspec(self) -> None:
         """
         Test add_runspec and _add_instance_result method.
@@ -131,8 +137,9 @@ class TestInstSheet(TestResultSheet):
         """
         self.sheet.content = pd.DataFrame(
             {
-                0: [None, "col1", 2, 3],
-                1: [None, "col2", 5, 6],
+                0: [None, "header", 1, 2],
+                1: [None, "col1", 2, 3],
+                2: [None, "col2", 5, 6],
             }
         )
         self.sheet.types = {"col1": "float", "col2": "string"}
@@ -141,7 +148,7 @@ class TestInstSheet(TestResultSheet):
 
         self.assertDictEqual(
             self.sheet.float_occur,
-            {"col1": set([0])},
+            {"col1": set([1])},
         )
 
     def test_obtain_values(self) -> None:
@@ -150,8 +157,8 @@ class TestInstSheet(TestResultSheet):
         """
         self.sheet.content = pd.DataFrame(
             {
-                0: [None, "col1", 2, 3],
-                1: [None, "col2", 5, 6],
+                1: [None, "col1", 2, 3],
+                2: [None, "col2", 5, 6],
             }
         )
 
@@ -168,16 +175,17 @@ class TestInstSheet(TestResultSheet):
         """
         self.sheet.content = pd.DataFrame(
             {
-                0: [None, "col1", 2, 3],
-                1: [None, "col2", 5, 6],
-                2: [None, "col3", None, None],
+                0: [None, "header", 1, 2],
+                1: [None, "col1", 2, 3],
+                2: [None, "col2", 5, 6],
+                3: [None, "col3", None, None],
             }
         )
         self.sheet.result_offset = 4
         self.sheet.types = {"col1": "float", "col2": "string", "col3": "float"}
         self.sheet.runs = 2
         self.sheet.summary_refs = {
-            "min": {"col": 3, "col1": (5, "$E$3$E$6")},
+            "min": {"col": 4, "col1": (5, "$E$3$E$6")},
             "median": {"col1": (6, "$F$3$F$6")},
             "max": {"col1": (7, "$G$3$G$6")},
         }
@@ -189,12 +197,12 @@ class TestInstSheet(TestResultSheet):
         ):
             self.sheet.add_col_summary()
             add_def_sum.assert_called_once_with(
-                0,
+                1,
                 [
-                    (0, "A$3:A$4", "$E$3$E$6", "$F$3$F$6", "$G$3$G$6"),
+                    (0, "B$3:B$4", "$E$3$E$6", "$F$3$F$6", "$G$3$G$6"),
                     (
                         11,
-                        "FILTER(A$3:A$4,MOD(ROW(A$3:A$4)-CHOOSE($A$16,ROW(A$3),ROW(A$4)),2)=0)",
+                        "FILTER(B$3:B$4,MOD(ROW(B$3:B$4)-CHOOSE($A$16,ROW(B$3),ROW(B$4)),2)=0)",
                         "FILTER($E$3$E$6,MOD(ROW($E$3$E$6)-CHOOSE($A$16,ROW($F$3),ROW($F$4)),2)=0)",
                         "FILTER($F$3$F$6,MOD(ROW($F$3$F$6)-CHOOSE($A$16,ROW($G$3),ROW($G$4)),2)=0)",
                         "FILTER($G$3$G$6,MOD(ROW($G$3$G$6)-CHOOSE($A$16,ROW($H$3),ROW($H$4)),2)=0)",
@@ -202,6 +210,6 @@ class TestInstSheet(TestResultSheet):
                 ],
             )
             args, _ = add_def_val.call_args
-            self.assertEqual(args[0], 0)
+            self.assertEqual(args[0], 1)
             self.assertEqual(args[1], "col1")
             np.testing.assert_array_equal(args[2], np.array([2.0, 3.0]))

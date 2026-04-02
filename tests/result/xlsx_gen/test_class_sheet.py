@@ -76,6 +76,12 @@ class TestClassSheet(TestResultSheet):
             ),
         )
 
+    def test_set_col_summary_headers(self) -> None:
+        """
+        Tested via test_init, as it is called in prepare method.
+        """
+        return
+
     def test_add_runspec(self) -> None:
         """
         Test add_runspec, _add_benchclass_summary,
@@ -122,13 +128,14 @@ class TestClassSheet(TestResultSheet):
         self.sheet.result_offset = 4
         self.sheet.content = pd.DataFrame(
             {
-                0: [
+                0: [np.nan, "header", 1, 2],
+                1: [
                     np.nan,
                     "time",
                     {"inst_start": 0, "inst_end": 1, "value": 8.5},
                     {"inst_start": 2, "inst_end": 5, "value": 1.275},
                 ],
-                1: [np.nan, "col2", np.nan, np.nan],
+                2: [np.nan, "col2", np.nan, np.nan],
             }
         )
         self.sheet.types = {"time": "classresult", "col2": "None"}
@@ -139,13 +146,14 @@ class TestClassSheet(TestResultSheet):
             self.sheet.content,
             pd.DataFrame(
                 {
-                    0: [
+                    0: [np.nan, "header", 1, 2],
+                    1: [
                         np.nan,
                         "time",
-                        spreadsheet.Formula("=AVERAGE(Instances!A3:Instances!A4)"),
-                        spreadsheet.Formula("=AVERAGE(Instances!A5:Instances!A8)"),
+                        spreadsheet.Formula("=AVERAGE(Instances!B3:Instances!B4)"),
+                        spreadsheet.Formula("=AVERAGE(Instances!B5:Instances!B8)"),
                     ],
-                    1: [np.nan, "col2", np.nan, np.nan],
+                    2: [np.nan, "col2", np.nan, np.nan],
                 }
             ),
             check_dtype=False,
@@ -154,14 +162,14 @@ class TestClassSheet(TestResultSheet):
             self.sheet.values,
             pd.DataFrame(
                 {
-                    0: [8.5, 1.275],
+                    1: [8.5, 1.275],
                 },
                 index=[2, 3],
             ),
         )
         self.assertDictEqual(
             self.sheet.float_occur,
-            {"time": set([0])},
+            {"time": set([1])},
         )
 
     def test_obtain_values(self) -> None:
@@ -170,18 +178,18 @@ class TestClassSheet(TestResultSheet):
         """
         self.sheet.content = pd.DataFrame(
             {
-                0: [
+                1: [
                     np.nan,
                     "time",
-                    spreadsheet.Formula("=AVERAGE(Instances!A3:Instances!A4)"),
-                    spreadsheet.Formula("=AVERAGE(Instances!A5:Instances!A8)"),
+                    spreadsheet.Formula("=AVERAGE(Instances!B3:Instances!B4)"),
+                    spreadsheet.Formula("=AVERAGE(Instances!B5:Instances!B8)"),
                 ],
-                1: [np.nan, "col2", np.nan, np.nan],
+                2: [np.nan, "col2", np.nan, np.nan],
             }
         )
         self.sheet.values = pd.DataFrame(
             {
-                0: [8.5, 1.275],
+                1: [8.5, 1.275],
             },
             index=[2, 3],
         )
@@ -192,8 +200,8 @@ class TestClassSheet(TestResultSheet):
             self.sheet.values,
             pd.DataFrame(
                 {
-                    0: [np.nan, "time", 8.5, 1.275],
-                    1: [np.nan, "col2", np.nan, np.nan],
+                    1: [np.nan, "time", 8.5, 1.275],
+                    2: [np.nan, "col2", np.nan, np.nan],
                 }
             ),
             check_dtype=False,
@@ -205,32 +213,34 @@ class TestClassSheet(TestResultSheet):
         """
         self.sheet.content = pd.DataFrame(
             {
-                0: [
-                    None,
-                    "col1",
-                    spreadsheet.Formula("=AVERAGE(Instances!A3:Instances!A4)"),
-                    spreadsheet.Formula("=AVERAGE(Instances!A5:Instances!A8)"),
-                ],
+                0: [np.nan, "header", 1, 2],
                 1: [
                     None,
-                    "col2",
-                    spreadsheet.Formula("=AVERAGE(Instances!A3:Instances!A4)"),
-                    spreadsheet.Formula("=AVERAGE(Instances!A5:Instances!A8)"),
+                    "col1",
+                    spreadsheet.Formula("=AVERAGE(Instances!B3:Instances!B4)"),
+                    spreadsheet.Formula("=AVERAGE(Instances!B5:Instances!B8)"),
                 ],
-                2: [None, "col3", None, None],
+                2: [
+                    None,
+                    "col2",
+                    spreadsheet.Formula("=AVERAGE(Instances!C3:Instances!C4)"),
+                    spreadsheet.Formula("=AVERAGE(Instances!C5:Instances!C8)"),
+                ],
+                3: [None, "col3", None, None],
             }
         )
         self.sheet.values = pd.DataFrame(
             {
-                0: [np.nan, "time", 8.5, 1.275],
-                1: [np.nan, "col2", np.nan, np.nan],
-                2: [np.nan, "col3", np.nan, np.nan],
+                0: [np.nan, "header", 1, 2],
+                1: [np.nan, "time", 8.5, 1.275],
+                2: [np.nan, "col2", np.nan, np.nan],
+                3: [np.nan, "col3", np.nan, np.nan],
             }
         )
         self.sheet.result_offset = 4
         self.sheet.types = {"col1": "classresult", "col2": "None", "col3": "classresult"}
         self.sheet.summary_refs = {
-            "min": {"col": 3, "col1": (5, "$E$3$E$6")},
+            "min": {"col": 4, "col1": (5, "$E$3$E$6")},
             "median": {"col1": (6, "$F$3$F$6")},
             "max": {"col1": (7, "$G$3$G$6")},
         }
@@ -240,8 +250,8 @@ class TestClassSheet(TestResultSheet):
             patch.object(ClassSheet, "_add_default_col_summary_values") as add_def_val,
         ):
             self.sheet.add_col_summary()
-            add_def_sum.assert_called_once_with(0, [(0, "A$3:A$4", "$E$3$E$6", "$F$3$F$6", "$G$3$G$6")])
+            add_def_sum.assert_called_once_with(1, [(0, "B$3:B$4", "$E$3$E$6", "$F$3$F$6", "$G$3$G$6")])
             args, _ = add_def_val.call_args
-            self.assertEqual(args[0], 0)
+            self.assertEqual(args[0], 1)
             self.assertEqual(args[1], "col1")
             np.testing.assert_array_equal(args[2], np.array([8.5, 1.275]))

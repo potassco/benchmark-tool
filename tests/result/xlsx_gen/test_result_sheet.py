@@ -46,6 +46,17 @@ class TestResultSheet(TestSheet):
         self.assertEqual(self.sheet.col_offset, 0)
         self.assertDictEqual(self.sheet.formats, {})
 
+    def test_set_col_summary_headers(self) -> None:
+        """
+        Test _set_col_summary_headers method.
+        """
+        self.sheet._set_col_summary_headers(2)
+        pd.testing.assert_frame_equal(
+            self.sheet.content,
+            pd.DataFrame({0: ["SUM", "AVG", "DEV", "DST", "BEST", "BETTER", "WORSE", "WORST"]}, index=range(2, 10)),
+            check_dtype=False,
+        )
+
     def test_add_runspec(self) -> None:
         """
         Test add_runspec method.
