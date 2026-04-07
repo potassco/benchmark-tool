@@ -37,9 +37,12 @@ You can chose to export the instance data to a `.parquet` file using the `-e, --
 option. The name of the file will be the same as the specified output, i.e. `-o res.xlsx -e`
 -> `res.parquet`.
 
+For large result files, generating the chart-related sheets can take noticeable time.
+Use `--no-charts` to skip creating these sheets.
+
 ## Spreadsheet Generation
 
-When generating a spreadsheet in XLSX format, two sheets are created:
+When generating a spreadsheet in XLSX format, normally five sheets are created:
 
 1. **Instance Sheet**
     - The instance sheet lists all runs for each benchmark instance (rows) and
