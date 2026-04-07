@@ -84,7 +84,7 @@ class TestParser(TestCase):
             args.func(args)
             parse_mock.assert_called_once_with(sys.stdin)
             result_mock.gen_spreadsheet.assert_called_once_with(
-                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300, True
             )
 
             parse_mock.reset_mock()
@@ -92,7 +92,15 @@ class TestParser(TestCase):
             args = self.parser.parse_args(["conv", "-e"])
             args.func(args)
             result_mock.gen_spreadsheet.assert_called_once_with(
-                "out.xlsx", set(), {"time": "t", "timeout": "to"}, True, 300
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, True, 300, True
+            )
+
+            parse_mock.reset_mock()
+            result_mock.gen_spreadsheet.reset_mock()
+            args = self.parser.parse_args(["conv", "--no-charts"])
+            args.func(args)
+            result_mock.gen_spreadsheet.assert_called_once_with(
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300, False
             )
 
             parse_mock.reset_mock()
@@ -112,7 +120,7 @@ class TestParser(TestCase):
             )
             args.func(args)
             parse_mock.assert_called_once()
-            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, {}, False, 50)
+            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, {}, False, 50, True)
 
             ex_file = mock.Mock()
             result_mock.gen_spreadsheet.return_value = ex_file

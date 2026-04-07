@@ -2,7 +2,6 @@
 Test cases for xlsx file generation.
 """
 
-import os
 from unittest import TestCase
 from unittest.mock import MagicMock, Mock, call, patch
 
@@ -380,6 +379,17 @@ class TestXLSXDoc(TestCase):
         self.assertIsInstance(self.doc.merged_sheet, MergedRunSheet)
         self.assertIsInstance(self.doc.helper_sheet, HelperSheet)
         self.assertIsInstance(self.doc.chart_sheet, ChartSheet)
+        self.assertEqual(self.doc.max_col_width, 300)
+        self.assertTrue(self.doc.charts)
+
+        doc = xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)], 50, False)
+        self.assertIsInstance(doc.inst_sheet, InstanceSheet)
+        self.assertIsInstance(doc.class_sheet, ClassSheet)
+        self.assertIsInstance(doc.merged_sheet, MergedRunSheet)
+        self.assertIsNone(doc.helper_sheet)
+        self.assertIsNone(doc.chart_sheet)
+        self.assertEqual(doc.max_col_width, 50)
+        self.assertFalse(doc.charts)
 
     def test_add_runspec(self) -> None:
         """
@@ -398,41 +408,68 @@ class TestXLSXDoc(TestCase):
         """
         Test finalize method.
         """
-        self.doc.inst_sheet.finalize = Mock()
-        self.doc.class_sheet.finalize = Mock()
-        self.doc.merged_sheet.finalize = Mock()
-        self.doc.helper_sheet.finalize = Mock()
-        self.doc.chart_sheet.finalize = Mock()
-        self.doc.finalize()
-        self.doc.inst_sheet.finalize.assert_called_once()
-        self.doc.class_sheet.finalize.assert_called_once()
-        self.doc.merged_sheet.finalize.assert_called_once()
-        self.doc.helper_sheet.finalize.assert_called_once()
-        self.doc.chart_sheet.finalize.assert_called_once_with(self.doc.helper_sheet)
+        cases = [
+            (self.doc, True),
+            (xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)], charts=False), False),
+        ]
+
+        for doc, charts_enabled in cases:
+            doc.inst_sheet.finalize = Mock()
+            doc.class_sheet.finalize = Mock()
+            doc.merged_sheet.finalize = Mock()
+            if doc.helper_sheet is not None:
+                doc.helper_sheet.finalize = Mock()
+            if doc.chart_sheet is not None:
+                doc.chart_sheet.finalize = Mock()
+
+            doc.finalize()
+
+            doc.inst_sheet.finalize.assert_called_once()
+            doc.class_sheet.finalize.assert_called_once()
+            doc.merged_sheet.finalize.assert_called_once()
+
+            if charts_enabled:
+                self.assertIsNotNone(doc.helper_sheet)
+                self.assertIsNotNone(doc.chart_sheet)
+                doc.helper_sheet.finalize.assert_called_once()
+                doc.chart_sheet.finalize.assert_called_once_with(doc.helper_sheet)
 
     def test_make_xlsx(self) -> None:
         """
         Test make_xlsx and write_col method.
         """
-        self.doc.inst_sheet.content = pd.DataFrame([None, None, "test"])
-        self.doc.merged_sheet.content = pd.DataFrame([None, None, "test"])
-        self.doc.class_sheet.content = pd.DataFrame([None, None, "test"])
-        self.doc.helper_sheet.content = pd.DataFrame([None, None, "test"])
-        self.doc.chart_sheet.content = pd.DataFrame([None, None, "test"])
+        cases = [
+            (self.doc, True),
+            (xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)], charts=False), False),
+        ]
 
-        with (
-            patch.object(ResultSheet, "write_sheet", autospec=True) as res_write_sheet,
-            patch.object(ChartSheet, "write_sheet", autospec=True) as chart_write_sheet,
-            patch.object(HelperSheet, "write_sheet", autospec=True) as helper_write_sheet,
-        ):
-            self.doc.make_xlsx("./tests/ref/new_xlsx.xlsx")
-            res_write_sheet.assert_has_calls(
-                [
-                    (call(self.doc.inst_sheet, self.doc)),
-                    (call(self.doc.merged_sheet, self.doc)),
-                    (call(self.doc.class_sheet, self.doc)),
-                ]
-            )
-            chart_write_sheet.assert_called_once_with(self.doc.chart_sheet, self.doc)
-            helper_write_sheet.assert_called_once_with(self.doc.helper_sheet, self.doc)
-        os.remove("./tests/ref/new_xlsx.xlsx")
+        for doc, charts_enabled in cases:
+            doc.inst_sheet.content = pd.DataFrame([None, None, "test"])
+            doc.merged_sheet.content = pd.DataFrame([None, None, "test"])
+            doc.class_sheet.content = pd.DataFrame([None, None, "test"])
+            if doc.helper_sheet is not None and doc.chart_sheet is not None:
+                doc.helper_sheet.content = pd.DataFrame([None, None, "test"])
+                doc.chart_sheet.content = pd.DataFrame([None, None, "test"])
+
+            with (
+                patch.object(ResultSheet, "write_sheet", autospec=True) as res_write_sheet,
+                patch.object(ChartSheet, "write_sheet", autospec=True) as chart_write_sheet,
+                patch.object(HelperSheet, "write_sheet", autospec=True) as helper_write_sheet,
+                patch("benchmarktool.result.xlsx_gen.xlsx_gen.Workbook", autospec=True),
+            ):
+                doc.make_xlsx("./out/path.xlsx")
+                res_write_sheet.assert_has_calls(
+                    [
+                        (call(doc.inst_sheet, doc)),
+                        (call(doc.merged_sheet, doc)),
+                        (call(doc.class_sheet, doc)),
+                    ]
+                )
+                if charts_enabled:
+                    self.assertIsNotNone(doc.chart_sheet)
+                    self.assertIsNotNone(doc.helper_sheet)
+                    chart_write_sheet.assert_called_once_with(doc.chart_sheet, doc)
+                    helper_write_sheet.assert_called_once_with(doc.helper_sheet, doc)
+                else:
+                    chart_write_sheet.assert_not_called()
+                    helper_write_sheet.assert_not_called()
