@@ -53,6 +53,7 @@ class Result:
         measures: dict[str, Any],
         export: bool = False,
         max_col_width: int = 300,
+        charts: bool = True,
     ) -> Optional[str]:
         """
         Prints the current result in Microsoft Excel Spreadsheet format (XLSX).
@@ -64,6 +65,7 @@ class Result:
             measures (dict[str, Any]):        The measures to extract.
             export (bool):                    Whether to export the raw values as parquet file.
             max_col_width (int):              The maximum column width for spreadsheet.
+            charts (bool):                    Whether to add charts to the spreadsheet.
         """
         projects: list[Project] = []
         for project in self.projects.values():
@@ -71,7 +73,7 @@ class Result:
                 projects.append(project)
         benchmark_merge = self.merge(projects)
 
-        doc = XLSXDoc(benchmark_merge, measures, max_col_width)
+        doc = XLSXDoc(benchmark_merge, measures, max_col_width, charts)
         for project in projects:
             for runspec in project:
                 doc.add_runspec(runspec)

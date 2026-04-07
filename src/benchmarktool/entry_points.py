@@ -43,7 +43,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         else:
             res = p.parse(sys.stdin)
         export: bool = args.export
-        res.gen_spreadsheet(args.output, args.projects, args.measures, export, args.max_col_width)
+        res.gen_spreadsheet(args.output, args.projects, args.measures, export, args.max_col_width, args.charts)
 
     def parse_set(s: str) -> set[str]:
         return set(filter(None, (x.strip() for x in s.split(","))))
@@ -112,6 +112,12 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
             """
         ),
         metavar="<measure[:{t,to,-}][,measure[:{t,to,-}],...]>",
+    )
+    conv_parser.add_argument(
+        "--no-charts",
+        action="store_false",
+        help="Do not add charts to the generated spreadsheet",
+        dest="charts",
     )
     conv_parser.add_argument(
         "-e",

@@ -27,7 +27,13 @@ class XLSXDoc:
     Class representing XLSX document.
     """
 
-    def __init__(self, benchmark: "result.BenchmarkMerge", measures: dict[str, Any], max_col_width: int = 300):
+    def __init__(
+        self,
+        benchmark: "result.BenchmarkMerge",
+        measures: dict[str, Any],
+        max_col_width: int = 300,
+        charts: bool = True,
+    ):
         """
         Setup Instance and Class sheet.
 
@@ -35,6 +41,28 @@ class XLSXDoc:
             benchmark (BenchmarkMerge):       BenchmarkMerge object.
             measures (dict[str, Any]): Measures to be displayed.
         """
+        self.charts = charts
+
+        self.inst_sheet: InstanceSheet = InstanceSheet("Instances", benchmark, measures)
+        self.merged_sheet: MergedRunSheet = MergedRunSheet("Merged Runs", benchmark, measures, self.inst_sheet)
+        self.class_sheet: ClassSheet = ClassSheet("Classes", benchmark, measures, self.inst_sheet)
+
+        self.chart_sheet: Optional[ChartSheet]
+        self.helper_sheet: Optional[HelperSheet]
+        if self.charts:
+            self.chart_sheet = ChartSheet("Charts", benchmark, measures, self.inst_sheet)
+            self.helper_sheet = HelperSheet(
+                name="Helper",
+                benchmark=benchmark,
+                measures=measures,
+                instance_sheet=self.inst_sheet,
+                merged_run_sheet=self.merged_sheet,
+                chart_sheet=self.chart_sheet,
+            )
+        else:
+            self.chart_sheet = None
+            self.helper_sheet = None
+
         self.workbook: Optional[Workbook] = None
         self.max_col_width = max_col_width
         self.header_width = 80
@@ -51,19 +79,6 @@ class XLSXDoc:
             "formula": "0.00",
             "to": "0",
         }
-
-        self.inst_sheet = InstanceSheet("Instances", benchmark, measures)
-        self.merged_sheet = MergedRunSheet("Merged Runs", benchmark, measures, self.inst_sheet)
-        self.class_sheet = ClassSheet("Classes", benchmark, measures, self.inst_sheet)
-        self.chart_sheet = ChartSheet("Charts", benchmark, measures, self.inst_sheet)
-        self.helper_sheet = HelperSheet(
-            name="Helper",
-            benchmark=benchmark,
-            measures=measures,
-            instance_sheet=self.inst_sheet,
-            merged_run_sheet=self.merged_sheet,
-            chart_sheet=self.chart_sheet,
-        )
 
     def add_runspec(self, runspec: "result.Runspec") -> None:
         """
@@ -82,8 +97,11 @@ class XLSXDoc:
         self.merged_sheet.finalize()
         self.class_sheet.finalize()
 
-        self.helper_sheet.finalize()
-        self.chart_sheet.finalize(self.helper_sheet)
+        helper = self.helper_sheet
+        chart = self.chart_sheet
+        if helper is not None and chart is not None:
+            helper.finalize()
+            chart.finalize(helper)
 
     def make_xlsx(self, out: str) -> None:
         """
@@ -94,6 +112,12 @@ class XLSXDoc:
         """
         self.workbook = Workbook(out)
 
-        for sheet in (self.inst_sheet, self.merged_sheet, self.class_sheet, self.helper_sheet, self.chart_sheet):
+        for sheet in (self.inst_sheet, self.merged_sheet, self.class_sheet):
             sheet.write_sheet(self)
+
+        helper = self.helper_sheet
+        chart = self.chart_sheet
+        if helper is not None and chart is not None:
+            helper.write_sheet(self)
+            chart.write_sheet(self)
         self.workbook.close()
