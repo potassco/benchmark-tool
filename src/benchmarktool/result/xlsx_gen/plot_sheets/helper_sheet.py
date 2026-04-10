@@ -504,6 +504,10 @@ class HelperSheet(Sheet):
             col += 1
             self.start_cols[sheet] = col
             for setting in range(self.setting_n):
+                # pre-create all columns of the current table block with object dtype.
+                for block_col in range(col, col + 4):
+                    if block_col not in self.content.columns:
+                        self.content[block_col] = None
                 # setting refs
                 self._add_setting_headers(
                     sheet_ref=sheet_ref,
