@@ -439,14 +439,14 @@ class TestHelperSheet(TestSheet):
 
         self.assertDictEqual(self.sheet.float_occur, {"time": [1, 3], "timeout": [2, 4]})
         self.assertEqual(self.sheet.setting_n, 2)
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    0: pd.Series([None, "time", "timeout"], dtype=object),
-                    1: pd.Series([None, 1.0, 2.0], dtype=object),
-                },
-            ),
+        pd.testing.assert_series_equal(
+            self.sheet.content[0],
+            pd.Series([None, "time", "timeout"], dtype=object, name=0),
+            check_dtype=False,
+        )
+        pd.testing.assert_series_equal(
+            self.sheet.content[1],
+            pd.Series([None, 1.0, 2.0], dtype=object, name=1),
             check_dtype=False,
         )
 
@@ -478,14 +478,14 @@ class TestHelperSheet(TestSheet):
 
         self.assertDictEqual(self.sheet.float_occur, {"time": [1], "timeout": [2]})
         self.assertEqual(self.sheet.setting_n, 1)
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    0: pd.Series([None, "time", "timeout"], dtype=object),
-                    1: pd.Series([None, 1.0, 2.0], dtype=object),
-                },
-            ),
+        pd.testing.assert_series_equal(
+            self.sheet.content[0],
+            pd.Series([None, "time", "timeout"], dtype=object, name=0),
+            check_dtype=False,
+        )
+        pd.testing.assert_series_equal(
+            self.sheet.content[1],
+            pd.Series([None, 1.0, 2.0], dtype=object, name=1),
             check_dtype=False,
         )
 
