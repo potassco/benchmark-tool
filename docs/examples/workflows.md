@@ -3,7 +3,7 @@
 
 This page gives some examples on how to use the benchmark tool.
 
-To get started install the benchmark tool as described [here][install], call `btool init`
+To get started, install the benchmark tool as described [here][install], call `btool init`
 and copy (or symlink) the two executables [clasp-3.4.0][1] and [runlim][2]
 into the `./programs` folder.
 
