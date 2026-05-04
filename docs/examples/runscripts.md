@@ -3,7 +3,7 @@
 
 A collection of example runscripts to help you get started can be found in the  
 `./runscripts` directory after executing `btool init`.  
-Alternatively you can also find them below.
+Alternatively, you can find them below.
 
 `runscript-example.xml` gives a small example on how basic sequential
 and cluster benchmarks can be defined.
@@ -121,7 +121,7 @@ additional features.
   ```
 </details>
 
-`runscript-all` is a try to create a runscript using all available features.
+`runscript-all` is an attempt to create a runscript using all available features.
 
 <details>
   <summary>
