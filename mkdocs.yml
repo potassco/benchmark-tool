@@ -136,7 +136,10 @@ nav:
     - conv:
       - getting_started/conv/index.md
 
-  - Examples: examples/index.md
+  - Examples:
+    - examples/index.md
+    - Runscripts: examples/runscripts.md
+    - Workflows: examples/workflows.md
   - Reference:
     - reference/index.md
     - Glossary: reference/glossary.md
