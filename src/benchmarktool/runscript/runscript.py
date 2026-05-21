@@ -95,10 +95,10 @@ class System:
             f'{indent}<system name="{self.name}" version="{self.version}" '
             f'measures="{self.measures}" config="{self.config.name}"'
         )
-        if self.cmdline.get("pre"):
-            out.write(f' cmdline="{self.cmdline["pre"]}"')
-        if self.cmdline.get("post"):
-            out.write(f' cmdline_post="{self.cmdline["post"]}"')
+        if pre := self.cmdline.get("pre"):
+            out.write(f' cmdline="{pre}"')
+        if post := self.cmdline.get("post"):
+            out.write(f' cmdline_post="{post}"')
         out.write(">\n")
         if settings is None:
             settings = list(self.settings.values())
@@ -148,10 +148,10 @@ class Setting:
         """
         tag = " ".join(sorted(self.tag))
         out.write(f'{indent}<setting name="{self.name}" tag="{tag}"')
-        if self.cmdline.get("pre"):
-            out.write(f' cmdline="{self.cmdline["pre"]}"')
-        if self.cmdline.get("post"):
-            out.write(f' cmdline_post="{self.cmdline["post"]}"')
+        if pre := self.cmdline.get("pre"):
+            out.write(f' cmdline="{pre}"')
+        if post := self.cmdline.get("post"):
+            out.write(f' cmdline_post="{post}"')
         if self.dist_template is not None:
             out.write(f' dist_template="{self.dist_template}"')
         for key, val in self.attr.items():
@@ -164,7 +164,7 @@ class Setting:
                 if enctag == "_default_":
                     out.write(f'{indent}\t<encoding file="{enc}"/>\n')
                 else:
-                    out.write(f'{indent}\t<encoding file="{enc}" tag="{enctag}"/>\n')
+                    out.write(f'{indent}\t<encoding file="{enc}" encoding_tag="{enctag}"/>\n')
         out.write(f"{indent}</setting>\n")
 
 
@@ -215,8 +215,11 @@ class Job:
         """
         out.write(
             f'{indent}<{xmltag} name="{self.name}" timeout="{self.timeout}" memout="{self.memout}" '
-            f'runs="{self.runs}" template_options="{self.template_options}"{extra}'
+            f'runs="{self.runs}"'
         )
+        if self.template_options != "":
+            out.write(f' template_options="{self.template_options}"')
+        out.write(extra)
         for key, val in self.attr.items():
             out.write(f' {key}="{val}"')
         out.write("/>\n")
@@ -850,13 +853,17 @@ class Benchmark:
                 indent (str): Amount of indentation
             """
             out.write(f'{indent}<instance name="{self.name}" id="{self.id}"')
-            if self.cmdline.get("pre"):
-                out.write(f' cmdline="{self.cmdline["pre"]}"')
-            if self.cmdline.get("post"):
-                out.write(f' cmdline_post="{self.cmdline["post"]}"')
+            if pre := self.cmdline.get("pre"):
+                out.write(f' cmdline="{pre}"')
+            if post := self.cmdline.get("post"):
+                out.write(f' cmdline_post="{post}"')
+            if enctags := " ".join(self.enctags):
+                out.write(f' enctags="{enctags}"')
             out.write(">\n")
             for instance in sorted(self.files):
                 out.write(f'{indent}\t<file name="{instance}"/>\n')
+            for encoding in sorted(self.encodings):
+                out.write(f'{indent}\t<encoding name="{encoding}"/>\n')
             out.write(f"{indent}</instance>\n")
 
         def paths(self) -> Iterator[str]:
