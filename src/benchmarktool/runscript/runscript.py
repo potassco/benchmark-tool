@@ -858,12 +858,12 @@ class Benchmark:
             if post := self.cmdline.get("post"):
                 out.write(f' cmdline_post="{post}"')
             if enctags := " ".join(self.enctags):
-                out.write(f' enctags="{enctags}"')
+                out.write(f' encoding_tag="{enctags}"')
             out.write(">\n")
             for instance in sorted(self.files):
                 out.write(f'{indent}\t<file name="{instance}"/>\n')
             for encoding in sorted(self.encodings):
-                out.write(f'{indent}\t<encoding name="{encoding}"/>\n')
+                out.write(f'{indent}\t<encoding file="{encoding}"/>\n')
             out.write(f"{indent}</instance>\n")
 
         def paths(self) -> Iterator[str]:
