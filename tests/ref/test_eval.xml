@@ -1,17 +1,21 @@
 <result>
 	<machine name="test_machine" cpu="test_cpu" memory="test_mem"/>
 	<config name="test_config" template="templates/seq-test.sh"/>
-	<system name="test_sys" version="1.0.0" measures="test" config="test_config">
-		<setting name="test_setting0" cmdline="test_cmdline" tag="basic"/>
-		<setting name="test_setting1" cmdline="test_cmdline" tag="basic"/>
+	<system name="test_sys" version="1.0.0" measures="test" config="test_config" cmdline="test_cmdline" cmdline_post="test_cmdline_post">
+		<setting name="test_setting0" cmdline="test_cmdline" cmdline_post="test_cmdline_post"  tag="basic" dist_template="test_dist_template" attr="test" dist_options="test_dist_options">
+			<encoding file="test_default_encoding.lp"/>
+			<encoding file="test_encoding2.lp" encoding_tag="test_encoding2"/>
+		</setting>
+		<setting name="test_setting1" tag="basic"/>
 		<setting name="test_setting2" cmdline="test_cmdline" tag="basic"/>
 	</system>
-	<seqjob name="test_seq" timeout="10" runs="2" parallel="1"/>
-	<distjob name="test_dist" timeout="10" runs="2" script_mode="timeout" walltime="70000" partition="test_partition"/>
+	<seqjob name="test_seq" timeout="10" memout="5000" runs="2" template_options="test_op" parallel="1"/>
+	<distjob name="test_dist" timeout="10" memout="3000" runs="2" template_options="test_op" script_mode="timeout" walltime="70000" cpt="2" partition="test_partition"/>
 	<benchmark name="test_bench">
 		<class name="test_class0" id="0">
-			<instance name="test_inst00" id="0">
+			<instance name="test_inst00" id="0" cmdline="test_cmdline" cmdline_post="test_cmdline_post" encoding_tag="problem1">
 				<file name="test_inst00.lp"/>
+				<encoding file="test_inst_encoding.lp"/>
 			</instance>
 		</class>
 		<class name="test_class1" id="1">

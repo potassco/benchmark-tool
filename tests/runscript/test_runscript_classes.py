@@ -141,8 +141,8 @@ class TestSetting(TestCase):
             '\t<setting name="name" tag="tag1 tag2" '
             'dist_template="template" dist_options="#SBATCH --test=1,#SBATCH --opt=test">\n'
             '\t\t<encoding file="def.lp"/>\n'
-            '\t\t<encoding file="test1.lp" tag="test"/>\n'
-            '\t\t<encoding file="test2.lp" tag="test"/>\n'
+            '\t\t<encoding file="test1.lp" encoding_tag="test"/>\n'
+            '\t\t<encoding file="test2.lp" encoding_tag="test"/>\n'
             "\t</setting>\n",
         )
 
@@ -157,7 +157,10 @@ class TestJob(TestCase):
         self.timeout = 20
         self.runs = 2
         self.attr = {"key": "val"}
-        self.j = runscript.Job(name=self.name, timeout=self.timeout, runs=self.runs, attr=self.attr)
+        self.template_options = "test_opt"
+        self.j = runscript.Job(
+            name=self.name, timeout=self.timeout, runs=self.runs, attr=self.attr, template_options=self.template_options
+        )
 
     # pylint: disable=pointless-statement
     def test_eq(self):
@@ -192,14 +195,16 @@ class TestJob(TestCase):
         """
         Test _to_xml method.
         """
-        self.j = runscript.Job(name=self.name, timeout=self.timeout, runs=self.runs, attr=self.attr)
+        self.j = runscript.Job(
+            name=self.name, timeout=self.timeout, runs=self.runs, attr=self.attr, template_options=self.template_options
+        )
         o = io.StringIO()
         tag = "tag"
         extra = " extra"
         self.j._to_xml(o, "\t", tag, extra)
         self.assertEqual(
             o.getvalue(),
-            '\t<tag name="name" timeout="20" memout="20000" runs="2" template_options="" extra key="val"/>\n',
+            '\t<tag name="name" timeout="20" memout="20000" runs="2" template_options="test_opt" extra key="val"/>\n',
         )
 
     def test_script_gen(self):
@@ -727,7 +732,7 @@ class TestInstance(TestCase):
         self.name = "inst_name"
         self.files = {"file.lp"}
         self.encodings = {"encoding"}
-        self.enctags = set()
+        self.enctags = {"tag"}
         self.ins = runscript.Benchmark.Instance(
             self.location, self.benchclass, self.name, self.files, self.encodings, self.enctags
         )
@@ -744,8 +749,8 @@ class TestInstance(TestCase):
         ins.to_xml(o, "\t")
         self.assertEqual(
             o.getvalue(),
-            '\t<instance name="inst_name" id="2" cmdline="pre" cmdline_post="post">\n'
-            '\t\t<file name="file.lp"/>\n\t</instance>\n',
+            '\t<instance name="inst_name" id="2" cmdline="pre" cmdline_post="post" encoding_tag="tag">\n'
+            '\t\t<file name="file.lp"/>\n\t\t<encoding file="encoding"/>\n\t</instance>\n',
         )
 
     def test_path(self):

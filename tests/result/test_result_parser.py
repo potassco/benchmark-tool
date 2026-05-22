@@ -43,8 +43,9 @@ class TestParser(TestCase):
         self.assertIsInstance(system, result.System)
         self.assertEqual(system.name, "test_sys")
         self.assertEqual(system.version, "1.0.0")
-        self.assertEqual(system.config, "test_config")
+        self.assertEqual(system.config, config)
         self.assertEqual(system.measures, "test")
+        self.assertDictEqual(system.cmdline, {"pre": "test_cmdline", "post": "test_cmdline_post"})
         self.assertEqual(system.order, 0)
 
         # settings
@@ -53,15 +54,17 @@ class TestParser(TestCase):
         self.assertIsInstance(setting, result.Setting)
         self.assertEqual(setting.system.name, "test_sys")
         self.assertEqual(setting.name, "test_setting0")
-        self.assertEqual(setting.cmdline, "test_cmdline")
+        self.assertDictEqual(setting.cmdline, {"pre": "test_cmdline", "post": "test_cmdline_post"})
         self.assertEqual(setting.tag, "basic")
+        self.assertEqual(setting.dist_template, "test_dist_template")
+        self.assertEqual(setting.dist_options, "test_dist_options")
         self.assertEqual(setting.order, 0)
-        self.assertDictEqual(setting.attr, {})
+        self.assertDictEqual(setting.attr, {"attr": "test"})
         setting = system.settings["test_setting2"]
         self.assertIsInstance(setting, result.Setting)
         self.assertEqual(setting.system.name, "test_sys")
         self.assertEqual(setting.name, "test_setting2")
-        self.assertEqual(setting.cmdline, "test_cmdline")
+        self.assertDictEqual(setting.cmdline, {"pre": "test_cmdline", "post": ""})
         self.assertEqual(setting.tag, "basic")
         self.assertEqual(setting.order, 2)
         self.assertDictEqual(setting.attr, {})
@@ -72,14 +75,18 @@ class TestParser(TestCase):
         self.assertIsInstance(seq_job, result.SeqJob)
         self.assertEqual(seq_job.name, "test_seq")
         self.assertEqual(seq_job.timeout, 10)
+        self.assertEqual(seq_job.memout, 5000)
         self.assertEqual(seq_job.runs, 2)
+        self.assertEqual(seq_job.template_options, "test_op")
         self.assertEqual(seq_job.parallel, 1)
         self.assertDictEqual(seq_job.attr, {})
         dist_job = res.jobs["test_dist"]
         self.assertIsInstance(dist_job, result.DistJob)
         self.assertEqual(dist_job.name, "test_dist")
         self.assertEqual(dist_job.timeout, 10)
+        self.assertEqual(dist_job.memout, 3000)
         self.assertEqual(dist_job.runs, 2)
+        self.assertEqual(dist_job.template_options, "test_op")
         self.assertEqual(dist_job.script_mode, "timeout")
         self.assertEqual(dist_job.walltime, "70000")
         self.assertEqual(dist_job.partition, "test_partition")
@@ -106,12 +113,22 @@ class TestParser(TestCase):
 
         # instances
         self.assertEqual(len(benchclass.instances), 2)
+        inst = benchclass.instances[1]
+        self.assertIsInstance(inst, result.Instance)
+        self.assertEqual(inst.benchclass, benchclass)
+        self.assertEqual(inst.name, "test_inst11")
+        self.assertEqual(inst.id, 1)
+        self.assertDictEqual(inst.values, {"row": 0, "max_runs": 0})
+        self.assertDictEqual(inst.cmdline, {"pre": "", "post": ""})
+        benchclass = bench.classes[0]
+        self.assertEqual(len(benchclass.instances), 1)
         inst = benchclass.instances[0]
         self.assertIsInstance(inst, result.Instance)
         self.assertEqual(inst.benchclass, benchclass)
-        self.assertEqual(inst.name, "test_inst10")
+        self.assertEqual(inst.name, "test_inst00")
         self.assertEqual(inst.id, 0)
         self.assertDictEqual(inst.values, {"row": 0, "max_runs": 0})
+        self.assertDictEqual(inst.cmdline, {"pre": "test_cmdline", "post": "test_cmdline_post"})
 
         # projects
         self.assertEqual(len(res.projects), 2)
