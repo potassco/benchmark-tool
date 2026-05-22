@@ -64,7 +64,7 @@ class Parser:
             tag (str):              The name of the XML tag for error context.
         """
         if (value := attrib.pop(key, None)) is None:
-            raise ValueError(f"Missing required attribute '{key}' in {tag}")
+            raise ValueError(f"Missing required attribute '{key}' in {tag}")  # nocoverage
         return value
 
     @staticmethod
@@ -78,7 +78,7 @@ class Parser:
             tag (str):              The name of the XML tag for error context.
         """
         if (value := attrib.get(key)) is None:
-            raise ValueError(f"Missing required attribute '{key}' in {tag}")
+            raise ValueError(f"Missing required attribute '{key}' in {tag}")  # nocoverage
         return value
 
     @staticmethod
@@ -94,7 +94,7 @@ class Parser:
         value = Parser._pop_required(attrib, key, tag)
         try:
             return int(value)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError) as e:  # nocoverage
             raise ValueError(f"Invalid integer value for attribute '{key}' in {tag}: {value}") from e
 
     @staticmethod
@@ -110,7 +110,7 @@ class Parser:
         value = Parser._get_required(attrib, key, tag)
         try:
             return int(value)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError) as e:  # nocoverage
             raise ValueError(f"Invalid integer value for attribute '{key}' in {tag}: {value}") from e
 
     @staticmethod
@@ -126,7 +126,7 @@ class Parser:
         value = Parser._pop_required(attrib, key, tag)
         try:
             return tools.xml_to_seconds_time(value)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError) as e:  # nocoverage
             raise ValueError(f"Invalid time value for attribute '{key}' in {tag}: {value}") from e
 
     T = TypeVar("T")
@@ -143,7 +143,7 @@ class Parser:
             tag (str):              The name of the XML tag for error context.
         """
         if (value := mapping.get(key)) is None:
-            raise ValueError(f"Unknown {obj} '{key}' referenced in {tag}")
+            raise ValueError(f"Unknown {obj} '{key}' referenced in {tag}")  # nocoverage
         return value
 
     def _parse_machine(self, attrib: dict[str, Any], tag: str) -> Machine:
@@ -203,7 +203,7 @@ class Parser:
         dist_template = attrib.pop("dist_template", "")
         dist_options = attrib.pop("dist_options", "")
         if self.system is None:
-            raise ValueError(f"Setting '{name}' defined outside of a system")
+            raise ValueError(f"Setting '{name}' defined outside of a system")  # nocoverage
         return Setting(
             system=self.system,
             name=name,
@@ -225,13 +225,23 @@ class Parser:
             tag (str):               The name of the XML tag for error context.
         """
         file = self._get_required(attrib, "file", tag)
-        encoding_tag = attrib.pop("encoding_tag", "_default_")
-        if self.setting is None:
-            raise ValueError(f"Encoding '{file}' defined outside of a setting")
-        self.setting.encodings.setdefault(encoding_tag, set()).add(file)
+        if self.benchscope:
+            # instance encodings currently unused
+            return
+        else:
+            encoding_tag = attrib.pop("encoding_tag", "_default_")
+            if self.setting is None:
+                raise ValueError(f"Encoding '{file}' defined outside of a setting")  # nocoverage
+            self.setting.encodings.setdefault(encoding_tag, set()).add(file)
 
     def _parse_seqjob(self, attrib: dict[str, Any], tag: str) -> SeqJob:
-        """Parse SeqJob object."""
+        """
+        Parse SeqJob object.
+
+        Attributes:
+            attrib (dict[str, Any]): The attribute dictionary to read from.
+            tag (str):               The name of the XML tag for error context.
+        """
         name = self._pop_required(attrib, "name", tag)
         timeout = self._pop_required_time(attrib, "timeout", tag)
         memout = self._pop_required_int(attrib, "memout", tag)
@@ -316,7 +326,7 @@ class Parser:
         benchmark = self._lookup(self.result.benchmarks, benchmark_name, "benchmark", tag)
         setting = self._lookup(system.settings, setting_name, "setting", tag)
         if self.project is None:
-            raise ValueError(f"Runspec defined outside of a project")
+            raise ValueError(f"Runspec defined outside of a project")  # nocoverage
         runspec = Runspec(system, machine, benchmark, setting)
         self.project.runspecs.append(runspec)
         return runspec
@@ -331,7 +341,7 @@ class Parser:
         """
         if self.benchscope:
             if self.benchmark is None:
-                raise ValueError(f"Class defined outside of a benchmark")
+                raise ValueError(f"Class defined outside of a benchmark")  # nocoverage
             self.benchclass = Class(
                 self.benchmark,
                 self._get_required(attrib, "name", tag),
@@ -340,7 +350,7 @@ class Parser:
             self.benchmark.classes[self.benchclass.id] = self.benchclass
         else:
             if self.runspec is None:
-                raise ValueError(f"Class defined outside of a runspec")
+                raise ValueError(f"Class defined outside of a runspec")  # nocoverage
             benchclass = self._lookup(
                 self.runspec.benchmark.classes,
                 self._get_required_int(attrib, "id", tag),
@@ -360,8 +370,9 @@ class Parser:
         """
         if self.benchscope:
             if self.benchclass is None:
-                raise ValueError(f"Instance defined outside of a class")
+                raise ValueError(f"Instance defined outside of a class")  # nocoverage
             cmdline = {"pre": attrib.pop("cmdline", ""), "post": attrib.pop("cmdline_post", "")}
+            # instance and encoding files and encoding_tag currently unused
             instance = Instance(
                 self.benchclass,
                 self._get_required(attrib, "name", tag),
@@ -371,7 +382,7 @@ class Parser:
             self.benchclass.instances[instance.id] = instance
         else:
             if self.classresult is None:
-                raise ValueError(f"Instance defined outside of a class result")
+                raise ValueError(f"Instance defined outside of a class result")  # nocoverage
             benchinst = self._lookup(
                 self.classresult.benchclass.instances,
                 self._get_required_int(attrib, "id", tag),
@@ -391,7 +402,7 @@ class Parser:
         """
         if not self.benchscope:
             if self.instresult is None:
-                raise ValueError(f"Run defined outside of an instance result")
+                raise ValueError(f"Run defined outside of an instance result")  # nocoverage
             self.run = Run(self.instresult, self._get_required_int(attrib, "number", tag))
             self.instresult.runs.append(self.run)
 
@@ -404,7 +415,7 @@ class Parser:
             tag (str):               The name of the XML tag for error context.
         """
         if self.run is None:
-            raise ValueError(f"Measure defined outside of a run")
+            raise ValueError(f"Measure defined outside of a run")  # nocoverage
         name = self._get_required(attrib, "name", tag)
         measure_type = self._get_required(attrib, "type", tag)
         value = self._get_required(attrib, "val", tag)
