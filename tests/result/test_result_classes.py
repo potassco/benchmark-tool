@@ -364,12 +364,12 @@ class TestInstance(TestCase):
         """
         bcls = mock.Mock(spec=result.Class)
         name = "name"
-        id = 0
+        inst_id = 0
         cmdline = {"pre": "cmdline", "post": "cmdline_post"}
-        i = result.Instance(bcls, name, id, cmdline)
+        i = result.Instance(bcls, name, inst_id, cmdline)
         self.assertEqual(i.benchclass, bcls)
         self.assertEqual(i.name, name)
-        self.assertEqual(i.id, id)
+        self.assertEqual(i.id, inst_id)
         self.assertDictEqual(i.cmdline, cmdline)
         self.assertDictEqual(i.values, {"row": 0, "max_runs": 0})
 

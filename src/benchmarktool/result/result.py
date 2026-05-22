@@ -187,6 +187,7 @@ class System:
     settings: dict[str, "Setting"] = field(default_factory=dict, compare=False)
 
 
+# pylint: disable=too-many-instance-attributes
 @dataclass(order=True, frozen=True, kw_only=True)
 class Setting:
     """

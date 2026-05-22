@@ -213,7 +213,7 @@ class Parser:
             dist_template=dist_template,
             dist_options=dist_options,
             attr=attrib,
-            encodings=dict(),
+            encodings={},
         )
 
     def _parse_encoding(self, attrib: dict[str, Any], tag: str) -> None:
@@ -228,11 +228,10 @@ class Parser:
         if self.benchscope:
             # instance encodings currently unused
             return
-        else:
-            encoding_tag = attrib.pop("encoding_tag", "_default_")
-            if self.setting is None:
-                raise ValueError(f"Encoding '{file}' defined outside of a setting")  # nocoverage
-            self.setting.encodings.setdefault(encoding_tag, set()).add(file)
+        encoding_tag = attrib.pop("encoding_tag", "_default_")
+        if self.setting is None:
+            raise ValueError(f"Encoding '{file}' defined outside of a setting")  # nocoverage
+        self.setting.encodings.setdefault(encoding_tag, set()).add(file)
 
     def _parse_seqjob(self, attrib: dict[str, Any], tag: str) -> SeqJob:
         """
@@ -326,7 +325,7 @@ class Parser:
         benchmark = self._lookup(self.result.benchmarks, benchmark_name, "benchmark", tag)
         setting = self._lookup(system.settings, setting_name, "setting", tag)
         if self.project is None:
-            raise ValueError(f"Runspec defined outside of a project")  # nocoverage
+            raise ValueError("Runspec defined outside of a project")  # nocoverage
         runspec = Runspec(system, machine, benchmark, setting)
         self.project.runspecs.append(runspec)
         return runspec
@@ -341,7 +340,7 @@ class Parser:
         """
         if self.benchscope:
             if self.benchmark is None:
-                raise ValueError(f"Class defined outside of a benchmark")  # nocoverage
+                raise ValueError("Class defined outside of a benchmark")  # nocoverage
             self.benchclass = Class(
                 self.benchmark,
                 self._get_required(attrib, "name", tag),
@@ -350,7 +349,7 @@ class Parser:
             self.benchmark.classes[self.benchclass.id] = self.benchclass
         else:
             if self.runspec is None:
-                raise ValueError(f"Class defined outside of a runspec")  # nocoverage
+                raise ValueError("Class defined outside of a runspec")  # nocoverage
             benchclass = self._lookup(
                 self.runspec.benchmark.classes,
                 self._get_required_int(attrib, "id", tag),
@@ -370,7 +369,7 @@ class Parser:
         """
         if self.benchscope:
             if self.benchclass is None:
-                raise ValueError(f"Instance defined outside of a class")  # nocoverage
+                raise ValueError("Instance defined outside of a class")  # nocoverage
             cmdline = {"pre": attrib.pop("cmdline", ""), "post": attrib.pop("cmdline_post", "")}
             # instance and encoding files and encoding_tag currently unused
             instance = Instance(
@@ -382,7 +381,7 @@ class Parser:
             self.benchclass.instances[instance.id] = instance
         else:
             if self.classresult is None:
-                raise ValueError(f"Instance defined outside of a class result")  # nocoverage
+                raise ValueError("Instance defined outside of a class result")  # nocoverage
             benchinst = self._lookup(
                 self.classresult.benchclass.instances,
                 self._get_required_int(attrib, "id", tag),
@@ -402,7 +401,7 @@ class Parser:
         """
         if not self.benchscope:
             if self.instresult is None:
-                raise ValueError(f"Run defined outside of an instance result")  # nocoverage
+                raise ValueError("Run defined outside of an instance result")  # nocoverage
             self.run = Run(self.instresult, self._get_required_int(attrib, "number", tag))
             self.instresult.runs.append(self.run)
 
@@ -415,12 +414,13 @@ class Parser:
             tag (str):               The name of the XML tag for error context.
         """
         if self.run is None:
-            raise ValueError(f"Measure defined outside of a run")  # nocoverage
+            raise ValueError("Measure defined outside of a run")  # nocoverage
         name = self._get_required(attrib, "name", tag)
         measure_type = self._get_required(attrib, "type", tag)
         value = self._get_required(attrib, "val", tag)
         self.run.measures[name] = (measure_type, value)
 
+    # pylint: disable=too-many-branches
     def start(self, tag: str, attrib: dict[str, Any]) -> None:
         """
         This method is called for every opening XML tag.
@@ -443,7 +443,8 @@ class Parser:
                 self.setting_order = 0
             case "setting":
                 self.setting = self._parse_setting(attrib, tag)
-                self.system.settings[self.setting.name] = self.setting
+                # self.system is guaranteed to be not None by _parse_setting, but mypy does not track this
+                self.system.settings[self.setting.name] = self.setting  # type: ignore[union-attr]
                 self.setting_order += 1
             case "encoding":
                 self._parse_encoding(attrib, tag)
