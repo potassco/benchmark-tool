@@ -282,7 +282,7 @@ A `folder` element can contain any number of `encoding` and `ignore` elements:
 
 - `ignore`: Excludes folders from the benchmark by defining a path `prefix` to be ignored.
 - `encoding`: Specifies encodings to be used with all instances in the folder.
-This path is relative to where the btool commands are called.
+  This path is relative to where the btool commands are called.
 
 ### File Elements
 
@@ -313,7 +313,7 @@ the system. Similar to the `system` and `setting` elements, `add` can also inclu
 entire group, e.g. with `files` element from above instance `instance` would be called
 with `--text -c n=4`.
 - `encoding`: Specifies a file which is added to every group/instance. This path is relative
-to where the btool commands are called.
+  to where the btool commands are called.
 
 The example above would result in a single benchmark instance `instance` which includes
 the files `default.lp` `file1.lp` and `file2.lp`.
