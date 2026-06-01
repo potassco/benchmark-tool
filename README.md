@@ -24,7 +24,7 @@ Python installation. To build the tool manually run the following commands:
 ```bash
 git clone https://github.com/potassco/benchmark-tool
 cd benchmark-tool
-conda create -n <env-name> python=3.10
+conda create -n <env-name> python=3.14
 conda activate <env-name>
 pip install .
 ```
