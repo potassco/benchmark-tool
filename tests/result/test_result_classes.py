@@ -150,14 +150,17 @@ class TestSystem(TestCase):
         """
         name = "name"
         ver = "ver"
-        conf = "conf"
+        conf = result.Config("conf", "temp")
         measure = "measure"
         order = 0
-        s = result.System(name, ver, conf, measure, order)
+        cmdline = {"pre": "cmdline", "post": "cmdline_post"}
+        s = result.System(name, ver, measure, order, conf, cmdline)
         self.assertEqual(s.name, name)
         self.assertEqual(s.version, ver)
         self.assertEqual(s.config, conf)
         self.assertEqual(s.measures, measure)
+        self.assertEqual(s.order, order)
+        self.assertDictEqual(s.cmdline, cmdline)
         self.assertDictEqual(s.settings, {})
 
         with self.assertRaises(FrozenInstanceError):
@@ -175,16 +178,29 @@ class TestSetting(TestCase):
         """
         sys = mock.Mock(spec=result.System)
         name = "name"
-        cmd = "cmd"
+        cmd = {"pre": "cmdline", "post": "cmdline_post"}
         tag = "tag"
         order = 0
+        dist_template = "dist_temp"
+        dist_options = "dist_opt"
         attr = {"a": "b"}
-        s = result.Setting(sys, name, cmd, tag, order, attr)
+        s = result.Setting(
+            system=sys,
+            name=name,
+            cmdline=cmd,
+            tag=tag,
+            order=order,
+            dist_template=dist_template,
+            dist_options=dist_options,
+            attr=attr,
+        )
         self.assertEqual(s.system, sys)
         self.assertEqual(s.name, name)
-        self.assertEqual(s.cmdline, cmd)
+        self.assertDictEqual(s.cmdline, cmd)
         self.assertEqual(s.tag, tag)
         self.assertEqual(s.order, order)
+        self.assertEqual(s.dist_template, dist_template)
+        self.assertEqual(s.dist_options, dist_options)
         self.assertDictEqual(s.attr, attr)
 
         with self.assertRaises(FrozenInstanceError):
@@ -199,9 +215,18 @@ class TestJob(TestCase):
     def setUp(self):
         self.name = "name"
         self.timeout = 10
+        self.memout = 5000
         self.runs = 2
         self.attr = {"a": "b"}
-        self.j = result.Job(self.name, self.timeout, self.runs, self.attr)
+        self.template_options = "test_op"
+        self.j = result.Job(
+            name=self.name,
+            timeout=self.timeout,
+            memout=self.memout,
+            runs=self.runs,
+            attr=self.attr,
+            template_options=self.template_options,
+        )
 
     def test_init(self):
         """
@@ -209,8 +234,10 @@ class TestJob(TestCase):
         """
         self.assertEqual(self.j.name, self.name)
         self.assertEqual(self.j.timeout, self.timeout)
+        self.assertEqual(self.j.memout, self.memout)
         self.assertEqual(self.j.runs, self.runs)
         self.assertDictEqual(self.j.attr, self.attr)
+        self.assertEqual(self.j.template_options, self.template_options)
 
         with self.assertRaises(FrozenInstanceError):
             self.j.name = "new"
@@ -224,7 +251,15 @@ class TestSeqJob(TestJob):
     def setUp(self):
         super().setUp()
         self.para = 2
-        self.j = result.SeqJob(self.name, self.timeout, self.runs, self.attr, self.para)
+        self.j = result.SeqJob(
+            name=self.name,
+            timeout=self.timeout,
+            memout=self.memout,
+            runs=self.runs,
+            attr=self.attr,
+            template_options=self.template_options,
+            parallel=self.para,
+        )
 
     def test_init(self):
         """
@@ -243,8 +278,20 @@ class TestDistJob(TestJob):
         super().setUp()
         self.sm = "sm"
         self.wt = "wt"
+        self.cpt = 2
         self.pt = "pt"
-        self.j = result.DistJob(self.name, self.timeout, self.runs, self.attr, self.sm, self.wt, self.pt)
+        self.j = result.DistJob(
+            name=self.name,
+            timeout=self.timeout,
+            memout=self.memout,
+            runs=self.runs,
+            attr=self.attr,
+            template_options=self.template_options,
+            script_mode=self.sm,
+            walltime=self.wt,
+            cpt=self.cpt,
+            partition=self.pt,
+        )
 
     def test_init(self):
         """
@@ -253,6 +300,7 @@ class TestDistJob(TestJob):
         super().test_init()
         self.assertEqual(self.j.script_mode, self.sm)
         self.assertEqual(self.j.walltime, self.wt)
+        self.assertEqual(self.j.cpt, self.cpt)
         self.assertEqual(self.j.partition, self.pt)
 
 
@@ -316,11 +364,13 @@ class TestInstance(TestCase):
         """
         bcls = mock.Mock(spec=result.Class)
         name = "name"
-        ident = 0
-        i = result.Instance(bcls, name, ident)
+        inst_id = 0
+        cmdline = {"pre": "cmdline", "post": "cmdline_post"}
+        i = result.Instance(bcls, name, inst_id, cmdline)
         self.assertEqual(i.benchclass, bcls)
         self.assertEqual(i.name, name)
-        self.assertEqual(i.id, ident)
+        self.assertEqual(i.id, inst_id)
+        self.assertDictEqual(i.cmdline, cmdline)
         self.assertDictEqual(i.values, {"row": 0, "max_runs": 0})
 
         with self.assertRaises(FrozenInstanceError):

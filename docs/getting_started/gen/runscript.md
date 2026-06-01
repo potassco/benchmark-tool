@@ -261,7 +261,7 @@ benchmark class, and results are separated accordingly:
 ```xml
 <folder path="benchmarks/clasp" encoding_tag="tag1" group="true" cmdline_post="--text">
     <ignore prefix="pigeons"/>
-    <encoding file="encodings/no-pigeons.lp"/>
+    <encoding file="benchmarks/encodings/no-pigeons.lp"/>
 </folder>
 ```
 
@@ -282,6 +282,7 @@ A `folder` element can contain any number of `encoding` and `ignore` elements:
 
 - `ignore`: Excludes folders from the benchmark by defining a path `prefix` to be ignored.
 - `encoding`: Specifies encodings to be used with all instances in the folder.
+  This path is relative to where the btool commands are called.
 
 ### File Elements
 
@@ -290,7 +291,7 @@ manually add specific files using the `files` element:
 
 ```xml
 <files path="benchmarks/clasp" encoding_tag="tag1 tag2">
-    <encoding file="default.lp"/>
+    <encoding file="benchmarks/encodings/default.lp"/>
     <add file="dir/file1.lp" group="instance" cmdline="--text"/>
     <add file="dir/file2.lp" group="instance" cmdline="-c n=4"/>
 </files>
@@ -311,7 +312,8 @@ the system. Similar to the `system` and `setting` elements, `add` can also inclu
 `cmdline` and `cmdline_post` attributes. Command-line arguments always count for the
 entire group, e.g. with `files` element from above instance `instance` would be called
 with `--text -c n=4`.
-- `encoding`: Specifies files which are added to every group/instance.
+- `encoding`: Specifies a file which is added to every group/instance. This path is relative
+  to where the btool commands are called.
 
 The example above would result in a single benchmark instance `instance` which includes
 the files `default.lp` `file1.lp` and `file2.lp`.

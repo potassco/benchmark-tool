@@ -171,21 +171,24 @@ class System:
     Attributes:
         name (str):                    The name of the system.
         version (str):                 The version.
-        config (str):                  The config (a string).
         measures (str):                The measurement function (a string).
         order (int):                   An integer denoting the occurrence in the XML file.
+        config (Config):               The system configuration.
+        cmdline (dict[str, str]):      Command line parameters.
         settings (dict[str, Setting]): Dictionary of all system settings.
     """
 
     name: str
     version: str
-    config: str = field(compare=False)
     measures: str = field(compare=False)
-    order: int
+    order: int = field(compare=False)
+    config: Config = field(compare=False)
+    cmdline: dict[str, str] = field(default_factory=dict, compare=False)
     settings: dict[str, "Setting"] = field(default_factory=dict, compare=False)
 
 
-@dataclass(order=True, frozen=True)
+# pylint: disable=too-many-instance-attributes
+@dataclass(order=True, frozen=True, kw_only=True)
 class Setting:
     """
     Represents a setting.
@@ -193,21 +196,28 @@ class Setting:
     Attributes:
         system (System):       The system associated with the setting.
         name (str):            The name of the setting.
-        cmdline (str):         Command line parameters.
+        cmdline (dict[str, str]): Command line parameters.
         tag (str):             Tags of the setting.
         order (int):           An integer denoting the occurrence in the XML file.
+        dist_template (str):   A path to the template file for distributed jobs.
         attr (dict[str, Any]): Arbitrary extra arguments.
+        dist_options (str):    Additional options for distributed jobs.
+        encodings (dict[str, set[str]]): Mapping from encoding tags to sets of encoding files.
     """
 
     system: "System"
     name: str
-    cmdline: str = field(compare=False)
+    cmdline: dict[str, str] = field(default_factory=dict, compare=False)
     tag: str = field(compare=False)
-    order: int
+    order: int = field(compare=False)
+    dist_template: str = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
 
+    dist_options: str = field(default="", compare=False)
+    encodings: dict[str, set[str]] = field(compare=False, default_factory=dict)
 
-@dataclass(order=True, frozen=True)
+
+@dataclass(order=True, frozen=True, kw_only=True)
 class Job:
     """
     Represents a job.
@@ -217,15 +227,19 @@ class Job:
         timeout (int):         Timeout of the job.
         runs (int):            Number of repetitions per instance.
         attr (dict[str, Any]): Arbitrary extra arguments.
+        memout (int):          Memory limit for the job.
+        template_options (str): Additional options for the job template.
     """
 
     name: str
     timeout: int = field(compare=False)
     runs: int = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
+    memout: int = field(compare=False)
+    template_options: str = field(compare=False)
 
 
-@dataclass(order=True, frozen=True)
+@dataclass(order=True, frozen=True, kw_only=True)
 class SeqJob(Job):
     """
     Represents a sequential job.
@@ -234,29 +248,32 @@ class SeqJob(Job):
         name (str):              The name of the job.
         timeout (int):           Timeout of the job.
         runs (int):              Number of repetitions per instance.
-        attrib (dict[str, Any]): Arbitrary extra arguments.
+        attr (dict[str, Any]): Arbitrary extra arguments.
         parallel (int):          Number of processes to start in parallel.
     """
 
     parallel: int = field(compare=False)
 
 
-@dataclass(order=True, frozen=True)
+@dataclass(order=True, frozen=True, kw_only=True)
 class DistJob(Job):
     """
-    Represents a dist job.
+    Represents a distributed job.
 
     Attributes:
         name (str):              The name of the job.
         timeout (int):           Timeout of the job.
         runs (int):              Number of repetitions per instance.
-        attrib (dict[str, Any]): Arbitrary extra arguments.
+        attr (dict[str, Any]): Arbitrary extra arguments.
         script_mode (str):       Specifies the script generation mode.
         walltime (str):          The walltime for a distributed job.
+        cpt (int):               The number of cpus per task.
+        partition (str):         The partition to run the job on.
     """
 
     script_mode: str = field(compare=False)
     walltime: str = field(compare=False)
+    cpt: int = field(compare=False)
     partition: str = field(compare=False)
 
 
@@ -320,16 +337,18 @@ class Instance:
     Represents a benchmark instance.
 
     Attributes:
-        benchclass (Class):      The class of the instance.
-        name (str):              The name of the benchmark.
-        id (int):                A unique id (in the scope of the benchmark).
-        max_runs (int):          Max number of runs.
-        values (dict[str, Any]): Mutable dict with helper values.
+        benchclass (Class):       The class of the instance.
+        name (str):               The name of the benchmark.
+        id (int):                 A unique id (in the scope of the benchmark).
+        max_runs (int):           Max number of runs.
+        cmdline (dict[str, str]): Command line parameters.
+        values (dict[str, Any]):  Mutable dict with helper values.
     """
 
     benchclass: Class
     name: str
     id: int = field(compare=False)
+    cmdline: dict[str, str] = field(default_factory=dict, compare=False)
     values: dict[str, int] = field(default_factory=dict, compare=False)
 
     def __post_init__(self) -> None:
