@@ -4,6 +4,7 @@ Created on Jan 17, 2010
 @author: Roland Kaminski
 """
 
+import gzip
 import os
 import re
 import sys
@@ -45,9 +46,9 @@ def parse(
     """
     timeout = runspec.project.job.timeout
     res: dict[str, tuple[str, Any]] = {"time": ("float", timeout)}
-    for f in ["runsolver.solver", "runsolver.watcher"]:
+    for f in ["runsolver.solver.gz", "runsolver.watcher.gz"]:
         try:
-            with open(os.path.join(path, f), errors="ignore", encoding="utf-8") as file:
+            with gzip.open(os.path.join(path, f), errors="ignore", encoding="utf-8", mode="rt") as file:
                 for line in file:
                     for val, reg in clasp_re.items():
                         m = reg[1].match(line)

@@ -109,9 +109,9 @@ class TestClaspParser(TestCase):
             self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_ms)
         self.assertEqual(
             e.getvalue(),
-            "*** WARNING: Result file 'runsolver.solver' not found for run 1 of instance "
+            "*** WARNING: Result file 'runsolver.solver.gz' not found for run 1 of instance "
             "'instance1' for system 'system-1.2.3'! (tests/ref/results/missing)\n"
-            "*** WARNING: Result file 'runsolver.watcher' not found for run 1 of instance "
+            "*** WARNING: Result file 'runsolver.watcher.gz' not found for run 1 of instance "
             "'instance1' for system 'system-1.2.3'! (tests/ref/results/missing)\n"
             "*** WARNING: Run 1 of instance 'instance1' for system 'system-1.2.3' failed "
             "with unrecognized status or error! (tests/ref/results/missing)\n",
