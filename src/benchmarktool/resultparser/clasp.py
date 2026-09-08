@@ -4,11 +4,11 @@ Created on Jan 17, 2010
 @author: Roland Kaminski
 """
 
-import gzip
-import os
 import re
 import sys
 from typing import TYPE_CHECKING, Any
+
+from . import open_results
 
 if TYPE_CHECKING:
     from benchmarktool.runscript import runscript  # nocoverage
@@ -31,7 +31,7 @@ clasp_re = {
 PAR = 2
 
 
-# pylint: disable=unused-argument, too-many-branches
+# pylint: disable=unused-argument
 def parse(
     path: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance", run: int
 ) -> dict[str, tuple[str, Any]]:
@@ -46,26 +46,17 @@ def parse(
     """
     timeout = runspec.project.job.timeout
     res: dict[str, tuple[str, Any]] = {"time": ("float", timeout)}
-    for file_base in ["runsolver.solver", "runsolver.watcher"]:
-        for file_name, opener in [(file_base, open), (f"{file_base}.gz", gzip.open)]:
-            try:
-                with opener(
-                    os.path.join(path, file_name),
-                    errors="ignore",
-                    encoding="utf-8",
-                    mode="rt",
-                ) as file:  # type: ignore
-                    for line in file:
-                        for val, reg in clasp_re.items():
-                            m = reg[1].match(line)
-                            if m:
-                                res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
-                break
-            except FileNotFoundError:
-                continue
-        else:
+    for file_name in ["runsolver.solver", "runsolver.watcher"]:
+        try:
+            with open_results(path, file_name) as file:
+                for line in file:
+                    for val, reg in clasp_re.items():
+                        m = reg[1].match(line)
+                        if m:
+                            res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
+        except FileNotFoundError:
             sys.stderr.write(
-                f"*** WARNING: Result file '{file_base}' or '{file_base}.gz' not found for run {run} "
+                f"*** WARNING: Result file '{file_name}' or '{file_name}.gz' not found for run {run} "
                 f"of instance '{instance.name}' "
                 f"for system '{runspec.system.name}-{runspec.system.version}'! ({path})\n"
             )

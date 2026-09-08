@@ -5,8 +5,29 @@ Tests for result parsers.
 from io import StringIO
 from unittest import TestCase, mock
 
-from benchmarktool.resultparser import clasp
+from benchmarktool.resultparser import clasp, open_results
 from benchmarktool.runscript import runscript
+
+
+class TestHelperFunctions(TestCase):
+    """
+    Test cases for helper functions in resultparser.
+    """
+
+    def test_open_results(self):
+        """
+        Test open_results helper function.
+        """
+
+        path = "tests/ref/results/finished"
+        file_name = "runsolver.solver"
+        with open_results(path, file_name) as f:
+            self.assertIsNotNone(f)
+
+        path = "tests/ref/results/gzip"
+        file_name = "runsolver.solver"
+        with open_results(path, file_name) as f:
+            self.assertIsNotNone(f)
 
 
 class TestClaspParser(TestCase):
