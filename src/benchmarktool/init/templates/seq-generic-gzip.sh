@@ -24,6 +24,7 @@ if [[ ! -e .finished ]]; then
       "${{runner[@]}}" "${{input[@]}}"
     fi
   }} > runsolver.solver
+  gzip runsolver.solver runsolver.watcher
 fi
 
 touch .finished

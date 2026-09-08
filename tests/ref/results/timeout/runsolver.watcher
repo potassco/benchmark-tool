@@ -1,0 +1,22 @@
+[runlim] version:		2.0.0rc12
+[runlim] host:			kr-node2
+[runlim] time limit:		311040000 seconds
+[runlim] real time limit:	10 seconds
+[runlim] space limit:		20000 MB
+[runlim] argv[0]:		clingo
+[runlim] argv[1]:		--stats
+[runlim] argv[2]:		--quiet=1,0
+[runlim] argv[3]:		golf.lp
+[runlim] start:			Thu Oct  2 14:09:03 2025
+[runlim] child:			28206
+[runlim] sample:		9.95 time, 10.01 real, 19 MB, 3.44 load
+[runlim] end:			Thu Oct  2 14:09:14 2025
+[runlim] status:		out of time
+[runlim] result:		2
+[runlim] children:		1
+[runlim] processes:		2
+[runlim] real:			11.03 seconds
+[runlim] time:			9.95 seconds
+[runlim] space:			19 MB
+[runlim] load:			3.48 maximum
+[runlim] samples:		100

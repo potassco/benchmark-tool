@@ -1,0 +1,49 @@
+clingo version 5.7.1
+Reading from golf.lp
+Solving...
+Optimization: 12
+Optimization: 11
+Optimization: 10
+Optimization: 9
+Optimization: 8
+Optimization: 7
+Optimization: 6
+Optimization: 5
+Optimization: 4
+Answer: 9
+plays(1,1,4) plays(2,1,4) plays(3,1,2) plays(4,1,3) plays(5,1,2) plays(6,1,2) plays(7,1,1) plays(8,1,3) plays(9,1,1) plays(10,1,3) plays(11,1,1) plays(12,1,1) plays(13,1,4) plays(14,1,3) plays(15,1,2) plays(16,1,4) plays(1,2,3) plays(2,2,1) plays(3,2,3) plays(4,2,4) plays(5,2,2) plays(6,2,1) plays(7,2,1) plays(8,2,2) plays(9,2,4) plays(10,2,2) plays(11,2,4) plays(12,2,3) plays(13,2,2) plays(14,2,1) plays(15,2,4) plays(16,2,3) plays(1,3,4) plays(2,3,4) plays(3,3,2) plays(4,3,4) plays(5,3,4) plays(6,3,1) plays(7,3,3) plays(8,3,2) plays(9,3,1) plays(10,3,3) plays(11,3,2) plays(12,3,1) plays(13,3,1) plays(14,3,2) plays(15,3,3) plays(16,3,3) plays(1,4,3) plays(2,4,1) plays(3,4,2) plays(4,4,2) plays(5,4,3) plays(6,4,4) plays(7,4,2) plays(8,4,1) plays(9,4,4) plays(10,4,1) plays(11,4,1) plays(12,4,4) plays(13,4,2) plays(14,4,3) plays(15,4,4) plays(16,4,3)
+SATISFIABLE
+
+INTERRUPTED  : 1
+Models       : 9+
+  Optimum    : unknown
+Optimization : 4
+Calls        : 1
+Time         : 0.055s (Solving: 0.03s 1st Model: 0.00s Unsat: 0.00s)
+CPU Time     : 0.047s
+
+Choices      : 1666
+Conflicts    : 950      (Analyzed: 949)
+Restarts     : 6        (Average: 158.17 Last: 599)
+Model-Level  : 81.3
+Problems     : 1        (Average Length: 0.00 Splits: 0)
+Lemmas       : 949      (Deleted: 0)
+  Binary     : 0        (Ratio:   0.00%)
+  Ternary    : 0        (Ratio:   0.00%)
+  Conflict   : 949      (Average Length:   37.2 Ratio: 100.00%)
+  Loop       : 0        (Average Length:    0.0 Ratio:   0.00%)
+  Other      : 0        (Average Length:    0.0 Ratio:   0.00%)
+Backjumps    : 949      (Average:  1.29 Max:  20 Sum:   1225)
+  Executed   : 949      (Average:  1.29 Max:  20 Sum:   1225 Ratio: 100.00%)
+  Bounded    : 0        (Average:  0.00 Max:   0 Sum:      0 Ratio:   0.00%)
+
+Rules        : 4036     (Original: 2924)
+  Choice     : 80
+  Minimize   : 1
+Atoms        : 1474
+Bodies       : 3512     (Original: 2656)
+  Count      : 32       (Original: 280)
+Equivalences : 1143     (Atom=Atom: 336 Body=Body: 0 Other: 807)
+Tight        : Yes
+Variables    : 3590     (Eliminated:    0 Frozen:  287)
+Constraints  : 11773    (Binary:  71.5% Ternary:  22.4% Other:   6.0%)

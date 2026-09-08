@@ -31,7 +31,7 @@ clasp_re = {
 PAR = 2
 
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, too-many-branches
 def parse(
     path: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance", run: int
 ) -> dict[str, tuple[str, Any]]:
@@ -46,17 +46,27 @@ def parse(
     """
     timeout = runspec.project.job.timeout
     res: dict[str, tuple[str, Any]] = {"time": ("float", timeout)}
-    for f in ["runsolver.solver.gz", "runsolver.watcher.gz"]:
-        try:
-            with gzip.open(os.path.join(path, f), errors="ignore", encoding="utf-8", mode="rt") as file:
-                for line in file:
-                    for val, reg in clasp_re.items():
-                        m = reg[1].match(line)
-                        if m:
-                            res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
-        except FileNotFoundError:
+    for file_base in ["runsolver.solver", "runsolver.watcher"]:
+        for file_name, opener in [(file_base, open), (f"{file_base}.gz", gzip.open)]:
+            try:
+                with opener(
+                    os.path.join(path, file_name),
+                    errors="ignore",
+                    encoding="utf-8",
+                    mode="rt",
+                ) as file:  # type: ignore
+                    for line in file:
+                        for val, reg in clasp_re.items():
+                            m = reg[1].match(line)
+                            if m:
+                                res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
+                break
+            except FileNotFoundError:
+                continue
+        else:
             sys.stderr.write(
-                f"*** WARNING: Result file '{f}' not found for run {run} of instance '{instance.name}' "
+                f"*** WARNING: Result file '{file_base}' or '{file_base}.gz' not found for run {run} "
+                f"of instance '{instance.name}' "
                 f"for system '{runspec.system.name}-{runspec.system.version}'! ({path})\n"
             )
 
