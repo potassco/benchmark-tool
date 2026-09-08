@@ -4,10 +4,11 @@ Created on Jan 17, 2010
 @author: Roland Kaminski
 """
 
-import os
 import re
 import sys
 from typing import TYPE_CHECKING, Any
+
+from . import open_results
 
 if TYPE_CHECKING:
     from benchmarktool.runscript import runscript  # nocoverage
@@ -45,9 +46,9 @@ def parse(
     """
     timeout = runspec.project.job.timeout
     res: dict[str, tuple[str, Any]] = {"time": ("float", timeout)}
-    for f in ["runsolver.solver", "runsolver.watcher"]:
+    for file_name in ["runsolver.solver", "runsolver.watcher"]:
         try:
-            with open(os.path.join(path, f), errors="ignore", encoding="utf-8") as file:
+            with open_results(path, file_name) as file:
                 for line in file:
                     for val, reg in clasp_re.items():
                         m = reg[1].match(line)
@@ -55,7 +56,8 @@ def parse(
                             res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
         except FileNotFoundError:
             sys.stderr.write(
-                f"*** WARNING: Result file '{f}' not found for run {run} of instance '{instance.name}' "
+                f"*** WARNING: Result file '{file_name}' or '{file_name}.gz' not found for run {run} "
+                f"of instance '{instance.name}' "
                 f"for system '{runspec.system.name}-{runspec.system.version}'! ({path})\n"
             )
 

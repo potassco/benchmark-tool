@@ -5,8 +5,29 @@ Tests for result parsers.
 from io import StringIO
 from unittest import TestCase, mock
 
-from benchmarktool.resultparser import clasp
+from benchmarktool.resultparser import clasp, open_results
 from benchmarktool.runscript import runscript
+
+
+class TestHelperFunctions(TestCase):
+    """
+    Test cases for helper functions in resultparser.
+    """
+
+    def test_open_results(self):
+        """
+        Test open_results helper function.
+        """
+
+        path = "tests/ref/results/finished"
+        file_name = "runsolver.solver"
+        with open_results(path, file_name) as f:
+            self.assertIsNotNone(f)
+
+        path = "tests/ref/results/gzip"
+        file_name = "runsolver.solver"
+        with open_results(path, file_name) as f:
+            self.assertIsNotNone(f)
 
 
 class TestClaspParser(TestCase):
@@ -92,6 +113,8 @@ class TestClaspParser(TestCase):
         }
 
         self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_f)
+        self.root = "tests/ref/results/gzip"
+        self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_f)
         self.root = "tests/ref/results/timeout"
         self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_to)
         self.root = "tests/ref/results/memout"
@@ -109,9 +132,9 @@ class TestClaspParser(TestCase):
             self.assertDictEqual(self.parser.parse(self.root, self.rs, self.ins, 1), ref_ms)
         self.assertEqual(
             e.getvalue(),
-            "*** WARNING: Result file 'runsolver.solver' not found for run 1 of instance "
+            "*** WARNING: Result file 'runsolver.solver' or 'runsolver.solver.gz' not found for run 1 of instance "
             "'instance1' for system 'system-1.2.3'! (tests/ref/results/missing)\n"
-            "*** WARNING: Result file 'runsolver.watcher' not found for run 1 of instance "
+            "*** WARNING: Result file 'runsolver.watcher' or 'runsolver.watcher.gz' not found for run 1 of instance "
             "'instance1' for system 'system-1.2.3'! (tests/ref/results/missing)\n"
             "*** WARNING: Run 1 of instance 'instance1' for system 'system-1.2.3' failed "
             "with unrecognized status or error! (tests/ref/results/missing)\n",
