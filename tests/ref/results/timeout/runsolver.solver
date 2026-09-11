@@ -46,13 +46,13 @@ Backjumps    : 99457    (Average:  1.86 Max: 172 Sum: 185294)
   Executed   : 99457    (Average:  1.86 Max: 172 Sum: 185294 Ratio: 100.00%)
   Bounded    : 0        (Average:  0.00 Max:   0 Sum:      0 Ratio:   0.00%)
 
-Rules        : 13990    (Original: 9665)
-  Choice     : 150
+Rules        : 4036     (Original: 2924)
+  Choice     : 80
   Minimize   : 1
-Atoms        : 3713
-Bodies       : 12875    (Original: 9175)
-  Count      : 50       (Original: 600)
-Equivalences : 2649     (Atom=Atom: 775 Body=Body: 0 Other: 1874)
+Atoms        : 1474
+Bodies       : 3512     (Original: 2656)
+  Count      : 32       (Original: 280)
+Equivalences : 1143     (Atom=Atom: 336 Body=Body: 0 Other: 807)
 Tight        : Yes
-Variables    : 13098    (Eliminated:    0 Frozen:  674)
-Constraints  : 45547    (Binary:  72.6% Ternary:  23.1% Other:   4.4%)
+Variables    : 3590     (Eliminated:    0 Frozen:  287)
+Constraints  : 11773    (Binary:  71.5% Ternary:  22.4% Other:   6.0%)
