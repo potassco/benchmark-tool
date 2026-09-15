@@ -71,7 +71,7 @@ btool eval <runscript.xml> > <results.xml>
 ```
 
 This newly created .xml file can then be used as input for the [conv] subcommand to generate an .xlsx
-file and optionally an .ipynb jupyter notebook. By default only the time and timeout measures are displayed. Further measures can be selected using the -m option.
+file. By default only the time and timeout measures are displayed. Further measures can be selected using the -m option.
 
 ```
 btool conv -o <out.xlsx> <result.xml>

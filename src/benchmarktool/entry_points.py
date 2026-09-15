@@ -64,7 +64,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         description=dedent(
             """\
             Convert previously collected benchmark results to XLSX
-            spreadsheet and optionally generate Jupyter notebook.
+            spreadsheet.
             """
         ),
         formatter_class=formatter,
