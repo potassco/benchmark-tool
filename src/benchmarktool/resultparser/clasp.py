@@ -13,6 +13,8 @@ from . import open_results
 if TYPE_CHECKING:
     from benchmarktool.runscript import runscript  # nocoverage
 
+multi = ["rules", "choice_rules", "atoms", "bodies", "count", "sum"]
+
 clasp_re = {
     "models": ("float", re.compile(r"^(c )?Models[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
     "choices": ("float", re.compile(r"^(c )?Choices[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
@@ -25,13 +27,46 @@ clasp_re = {
     "error": ("string", re.compile(r"^\*\*\* clasp ERROR: (?P<val>.*)$")),
     "rstatus": ("string", re.compile(r"^\[runlim\] status:\s*(?P<val>.*)$")),
     "mem": ("float", re.compile(r"^\[runlim\] space:\s*(?P<val>[0-9]+(\.[0-9]+)?) MB")),
+    "rules": (
+        "float",
+        re.compile(r"^(c )?Rules[ ]*:[ ]*(?P<simplified>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
+    ),
+    "choice_rules": (
+        "float",
+        re.compile(
+            r"^(c )?[ ]*Choice[ ]*:[ ]*(?P<simplified>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"
+        ),
+    ),
+    "atoms": (
+        "float",
+        re.compile(r"^(c )?Atoms[ ]*:[ ]*(?P<simplified>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
+    ),
+    "bodies": (
+        "float",
+        re.compile(r"^(c )?Bodies[ ]*:[ ]*(?P<simplified>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
+    ),
+    "count": (
+        "float",
+        re.compile(
+            r"^(c )?[ ]*Count[ ]*:[ ]*(?P<simplified>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"
+        ),
+    ),
+    "sum": (
+        "float",
+        re.compile(
+            r"^(c )?[ ]*Sum[ ]*:[ ]*(?P<simplified>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"
+        ),
+    ),
+    "tight": ("string", re.compile(r"^(c )?Tight[ ]*:[ ]*(?P<val>No|Yes)\+?.*$")),
+    "variables": ("float", re.compile(r"^(c )?Variables[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
+    "constraints": ("float", re.compile(r"^(c )?Constraints[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
 }
 
 # penalized-average-runtime score constant
 PAR = 2
 
 
-# pylint: disable=unused-argument
+# pylint: disable=unused-argument, too-many-branches
 def parse(
     path: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance", run: int
 ) -> dict[str, tuple[str, Any]]:
@@ -53,7 +88,13 @@ def parse(
                     for val, reg in clasp_re.items():
                         m = reg[1].match(line)
                         if m:
-                            res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
+                            if val in multi:
+                                if m.group("simplified") is not None:
+                                    res[f"{val}_s"] = ("float", float(m.group("simplified")))
+                                if m.group("original") is not None:
+                                    res[f"{val}_o"] = ("float", float(m.group("original")))
+                            else:
+                                res[val] = (reg[0], float(m.group("val")) if reg[0] == "float" else m.group("val"))
         except FileNotFoundError:
             sys.stderr.write(
                 f"*** WARNING: Result file '{file_name}' or '{file_name}.gz' not found for run {run} "
@@ -95,6 +136,18 @@ def parse(
         del res["interrupted"]
     if "error" in res:
         del res["error"]
+    if "tight" in res:
+        result["tight"] = ("float", 1.0 if res["tight"][1] == "Yes" else 0.0)
+        del res["tight"]
+    for key in multi:
+        if f"{key}_s" in res:
+            result[f"{key}_s"] = res[f"{key}_s"]
+            del res[f"{key}_s"]
+            if f"{key}_o" in res:
+                result[f"{key}_o"] = res[f"{key}_o"]
+                del res[f"{key}_o"]
+            else:
+                result[f"{key}_o"] = result[f"{key}_s"]
     for key, value in res.items():
         result[key] = (value[0], value[1])
 
