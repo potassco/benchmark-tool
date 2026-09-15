@@ -44,8 +44,7 @@ generated scripts. Used for running distributed benchmarks.
 [**eval**][eval]: Evaluates the results of completed benchmarks, collecting and summarizing
 measures into a results XML file.
 
-[**conv**][conv]: Converts results from XML format to other formats, such as Excel (.xlsx) or
-Jupyter notebooks (.ipynb), for further analysis or reporting.
+[**conv**][conv]: Converts results from XML format to other formats, such as Excel (.xlsx), for further analysis or reporting.
 
 [**verify**][verify]: Checks benchmark results for errors, such as runlim errors, to ensure the
 integrity and correctness of the results.
