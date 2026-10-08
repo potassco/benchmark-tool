@@ -26,7 +26,7 @@ SATISFIABLE
 INTERRUPTED  : 1
 Models       : 18+
   Optimum    : unknown
-Optimization : 7
+Optimization : 0
 Calls        : 1
 Time         : 9.960s (Solving: 9.91s 1st Model: 0.00s Unsat: 0.00s)
 CPU Time     : 9.953s

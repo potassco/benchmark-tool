@@ -162,7 +162,7 @@ class TestJob(TestCase):
             name=self.name, timeout=self.timeout, runs=self.runs, attr=self.attr, template_options=self.template_options
         )
 
-    # pylint: disable=pointless-statement
+    # pylint: disable=comparison-with-itself, pointless-statement
     def test_eq(self):
         """
         Test __eq__ method.
@@ -173,7 +173,7 @@ class TestJob(TestCase):
         with self.assertRaises(RuntimeError):
             self.j == "invalid"
 
-    # pylint: disable=pointless-statement
+    # pylint: disable=comparison-with-itself, pointless-statement
     def test_lt(self):
         """
         Test __lt__ method.
