@@ -1,0 +1,16 @@
+{
+	"Result": "SATISFIABLE",
+	"INTERRUPTED": 1,
+	"Models": {"Number": 9, "Costs": [0]},
+	"Stats": {
+		"Core": {"Choices": 1666, "Conflicts": 950, "Restarts": 6},
+		"LP": {
+			"Rules": {"Final": 4036, "Original": 2924},
+			"Choice": {"Final": 80},
+			"Atoms": 1474,
+			"Bodies": {"Final": 3512, "Original": 2656, "Count": {"Final": 32, "Original": 280}},
+			"Tight": "yes"
+		},
+		"Problem": {"Variables": 3590, "Constraints": {"Sum": 11773}}
+	}
+}

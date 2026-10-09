@@ -17,7 +17,7 @@ SATISFIABLE
 INTERRUPTED  : 1
 Models       : 9+
   Optimum    : unknown
-Optimization : 4
+Optimization : 0
 Calls        : 1
 Time         : 0.055s (Solving: 0.03s 1st Model: 0.00s Unsat: 0.00s)
 CPU Time     : 0.047s

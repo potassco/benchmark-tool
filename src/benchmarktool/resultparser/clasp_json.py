@@ -1,10 +1,10 @@
 """
-Created on Jan 17, 2010
+Created on Oct 8, 2026
 
-@author: Roland Kaminski
+@author: Tom Schmidt
 """
 
-import re
+import json
 import sys
 from typing import TYPE_CHECKING, Any
 
@@ -13,52 +13,17 @@ from . import open_results, parse_watcher
 if TYPE_CHECKING:
     from benchmarktool.runscript import runscript  # nocoverage
 
-multi = ("rules", "choice_rules", "atoms", "bodies", "count", "sum")
-capture_suffix = {"val": "", "final": "_f", "original": "_o"}
 
-clasp_re = {
-    "models": ("float", re.compile(r"^(c )?Models[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
-    "choices": ("float", re.compile(r"^(c )?Choices[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
-    "conflicts": ("float", re.compile(r"^(c )?Conflicts[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
-    "restarts": ("float", re.compile(r"^(c )?Restarts[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
-    "optimum": ("string", re.compile(r"^(c )?Optimization[ ]*:[ ]*(?P<val>(-?[0-9]+)( -?[0-9]+)*)[ ]*$")),
-    "status": ("string", re.compile(r"^(s )?(?P<val>SATISFIABLE|UNSATISFIABLE|UNKNOWN|OPTIMUM FOUND)[ ]*$")),
-    "interrupted": ("string", re.compile(r"(c )?(?P<val>INTERRUPTED)")),
-    "error": ("string", re.compile(r"^\*\*\* clasp ERROR: (?P<val>.*)$")),
-    "rules": (
-        "float",
-        re.compile(r"^(c )?Rules[ ]*:[ ]*(?P<final>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
-    ),
-    "choice_rules": (
-        "float",
-        re.compile(r"^(c )?[ ]*Choice[ ]*:[ ]*(?P<final>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
-    ),
-    "atoms": (
-        "float",
-        re.compile(r"^(c )?Atoms[ ]*:[ ]*(?P<final>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
-    ),
-    "bodies": (
-        "float",
-        re.compile(r"^(c )?Bodies[ ]*:[ ]*(?P<final>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
-    ),
-    "count": (
-        "float",
-        re.compile(r"^(c )?[ ]*Count[ ]*:[ ]*(?P<final>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
-    ),
-    "sum": (
-        "float",
-        re.compile(r"^(c )?[ ]*Sum[ ]*:[ ]*(?P<final>[0-9]+)\+?[ ]*(\(Original:[ ]*(?P<original>[0-9]+)\+?\))?.*$"),
-    ),
-    "tight": ("string", re.compile(r"^(c )?Tight[ ]*:[ ]*(?P<val>No|Yes)\+?.*$")),
-    "variables": ("float", re.compile(r"^(c )?Variables[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
-    "constraints": ("float", re.compile(r"^(c )?Constraints[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
-}
-
-# penalized-average-runtime score constant
-PAR = 2
+def _get(data: dict[str, Any], *keys: str) -> Any:
+    value: Any = data
+    for key in keys:
+        if not isinstance(value, dict):
+            return None
+        value = value.get(key)
+    return value
 
 
-# pylint: disable=unused-argument, too-many-branches
+# pylint: disable=too-many-branches, too-many-statements
 def parse(
     path: str, runspec: "runscript.Runspec", instance: "runscript.Benchmark.Instance", run: int
 ) -> dict[str, tuple[str, Any]]:
@@ -75,17 +40,11 @@ def parse(
     res: dict[str, tuple[str, Any]] = {"time": ("float", timeout)}
     try:
         with open_results(path, "runsolver.solver") as file:
-            for line in file:
-                for val, reg in clasp_re.items():
-                    m = reg[1].match(line)
-                    if m:
-                        for group, value in m.groupdict().items():
-                            if value is not None:
-                                res[f"{val}{capture_suffix[group]}"] = (
-                                    reg[0],
-                                    float(value) if reg[0] == "float" else value,
-                                )
-                        break
+            try:
+                data = json.load(file)
+            except json.JSONDecodeError:
+                # error in JSON decoding
+                data = {}
     except FileNotFoundError:
         file_name = "runsolver.solver"
         sys.stderr.write(
@@ -93,6 +52,49 @@ def parse(
             f"of instance '{instance.name}' "
             f"for system '{runspec.system.name}-{runspec.system.version}'! ({path})\n"
         )
+        data = {}
+
+    float_stats = {
+        "models": ("Models", "Number"),
+        "choices": ("Stats", "Core", "Choices"),
+        "conflicts": ("Stats", "Core", "Conflicts"),
+        "restarts": ("Stats", "Core", "Restarts"),
+        "variables": ("Stats", "Problem", "Variables"),
+        "constraints": ("Stats", "Problem", "Constraints", "Sum"),
+    }
+    for key, keys in float_stats.items():
+        value = _get(data, *keys)
+        if value is not None:
+            res[key] = ("float", float(value))
+
+    multi_stats = (
+        ("rules", ("Stats", "LP", "Rules")),
+        ("choice_rules", ("Stats", "LP", "Choice")),
+        ("atoms", ("Stats", "LP", "Atoms")),
+        ("bodies", ("Stats", "LP", "Bodies")),
+        ("count", ("Stats", "LP", "Bodies", "Count")),
+        ("sum", ("Stats", "LP", "Equivalences", "Sum")),
+    )
+    for measure, keys in multi_stats:
+        stats = _get(data, *keys)
+        if isinstance(stats, dict):
+            values = (("f", "Final"), ("o", "Original"))
+            for suffix, key in values:
+                value = stats.get(key)
+                if value is not None:
+                    res[f"{measure}_{suffix}"] = ("float", float(value))
+        elif stats is not None:
+            res[f"{measure}_f"] = ("float", float(stats))
+
+    if (status := _get(data, "Result")) is not None:
+        res["status"] = ("string", status)
+    if _get(data, "INTERRUPTED"):
+        res["interrupted"] = ("string", "INTERRUPTED")
+    if (tight := _get(data, "Stats", "LP", "Tight")) is not None:
+        res["tight"] = ("string", "Yes" if str(tight).lower() == "yes" else "No")
+    if isinstance((costs := _get(data, "Models", "Costs")), list) and costs:
+        res["optimum"] = ("string", " ".join(str(cost) for cost in costs))
+
     try:
         res.update(parse_watcher(path))
     except FileNotFoundError:
@@ -131,11 +133,11 @@ def parse(
         "timeout": ("float", int(timedout)),
         "memout": ("float", int(memout)),
     }
-    if "optimum" in res and not " " in res["optimum"][1]:
+    if "optimum" in res and " " not in res["optimum"][1]:
         result["optimum"] = ("float", float(res["optimum"][1]))
     if "tight" in res:
         result["tight"] = ("float", 1.0 if res["tight"][1] == "Yes" else 0.0)
-    for measure in multi:
+    for measure, _ in multi_stats:
         if f"{measure}_f" in res:
             res.setdefault(f"{measure}_o", res[f"{measure}_f"])
     for key, value in res.items():
