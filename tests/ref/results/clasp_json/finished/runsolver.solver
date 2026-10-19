@@ -1,6 +1,36 @@
 {
+  "Solver": "clingo version 5.8.0",
+  "Input": [
+    "test.lp"
+  ],
+  "Call": [
+    {
+      "Start": 0.000,
+      "Witnesses": [
+        {
+          "Time": 0.038,
+          "Levels": [
+            10,3
+          ],
+          "Costs": [
+            24,5
+          ]
+        },
+        {
+          "Time": 0.171,
+          "Levels": [
+            10,3
+          ],
+          "Costs": [
+            0,2
+          ]
+        }
+      ],
+      "Stop": 0.810
+    }
+  ],
   "Result": "OPTIMUM FOUND",
-  "Models": {"Number": 12, "Costs": [0]},
+  "Models": {"Number": 12, "Levels": [10,3], "Costs": [0,2]},
   "Stats": {
     "Core": {"Choices": 20048, "Conflicts": 15698, "Restarts": 76},
     "LP": {
@@ -11,5 +41,13 @@
       "Tight": "yes"
     },
     "Problem": {"Variables": 3590, "Constraints": {"Sum": 11773}}
+  },
+  "Calls": 1,
+  "Time": {
+    "Total": 0.810,
+    "Solve": 0.774,
+    "Model": 0.001,
+    "Unsat": 0.000,
+    "CPU": 0.719
   }
 }

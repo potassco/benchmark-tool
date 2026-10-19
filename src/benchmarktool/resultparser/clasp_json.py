@@ -94,6 +94,8 @@ def parse(
         res["tight"] = ("string", "Yes" if str(tight).lower() == "yes" else "No")
     if isinstance((costs := _get(data, "Models", "Costs")), list) and costs:
         res["optimum"] = ("string", " ".join(str(cost) for cost in costs))
+    # if isinstance((levels := _get(data, "Models", "Levels")), list) and levels:
+    #     res["levels"] = ("string", " ".join(str(level) for level in levels))
 
     try:
         res.update(parse_watcher(path))
@@ -133,8 +135,9 @@ def parse(
         "timeout": ("float", int(timedout)),
         "memout": ("float", int(memout)),
     }
-    if "optimum" in res and " " not in res["optimum"][1]:
-        result["optimum"] = ("float", float(res["optimum"][1]))
+    if "optimum" in res:
+        optimum = res["optimum"][1]
+        result["optimum"] = ("string", optimum) if " " in optimum else ("float", float(optimum))
     if "tight" in res:
         result["tight"] = ("float", 1.0 if res["tight"][1] == "Yes" else 0.0)
     for measure, _ in multi_stats:

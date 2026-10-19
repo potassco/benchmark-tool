@@ -21,7 +21,10 @@ clasp_re = {
     "choices": ("float", re.compile(r"^(c )?Choices[ ]*:[ ]*(?P<val>[0-9]+)\+?[ ]*$")),
     "conflicts": ("float", re.compile(r"^(c )?Conflicts[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
     "restarts": ("float", re.compile(r"^(c )?Restarts[ ]*:[ ]*(?P<val>[0-9]+)\+?.*$")),
-    "optimum": ("string", re.compile(r"^(c )?Optimization[ ]*:[ ]*(?P<val>(-?[0-9]+)( -?[0-9]+)*)[ ]*$")),
+    "optimum": (
+        "string",
+        re.compile(r"^(c )?Optimization[ ]*:[ ]*(?P<val>-?[0-9]+(?:@-?[0-9]+)?(?: -?[0-9]+(?:@-?[0-9]+)?)*)[ ]*$"),
+    ),
     "status": ("string", re.compile(r"^(s )?(?P<val>SATISFIABLE|UNSATISFIABLE|UNKNOWN|OPTIMUM FOUND)[ ]*$")),
     "interrupted": ("string", re.compile(r"(c )?(?P<val>INTERRUPTED)")),
     "error": ("string", re.compile(r"^\*\*\* clasp ERROR: (?P<val>.*)$")),
@@ -131,8 +134,10 @@ def parse(
         "timeout": ("float", int(timedout)),
         "memout": ("float", int(memout)),
     }
-    if "optimum" in res and not " " in res["optimum"][1]:
-        result["optimum"] = ("float", float(res["optimum"][1]))
+    if "optimum" in res:
+        # levels = re.findall(r"@(-?[0-9]+)", res["optimum"][1])
+        optimum = re.sub(r"@-?[0-9]+", "", res["optimum"][1])
+        result["optimum"] = ("string", optimum) if " " in optimum else ("float", float(optimum))
     if "tight" in res:
         result["tight"] = ("float", 1.0 if res["tight"][1] == "Yes" else 0.0)
     for measure in multi:

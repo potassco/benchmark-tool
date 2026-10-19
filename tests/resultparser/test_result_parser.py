@@ -23,18 +23,19 @@ common_stats = {
     "tight": ("float", 1.0),
     "variables": ("float", 3590.0),
     "constraints": ("float", 11773.0),
+    "optimum": ("string", "0 2"),
+    "choices": ("float", 20048.0),
+    "conflicts": ("float", 15698.0),
+    "restarts": ("float", 76.0),
 }
 
 ref_stats = {
     "finished": {
         **common_stats,
-        "choices": ("float", 20048.0),
-        "conflicts": ("float", 15698.0),
         "error": ("float", 0),
         "mem": ("float", 12.0),
         "memout": ("float", 0),
         "models": ("float", 12.0),
-        "optimum": ("float", 0.0),
         "restarts": ("float", 76.0),
         "rstatus": ("string", "ok"),
         "status": ("string", "OPTIMUM FOUND"),
@@ -43,14 +44,10 @@ ref_stats = {
     },
     "timeout": {
         **common_stats,
-        "choices": ("float", 215295.0),
-        "conflicts": ("float", 99457.0),
         "error": ("float", 0),
         "mem": ("float", 19.0),
         "memout": ("float", 0),
         "models": ("float", 18.0),
-        "optimum": ("float", 0.0),
-        "restarts": ("float", 327.0),
         "rstatus": ("string", "out of time"),
         "status": ("string", "SATISFIABLE"),
         "time": ("float", 10),
@@ -58,14 +55,10 @@ ref_stats = {
     },
     "memout": {
         **common_stats,
-        "choices": ("float", 1666.0),
-        "conflicts": ("float", 950.0),
         "error": ("float", 0),
         "mem": ("float", 11.0),
         "memout": ("float", 1),
         "models": ("float", 9.0),
-        "optimum": ("float", 0.0),
-        "restarts": ("float", 6.0),
         "rstatus": ("string", "out of memory"),
         "status": ("string", "UNKNOWN"),
         "time": ("float", 10),
@@ -232,7 +225,6 @@ class TestClaspJsonParser(_ClaspParserTestCase):
         Test parsing of a run that was interrupted.
         """
         expected = ref_stats["timeout"].copy()
-        del expected["optimum"]
         self.assertDictEqual(self.parse("interrupted"), expected)
 
     def test_parse_sat_with_cost(self):
@@ -261,6 +253,7 @@ class TestClaspJsonParser(_ClaspParserTestCase):
                 "memout": ("float", 0),
                 "tight": ("float", 0.0),
                 "time": ("float", self.timeout),
+                "optimum": ("string", "0 2"),
                 "rules_f": ("float", 0.0),
                 "rules_o": ("float", 0.0),
                 "rstatus": ("string", "ok"),
