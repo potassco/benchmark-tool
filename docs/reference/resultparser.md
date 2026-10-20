@@ -5,7 +5,7 @@ icon: "material/text-box-check-outline"
 
 # Modifying the Resultparser
 
-The default resultparser provided is [clasp.py][clasp_py], which supports many of
+The default resultparsers provided are [clasp][clasp] and [clasp_json[clasp_json]], which supports many of
 clingo's statistics. However, sometimes we will need access to other statistics that
 the script doesn't retrieve. We could also be running a program that has its
 own set of statistics.
@@ -68,4 +68,5 @@ Afterwards, we have to delete the 'function_time' entry from *res* so that it is
 del res["function_time"]
 ```
 
-[clasp_py]: https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp.py
+[clasp]: https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp.py
+[clasp_json]: https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp_json.py

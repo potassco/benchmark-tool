@@ -1,0 +1,12 @@
+{
+  "Models": {"Costs": [0,2]},
+  "Stats": {
+    "Core": [],
+    "LP": {
+      "Rules": {"Final": 0},
+      "Atoms": null,
+      "Bodies": {"Count": {}},
+      "Tight": "no"
+    }
+  }
+}
