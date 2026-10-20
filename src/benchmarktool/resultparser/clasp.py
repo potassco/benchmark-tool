@@ -135,7 +135,6 @@ def parse(
         "memout": ("float", int(memout)),
     }
     if "optimum" in res:
-        # levels = re.findall(r"@(-?[0-9]+)", res["optimum"][1])
         optimum = re.sub(r"@-?[0-9]+", "", res["optimum"][1])
         result["optimum"] = ("string", optimum) if " " in optimum else ("float", float(optimum))
     if "tight" in res:

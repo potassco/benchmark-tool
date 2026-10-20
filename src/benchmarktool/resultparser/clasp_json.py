@@ -94,8 +94,6 @@ def parse(
         res["tight"] = ("string", "Yes" if str(tight).lower() == "yes" else "No")
     if isinstance((costs := _get(data, "Models", "Costs")), list) and costs:
         res["optimum"] = ("string", " ".join(str(cost) for cost in costs))
-    # if isinstance((levels := _get(data, "Models", "Levels")), list) and levels:
-    #     res["levels"] = ("string", " ".join(str(level) for level in levels))
 
     try:
         res.update(parse_watcher(path))
