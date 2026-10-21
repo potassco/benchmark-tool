@@ -6,6 +6,8 @@ Created on Mar 20, 2026
 
 from typing import TYPE_CHECKING, Any, Optional
 
+from xlsxwriter.utility import cell_autofit_width  # type: ignore[import-untyped]
+
 from benchmarktool.result.xlsx_gen.result_sheets.instance_sheet import InstanceSheet
 from benchmarktool.result.xlsx_gen.spreadsheet import Chart, DataValidation, Formula, Sheet, get_cell_index
 
@@ -28,6 +30,7 @@ class ChartSheet(Sheet):
         self.merge_select = ""
         self.measure_select = ""
         self.instance_sheet = instance_sheet
+        self.matrix_range: Optional[tuple[int, int, int, int]] = None
 
         self.prepare()
 
@@ -170,8 +173,25 @@ class ChartSheet(Sheet):
             )
 
         self.content.loc[4, 1] = survivor_chart
-        self.content.loc[4, 10] = cactus_chart
-        self.content.loc[4, 19] = cdf_chart
+        self.content.loc[4, 10] = cdf_chart
+        self.content.loc[20, 1] = cactus_chart
+
+        self.content.loc[4, 19] = "Win-Difference-Matrix"
+        matrix_col = helper_sheet.start_cols["matrix"] - 1
+        matrix_row = helper_sheet.matrix_row - 1
+        for col_offset in range(helper_sheet.setting_n + 1):
+            target_col = 19 + col_offset
+            if target_col not in self.content.columns:
+                self.content[target_col] = None
+            self.content[target_col] = self.content[target_col].astype(object)
+            for row_offset in range(helper_sheet.setting_n + 1):
+                if row_offset == 0 and col_offset == 0:
+                    continue
+                source = get_cell_index(matrix_col + col_offset, matrix_row + row_offset)
+                self.content.loc[4 + row_offset, target_col] = Formula(f"='{helper_sheet.name}'!{source}")
+
+        if helper_sheet.setting_n > 0:
+            self.matrix_range = (5, 20, 4 + helper_sheet.setting_n, 19 + helper_sheet.setting_n)
 
         self.content = self.content.reindex(
             index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
@@ -185,17 +205,62 @@ class ChartSheet(Sheet):
         Attributes:
             xlsxdoc (XLSXDoc): XLSX document.
         """
-        if xlsxdoc.workbook is None:
+        workbook = xlsxdoc.workbook
+        if workbook is None:
             raise ValueError("Trying to write to uninitialized workbook.")
-        sheet = xlsxdoc.workbook.add_worksheet(self.name)
+        sheet = workbook.add_worksheet(self.name)
+        matrix_format = workbook.add_format({"border": 1, "border_color": "#D4D4D4"})
+        matrix_header_format = workbook.add_format(
+            {
+                "bold": True,
+                "bg_color": "#FFFFFF",
+                "font_color": "#000000",
+                "border": 1,
+                "border_color": "#000000",
+                "text_wrap": True,
+                "valign": "vcenter",
+            }
+        )
         for col in range(len(self.content.columns)):
-            for row, cell in enumerate(list(self.content.iloc[:, col])):
-                val = cell
-                if isinstance(val, Formula):
-                    val = str(val)
-                if isinstance(val, (int, float, str, bool)) or val is None:
-                    sheet.write(row, col, val)
-                elif isinstance(val, DataValidation):
-                    val.write(xlsxdoc, sheet, row, col)
-                elif isinstance(val, Chart) and len(val.series) > 0:
-                    val.write(xlsxdoc, sheet, row, col)
+            for row, cell in enumerate(self.content.iloc[:, col]):
+                if isinstance(cell, DataValidation):
+                    cell.write(xlsxdoc, sheet, row, col)
+                    continue
+                if isinstance(cell, Chart):
+                    if cell.series:
+                        cell.write(xlsxdoc, sheet, row, col)
+                    continue
+                val = str(cell) if isinstance(cell, Formula) else cell
+                if not isinstance(val, (int, float, str, bool)) and val is not None:
+                    continue
+                cell_format = None
+                if self.matrix_range is not None:
+                    first_row, first_col, last_row, last_col = self.matrix_range
+                    if first_row - 1 <= row <= last_row and first_col - 1 <= col <= last_col:
+                        is_header = row == first_row - 1 or col == first_col - 1
+                        cell_format = matrix_header_format if is_header else matrix_format
+                sheet.write(row, col, val, cell_format)
+
+        if self.matrix_range is not None:
+            first_row, first_col, _, last_col = self.matrix_range
+            sheet.set_row_pixels(first_row - 1, 80)
+            label_width = xlsxdoc.header_width
+            for col, block in zip(range(first_col, last_col + 1), sorted(self.instance_sheet.system_blocks.values())):
+                name = block.gen_name(len(self.instance_sheet.machines) > 1)
+                col_width = min(xlsxdoc.max_col_width, max(xlsxdoc.header_width, cell_autofit_width(name)))
+                sheet.set_column_pixels(col, col, min(100, col_width))
+                label_width = max(label_width, col_width)
+            sheet.set_column_pixels(first_col - 1, first_col - 1, min(xlsxdoc.max_col_width, label_width))
+            sheet.conditional_format(
+                *self.matrix_range,
+                {
+                    "type": "3_color_scale",
+                    "min_type": "min",
+                    "min_color": "#F8696B",
+                    "mid_type": "num",
+                    "mid_value": 0,
+                    "mid_color": "#FFFFFF",
+                    "max_type": "max",
+                    "max_color": "#2F8FDF",
+                },
+            )

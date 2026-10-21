@@ -46,6 +46,7 @@ class HelperSheet(Sheet):
         self.start_cols: dict[str, int] = {}
         self.clean_rows: dict[str, int] = {}
         self.plot_row = 0
+        self.matrix_row = 0
 
     def _setup_table_structure(
         self, sheet: str, sheet_ref: ResultSheet, col: int, setting_ref_row: int
@@ -71,6 +72,22 @@ class HelperSheet(Sheet):
             self.plot_row = plot_row
 
             table_rows["plot"] = plot_row
+        elif sheet == "solvable":
+            instance_n = self.instance_n
+            solvable_row = setting_ref_row + 3
+            self.content.loc[solvable_row - 2, col] = "solvable"
+            self.content.loc[solvable_row - 1, col] = "index"
+            for row in range(instance_n):
+                self.content.loc[solvable_row + row, col] = row + 1
+
+            table_rows["solvable"] = solvable_row
+        elif sheet == "matrix":
+            instance_n = self.instance_n
+            matrix_row = setting_ref_row + 3
+            self.content.loc[matrix_row - 2, col] = "matrix"
+            self.content.loc[matrix_row - 1, col] = "i\\j"
+
+            table_rows["matrix"] = matrix_row
         else:
             instance_n = sheet_ref.result_offset - 2
             if sheet == self.instance_sheet.name:
@@ -144,12 +161,9 @@ class HelperSheet(Sheet):
                 f"={sheet_ref.name}!{get_cell_index(1 + setting_idx * setting_offset, 0)}"
             )
         elif isinstance(sheet_ref, MergedRunSheet):
-            self.content.loc[setting_ref_row, col] = Formula(
-                f"={get_cell_index(self.start_cols[self.instance_sheet.name] + setting_idx * 4, setting_ref_row)}"
-            )
-            self.content.loc[setting_ref_row + 1, col] = Formula(
-                f"={get_cell_index(self.start_cols[self.instance_sheet.name] + setting_idx * 4, setting_ref_row + 1)}"
-            )
+            source_col = self.start_cols[self.instance_sheet.name] + setting_idx * 4
+            for header_row in (setting_ref_row, setting_ref_row + 1):
+                self.content.loc[header_row, col] = Formula(f"={get_cell_index(source_col, header_row)}")
 
     def _add_table_headers(self, sheet: str, table_rows: dict[str, int], col: int) -> None:
         """
@@ -192,8 +206,6 @@ class HelperSheet(Sheet):
             value_rows (int): Number of rows for values.
             value_data_row (int): Row index for first row of values.
         """
-        # values
-        # if sheet == self.instance_sheet.name:
         if isinstance(sheet_ref, InstanceSheet):
             ref = (
                 "INDIRECT("
@@ -237,7 +249,7 @@ class HelperSheet(Sheet):
         # aggregate values from sorted column, empty if no value
         self.content.loc[value_data_row + row, col + 3] = Formula(
             "IFERROR("
-            f"SUM({get_cell_index(col + 1, value_data_row,)}"
+            f"SUM({get_cell_index(col + 1, value_data_row)}"
             f':{get_cell_index(col + 1, value_data_row + row)}),""'
             ")"
         )
@@ -403,12 +415,13 @@ class HelperSheet(Sheet):
             merged_col + col_offset,
             self.clean_rows[self.merged_run_sheet.name] + plot_row_offset,
         )
+        clean_instance_ref = get_cell_index(
+            instances_col + col_offset,
+            self.clean_rows[self.instance_sheet.name] + plot_row_offset,
+        )
         self.content.loc[self.plot_row + plot_row_offset, c] = Formula(
             f'=IF(Charts!{self.chart_sheet.merge_select}="none",'
-            f"""{get_cell_index(
-                instances_col + col_offset,
-                self.clean_rows[self.instance_sheet.name] + plot_row_offset,
-            )},"""
+            f"{clean_instance_ref},"
             f'IF({clean_merged_ref}="",NA(),{clean_merged_ref}))'
         )
 
@@ -468,10 +481,87 @@ class HelperSheet(Sheet):
                     merged_col=self.start_cols[self.merged_run_sheet.name] + setting_idx * 4,
                 )
 
+    def _add_solvable_table(self, col: int, setting_ref_row: int) -> int:
+        """
+        Add solvability table, returning the next table's starting column.
+
+        Attributes:
+            col (int): Starting column.
+            setting_ref_row (int): Reference row for the settings headers.
+        """
+        table_rows, instance_n = self._setup_table_structure("solvable", self.instance_sheet, col, setting_ref_row)
+        col += 1
+        self.start_cols["solvable"] = col
+        for setting, block in enumerate(sorted(self.instance_sheet.system_blocks.values())):
+            self.content[col] = None
+            source_col = self.start_cols[self.instance_sheet.name] + setting * 4
+            for header_row in (setting_ref_row, setting_ref_row + 1):
+                self.content.loc[header_row, col] = Formula(f"={get_cell_index(source_col, header_row)}")
+            values = self.instance_sheet.solvable[(block.setting, block.machine)]
+            for row in range(instance_n):
+                self.content.loc[table_rows["solvable"] + row, col] = values.get(row)
+            col += 1
+        return col + 1
+
+    def _add_matrix_table(self, col: int, setting_ref_row: int) -> None:
+        """
+        Add setting-pair comparison formulas and headers using values and solvability.
+
+        Attributes:
+            col (int): Starting column.
+            setting_ref_row (int): Reference row for the settings headers.
+        """
+        table_rows, instance_n = self._setup_table_structure("matrix", self.instance_sheet, col, setting_ref_row)
+        matrix_row = table_rows["matrix"]
+        self.matrix_row = matrix_row
+        self.start_cols["matrix"] = col + 1
+        data_row = setting_ref_row + 3
+        last_data_row = data_row + instance_n - 1
+        value_ranges: list[str] = []
+        solvable_ranges: list[str] = []
+        for setting in range(self.setting_n):
+            matrix_col = col + 1 + setting
+            self.content[matrix_col] = None
+            source_col = self.start_cols[self.instance_sheet.name] + setting * 4
+            header = Formula(f"={get_cell_index(source_col, setting_ref_row + 1)}")
+            self.content.loc[matrix_row + setting, col] = header
+            self.content.loc[matrix_row - 1, matrix_col] = header
+            value_ranges.append(
+                f"{get_cell_index(source_col, data_row, True, True)}:"
+                f"{get_cell_index(source_col, last_data_row, True, True)}"
+            )
+            solvable_col = self.start_cols["solvable"] + setting
+            solvable_ranges.append(
+                f"{get_cell_index(solvable_col, data_row, True, True)}:"
+                f"{get_cell_index(solvable_col, last_data_row, True, True)}"
+            )
+
+        for setting_i, value_i in enumerate(value_ranges):
+            for setting_j, value_j in enumerate(value_ranges):
+                matrix_col = col + 1 + setting_j
+                if setting_i == setting_j:
+                    self.content.loc[matrix_row + setting_i, matrix_col] = 0
+                    continue
+                numeric = f"--ISNUMBER({value_i}),--ISNUMBER({value_j})"
+                # A numeric value also wins when the other setting has no value.
+                smaller_ij = (
+                    f"SUMPRODUCT({numeric},--({value_i}<{value_j}))"
+                    f'+SUMPRODUCT(--ISNUMBER({value_i}),--({value_j}=""))'
+                )
+                smaller_ji = (
+                    f"SUMPRODUCT({numeric},--({value_j}<{value_i}))"
+                    f'+SUMPRODUCT(--ISNUMBER({value_j}),--({value_i}=""))'
+                )
+                solvable_ij = f"COUNTIFS({solvable_ranges[setting_i]},1,{solvable_ranges[setting_j]},1)"
+                self.content.loc[matrix_row + setting_i, matrix_col] = Formula(
+                    f"IF({solvable_ij}=0,0,(({smaller_ij})-({smaller_ji}))/{solvable_ij})"
+                )
+
     def finalize(self) -> None:
         """
         Finalize sheet.
         """
+        setting_offset = 0
         for measure, cols in self.instance_sheet.float_occur.items():
             s_cols = sorted(cols)
             self.float_occur[measure] = s_cols
@@ -545,6 +635,9 @@ class HelperSheet(Sheet):
                 self.content = self.content.copy()
                 col += 4
             col += 1
+
+        col = self._add_solvable_table(col, setting_ref_row)
+        self._add_matrix_table(col, setting_ref_row)
 
         self.content = self.content.reindex(
             index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))

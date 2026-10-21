@@ -19,11 +19,15 @@ if TYPE_CHECKING:
 # pylint: disable=too-many-instance-attributes
 class InstanceSheet(ResultSheet):
     """
-    A sheet displaying instance results.
+    A sheet displaying instance results and retaining measure-independent solvability.
+
+    Solvability stores 1 - timeout by setting, machine, and zero-based result row.
+    Missing timeout measurements are retained as None.
     """
 
     def __init__(self, name: str, benchmark: "result.BenchmarkMerge", measures: dict[str, Any]):
         self.runs: Optional[int] = None
+        self.solvable: dict[tuple[Any, Any], dict[int, Optional[float]]] = {}
         super().__init__(name, benchmark, measures)
 
     def prepare(self) -> None:
@@ -77,11 +81,16 @@ class InstanceSheet(ResultSheet):
         """
         key = (runspec.setting, runspec.machine)
         block = self.system_blocks.setdefault(key, SystemBlock(runspec.setting, runspec.machine))
+        solvable = self.solvable.setdefault(key, {})
         if block.machine:
             self.machines.add(block.machine)
 
         for benchclass_result in runspec:
             for instance_result in benchclass_result:
+                for run in instance_result:
+                    row = instance_result.instance.values["row"] + run.number - 1
+                    timeout = run.measures.get("timeout")
+                    solvable[row] = 1 - float(timeout[1]) if timeout is not None else None
                 self._add_instance_results(block, instance_result)
                 for m in block.columns:
                     if m not in self.types or self.types[m] in {"None", "empty"}:

@@ -32,6 +32,7 @@ class TestInstSheet(TestResultSheet):
         """
         super().test_init()
         self.assertIsNone(self.sheet.runs)
+        self.assertEqual(self.sheet.solvable, {})
         pd.testing.assert_frame_equal(
             self.sheet.content,
             pd.DataFrame(
@@ -129,6 +130,10 @@ class TestInstSheet(TestResultSheet):
                 index=[1, 2, 3, 4, 5, 6, 7],
             ),
             check_dtype=False,
+        )
+        self.assertDictEqual(
+            sheet.solvable,
+            {(run_specs[0].setting, run_specs[0].machine): {0: 1.0, 1: None, 2: 1.0, 3: 1.0, 4: 1.0, 5: 1.0}},
         )
 
     def test_finalize_results(self) -> None:

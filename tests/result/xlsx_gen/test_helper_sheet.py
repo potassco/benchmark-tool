@@ -51,6 +51,7 @@ class TestHelperSheet(TestSheet):
         self.assertDictEqual(self.sheet.start_cols, {})
         self.assertDictEqual(self.sheet.clean_rows, {})
         self.assertEqual(self.sheet.plot_row, 0)
+        self.assertEqual(self.sheet.matrix_row, 0)
 
     def test_setup_table_structure(self):
         """
@@ -75,6 +76,30 @@ class TestHelperSheet(TestSheet):
 
         pd.testing.assert_frame_equal(self.sheet.content, pd.DataFrame({0: ["plot"]}, index=[2]), check_dtype=False)
         self.assertDictEqual(table_rows, {"plot": 3})
+        self.assertEqual(inst_n, 3)
+
+        self.setUp()  # reset sheet
+        self.sheet.instance_n = 3
+
+        table_rows, inst_n = self.sheet._setup_table_structure("solvable", self.ref_inst_sheet, 0, 0)
+
+        pd.testing.assert_frame_equal(
+            self.sheet.content,
+            pd.DataFrame({0: ["solvable", "index", 1, 2, 3]}, index=[1, 2, 3, 4, 5]),
+            check_dtype=False,
+        )
+        self.assertDictEqual(table_rows, {"solvable": 3})
+        self.assertEqual(inst_n, 3)
+
+        self.setUp()  # reset sheet
+        self.sheet.instance_n = 3
+
+        table_rows, inst_n = self.sheet._setup_table_structure("matrix", self.ref_inst_sheet, 0, 0)
+
+        pd.testing.assert_frame_equal(
+            self.sheet.content, pd.DataFrame({0: ["matrix", "i\\j"]}, index=[1, 2]), check_dtype=False
+        )
+        self.assertDictEqual(table_rows, {"matrix": 3})
         self.assertEqual(inst_n, 3)
 
     def test_add_setting_headers(self):
@@ -421,6 +446,8 @@ class TestHelperSheet(TestSheet):
             patch.object(HelperSheet, "_add_data_table") as mock_data,
             patch.object(HelperSheet, "_add_step_table") as mock_step,
             patch.object(HelperSheet, "_add_stepped_tables") as mock_stepped,
+            patch.object(HelperSheet, "_add_solvable_table", return_value=40) as mock_solvable,
+            patch.object(HelperSheet, "_add_matrix_table") as mock_matrix,
         ):
             mock_setup.return_value = (ref_tables, ref_inst_n)
             self.sheet.finalize()
@@ -436,6 +463,8 @@ class TestHelperSheet(TestSheet):
             self.assertEqual(mock_step.call_count, 8)
             # stepped tables for inst and merged sheet + plot table for each setting, for each instance -> 3*2*2 = 12
             self.assertEqual(mock_stepped.call_count, 12)
+            mock_solvable.assert_called_once_with(33, 1)
+            mock_matrix.assert_called_once_with(40, 1)
 
         self.assertDictEqual(self.sheet.float_occur, {"time": [1, 3], "timeout": [2, 4]})
         self.assertEqual(self.sheet.setting_n, 2)
@@ -460,6 +489,8 @@ class TestHelperSheet(TestSheet):
             patch.object(HelperSheet, "_add_data_table") as mock_data,
             patch.object(HelperSheet, "_add_step_table") as mock_step,
             patch.object(HelperSheet, "_add_stepped_tables") as mock_stepped,
+            patch.object(HelperSheet, "_add_solvable_table", return_value=40) as mock_solvable,
+            patch.object(HelperSheet, "_add_matrix_table") as mock_matrix,
         ):
             mock_setup.return_value = (ref_tables, ref_inst_n)
             self.sheet.finalize()
@@ -475,6 +506,8 @@ class TestHelperSheet(TestSheet):
             self.assertEqual(mock_step.call_count, 4)
             # stepped tables for inst and merged sheet + plot table for each setting, for each instance -> 3*1*2 = 6
             self.assertEqual(mock_stepped.call_count, 6)
+            mock_solvable.assert_called_once_with(21, 1)
+            mock_matrix.assert_called_once_with(40, 1)
 
         self.assertDictEqual(self.sheet.float_occur, {"time": [1], "timeout": [2]})
         self.assertEqual(self.sheet.setting_n, 1)
@@ -488,6 +521,87 @@ class TestHelperSheet(TestSheet):
             pd.Series([None, 1.0, 2.0], dtype=object, name=1),
             check_dtype=False,
         )
+
+    def test_add_solvable_table(self) -> None:
+        """
+        Test _add_solvable_table method.
+        """
+        benchmark = self.res.merge(self.res.projects.values())
+        instances = InstanceSheet("Instances", benchmark, {"time": "t"})
+        specs = self.res.projects["test_proj0"].runspecs
+        specs[0].classresults[0].instresults[0].runs[0].measures["timeout"] = ("int", "1")
+        for spec in reversed(specs):
+            instances.add_runspec(spec)
+        self.sheet.instance_sheet = instances
+        self.sheet.instance_n = 6
+        self.sheet.start_cols["Instances"] = 4
+
+        next_col = self.sheet._add_solvable_table(20, 1)
+
+        self.assertEqual(next_col, 24)
+        self.assertEqual(self.sheet.start_cols["solvable"], 21)
+        for setting, block in enumerate(sorted(instances.system_blocks.values())):
+            for row in (1, 2):
+                self.assertEqual(
+                    self.sheet.content.at[row, 21 + setting],
+                    spreadsheet.Formula(f"={spreadsheet.get_cell_index(4 + setting * 4, row)}"),
+                )
+            expected = instances.solvable[(block.setting, block.machine)]
+            for row in range(6):
+                self.assertEqual(self.sheet.content.at[4 + row, 21 + setting], expected[row])
+        self.assertEqual(self.sheet.content.at[4, 21], 0)
+        self.assertIsNone(self.sheet.content.at[5, 21])
+
+    def test_add_matrix_table(self) -> None:
+        """
+        Test _add_matrix_table method.
+        """
+        for setting_count in (0, 1, 3):
+            with self.subTest(settings=setting_count):
+                self.setUp()
+                self.sheet.setting_n = setting_count
+                self.sheet.instance_n = 2
+                self.sheet.start_cols = {"Instances": 4, "solvable": 20}
+
+                self.sheet._add_matrix_table(25, 1)
+
+                self.assertEqual(self.sheet.matrix_row, 4)
+                self.assertEqual(self.sheet.start_cols["matrix"], 26)
+                for setting in range(setting_count):
+                    header = spreadsheet.Formula(f"={spreadsheet.get_cell_index(4 + setting * 4, 2)}")
+                    self.assertEqual(self.sheet.content.at[4 + setting, 25], header)
+                    self.assertEqual(self.sheet.content.at[3, 26 + setting], header)
+                for setting_i in range(setting_count):
+                    for setting_j in range(setting_count):
+                        cell = self.sheet.content.at[4 + setting_i, 26 + setting_j]
+                        if setting_i == setting_j:
+                            self.assertIsInstance(cell, int)
+                            self.assertEqual(cell, 0)
+                            continue
+                        value_i, value_j = [
+                            f"{spreadsheet.get_cell_index(4 + setting * 4, 4, True, True)}:"
+                            f"{spreadsheet.get_cell_index(4 + setting * 4, 5, True, True)}"
+                            for setting in (setting_i, setting_j)
+                        ]
+                        solvable_i, solvable_j = [
+                            f"{spreadsheet.get_cell_index(20 + setting, 4, True, True)}:"
+                            f"{spreadsheet.get_cell_index(20 + setting, 5, True, True)}"
+                            for setting in (setting_i, setting_j)
+                        ]
+                        numeric = f"--ISNUMBER({value_i}),--ISNUMBER({value_j})"
+                        smaller_ij = (
+                            f"SUMPRODUCT({numeric},--({value_i}<{value_j}))"
+                            f'+SUMPRODUCT(--ISNUMBER({value_i}),--({value_j}=""))'
+                        )
+                        smaller_ji = (
+                            f"SUMPRODUCT({numeric},--({value_j}<{value_i}))"
+                            f'+SUMPRODUCT(--ISNUMBER({value_j}),--({value_i}=""))'
+                        )
+                        denominator = f"COUNTIFS({solvable_i},1,{solvable_j},1)"
+                        self.assertEqual(
+                            cell,
+                            spreadsheet.Formula(f"IF({denominator}=0,0,(({smaller_ij})-({smaller_ji}))/{denominator})"),
+                        )
 
     def test_write_sheet(self) -> None:
         """
