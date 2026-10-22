@@ -464,6 +464,6 @@ The attributes are as follows:
 [result parser]: ../../reference/resultparser.md
 [single.dist]: https://github.com/potassco/benchmark-tool/blob/master/templates/single.dist
 [templates]: templates.md#dist-templates
-[examples]: ../../examples/index.md#runscripts
+[examples]: ../../examples/runscripts.md
 [SLURM documentation]: https://slurm.schedmd.com/sbatch.html
 [encoding support]: ../../reference/encoding_support.md

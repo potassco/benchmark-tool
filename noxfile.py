@@ -35,10 +35,10 @@ def doc(session):
 
     if open_doc:
         open_cmd = "xdg-open" if sys.platform == "linux" else "open"
-        session.run(open_cmd, "http://localhost:8000/systems/benchmark-tool/")
-        session.run("mkdocs", "serve", *options)
+        session.run(open_cmd, "http://localhost:8000/")
+        session.run("zensical", "serve", *options)
     else:
-        session.run("mkdocs", "build", *options)
+        session.run("zensical", "build", *options)
 
 
 @nox.session

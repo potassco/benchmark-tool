@@ -29,15 +29,13 @@ conda activate <env-name>
 pip install .
 ```
 
-The documentation can be accessed [here](https://potassco.org/benchmark-tool/)
+The documentation can be accessed [here](https://docs.potassco.org/benchmark-tool/)
 or build and hosted using:
 
 ```bash
 $ pip install .[doc]
-$ mkdocs serve
+$ zensical serve
 ```
-
-And afterwards accessed at `http://localhost:8000/systems/benchmark-tool/`.
 
 ## Usage
 

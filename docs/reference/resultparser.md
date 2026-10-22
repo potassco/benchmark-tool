@@ -5,7 +5,7 @@ icon: "material/text-box-check-outline"
 
 # Modifying the Resultparser
 
-The default resultparsers provided are [clasp][clasp] and [clasp_json[clasp_json]], which supports many of
+The default resultparsers provided are [clasp][clasp] and [clasp_json][clasp_json], which supports many of
 clingo's statistics. However, sometimes we will need access to other statistics that
 the script doesn't retrieve. We could also be running a program that has its
 own set of statistics.
@@ -19,7 +19,7 @@ resultparser by providing `claps.py` inside the resultparsers folder.
 We will now take a look at how the scripts work, how to change them to fit your own goals and
 how to write your own.
 
-Lets look at the [clasp][clasp_py] resultparser as an example. All resultparser **must** define
+Lets look at the [clasp][clasp] resultparser as an example. All resultparser **must** define
 a `parse()`function, which takes 3 arguments. The first argument is the path to the root directory
 of the benchmark and where the results are saved. The second argument, runspec, gives us access to
 the data that we defined in the runscript file. The third argument is an instance class that includes
