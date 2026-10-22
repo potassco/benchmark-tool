@@ -204,8 +204,14 @@ class TestJob(TestCase):
         self.j._to_xml(o, "\t", tag, extra)
         self.assertEqual(
             o.getvalue(),
-            '\t<tag name="name" timeout="20" memout="20000" runs="2" template_options="test_opt" extra key="val"/>\n',
+            '\t<tag name="name" timeout="20" memout="15000" runs="2" template_options="test_opt" extra key="val"/>\n',
         )
+
+    def test_default_memout(self):
+        """
+        Test the default memory limit.
+        """
+        self.assertEqual(self.j.memout, 15000)
 
     def test_script_gen(self):
         """
@@ -568,6 +574,7 @@ class TestDistScript(TestCase):
         ps.runspec.project.job = mock.Mock(spec=runscript.DistJob)
         ps.runspec.project.job.walltime = 100
         ps.runspec.project.job.cpt = 1
+        ps.runspec.project.job.memout = 15000
         ps.runspec.project.job.partition = "all"
         ps.write()
 
@@ -580,6 +587,7 @@ class TestDistScript(TestCase):
             x,
             "#SBATCH --time=00-00:01:40\n"
             "#SBATCH --cpus-per-task=1\n"
+            "#SBATCH --mem=15100M\n"
             "#SBATCH --partition=all\n"
             "#SBATCH --test=1\n"
             "#SBATCH --opt=test\n"

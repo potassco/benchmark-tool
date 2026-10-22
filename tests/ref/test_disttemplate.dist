@@ -1,5 +1,6 @@
 #SBATCH --time={walltime}
 #SBATCH --cpus-per-task={cpt}
+#SBATCH --mem={mem}M
 #SBATCH --partition={partition}
 {dist_options}
 

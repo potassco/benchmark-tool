@@ -21,7 +21,7 @@ The following references are available:
 - `encodings`: encoding files used for this instance
 - `root`: path to the benchmark-tool folder
 - `timeout`: walltime for this run
-- `memout`: memory limit for this run in MB (default: 20000)
+- `memout`: memory limit for this run in MB (default: 15000)
 - `solver`: solver or program used for this run
 - arguments for the solver/program:
     - `sys_cmd`: commandline arguments defined via the system
@@ -46,6 +46,7 @@ The following references are available:
 - `walltime`: overall time limit
 - `cpt`: number of CPUs per task
 - `partition`: cluster partition to use
+- `mem`: memory reserved in MB
 - `dist_options`: additional options for distributed jobs (e.g., SLURM)
 - `jobs`: list of jobs to run
 

@@ -177,7 +177,7 @@ class Job:
     Attributes:
         name (str):    A unique name for a job.
         timeout (int): A timeout in seconds for individual benchmark runs.
-        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
+        memout (int):  A memory limit in MB for individual benchmark runs (15GB).
         runs (int):    The number of runs per benchmark.
         template_options (str): Template options.
         attr (dict[str, Any]): A dictionary of arbitrary attributes.
@@ -187,7 +187,7 @@ class Job:
     timeout: int = field(compare=False)
     runs: int = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
-    memout: int = field(compare=False, default=20000)
+    memout: int = field(compare=False, default=15000)
     template_options: str = field(compare=False, default="")
 
     def __eq__(self, other: Any) -> bool:
@@ -598,6 +598,8 @@ class DistScriptGen(ScriptGen):
                             walltime=tools.seconds_to_slurm_time(self.runspec.project.job.walltime),
                             jobs=self.startscripts,
                             cpt=self.runspec.project.job.cpt,
+                            # 100 MB extra for runlim etc.
+                            mem=self.runspec.project.job.memout + 100,
                             partition=self.runspec.project.job.partition,
                             dist_options=dist_options,
                         )
@@ -691,7 +693,7 @@ class SeqJob(Job):
     Attributes:
         name (str):    A unique name for a job.
         timeout (int): A timeout in seconds for individual benchmark runs.
-        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
+        memout (int):  A memory limit in MB for individual benchmark runs (15GB).
         runs (int):    The number of runs per benchmark.
         template_options (str): Template options.
         attr (dict[str, Any]): A dictionary of arbitrary attributes.
@@ -727,7 +729,7 @@ class DistJob(Job):
     Attributes:
         name (str):    A unique name for a job.
         timeout (int): A timeout in seconds for individual benchmark runs.
-        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
+        memout (int):  A memory limit in MB for individual benchmark runs (15GB).
         runs (int):    The number of runs per benchmark.
         template_options (str): Template options.
         attr (dict[str, Any]): A dictionary of arbitrary attributes.

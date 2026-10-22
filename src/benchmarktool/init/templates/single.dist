@@ -3,6 +3,7 @@
 #SBATCH --error=err.%j
 #SBATCH --time={walltime}        # walltime
 #SBATCH --cpus-per-task={cpt}    # number of processor cores (i.e. tasks)
+#SBATCH --mem={mem}M             # memory reserved
 #SBATCH --partition={partition}
 {dist_options}                  # additional dist options (specified via runscript setting)
 

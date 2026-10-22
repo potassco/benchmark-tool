@@ -23,9 +23,9 @@ and cluster benchmarks can be defined.
 
         <setting name="setting-1" cmdline="--stats --quiet=1,0" tag="basic">
         <!-- value: 'float,float,float' -> range: start,end,step -->
-        <variable cmd="--time-limit={}" value="30,600,30"/>
+        <variable cmd="--seed={}" value="30,600,30"/>
         <!-- value: 'any;any;...' -> pool of values -->
-        <variable cmd="--memory-limit={}" value="1024;2048"/>
+        <variable cmd="--configuration={}" value="auto;trendy"/>
       </setting>
 
       </system>
@@ -136,8 +136,8 @@ additional features.
     <config name="seq-generic" template="templates/seq-generic.sh"/>
     <system name="clasp" version="3.4.0" measures="clasp" config="seq-generic" cmdline="--stats" cmdline_post="--configuration=auto">
       <setting name="default"  tag="seq" cmdline="-q" cmdline_post="1"/>
-      <setting name="tlimits"  tag="seq">
-        <variable cmd="--time-limit" value="1800,3600,600"/>
+      <setting name="seeds"  tag="seq">
+        <variable cmd="--seed" value="1800,3600,600"/>
         <encoding file ="encodings/setting_enc.lp"/>
         <encoding file ="encodings/setting_inst_enc.lp" encoding_tag="use-enc"/>
       </setting>

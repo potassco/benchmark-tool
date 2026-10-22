@@ -131,8 +131,8 @@ encodings used by the system.
 <setting name="setting-1" cmdline="--quiet=1,0" tag="basic">
     <encoding file="encodings/default.lp"/>
     <encoding file="extra.lp" tag="extra"/>
-    <variable cmd="--time-limit={}" value="30,100,30"/>
-    <variable cmd="--memory-limit={}" value="1024;2048" post="true"/>
+    <variable cmd="--seed={}" value="30,100,30"/>
+    <variable cmd="--configuration={}" value="auto;trendy" post="true"/>
 </setting>
 ```
 
@@ -183,10 +183,10 @@ All attributes (such as cmdline, tag, and encodings) are inherited from the pare
 
     For example, the setting at the start of the section would result in the following generated settings:
 
-    |                         | --time-limit=30   | --time-limit=60   | --time-limit=90   |
-    | ----------------------- | ----------------- | ----------------- | ----------------- |
-    | **--memory-limit=1024** | setting-1_30_1024 | setting-1_60_1024 | setting-1_90_1024 |
-    | **--memory-limit=2048** | setting-1_30_2048 | setting-1_60_2048 | setting-1_90_2048 |
+    |                            | --seed=30         | --seed=60           | --seed=90           |
+    | -------------------------- | ----------------- | ------------------- | ------------------- |
+    | **--configuration=auto**   | setting-1_30_auto | setting-1_60_auto   | setting-1_90_auto |
+    | **--configuration=trendy** | setting-1_30_2048 | setting-1_60_trendy | setting-1_90_trendy |
 
 ## Job
 
@@ -199,7 +199,7 @@ running benchmarks on a cluster.
 A sequential job is identified by its `name` and sets the `timeout` (in seconds) for a
 single run, the number of `runs` for each instance, and the number of solver processes
 executed in `parallel`. The optional attribute `memout` sets a memory limit (in MB) for
-each run. If no limit is set, a default limit of 20 GB is used. Additional options, which
+each run. If no limit is set, a default limit of 15GB is used. Additional options, which
 will be passed to the runlim call, can be set using the optional `template_options`
 attribute. `template_options` expects a comma-separated string of options, e.g.  
 `template_options="--single,--report-rate=2000"`.
@@ -232,6 +232,8 @@ interpreted as seconds.
     group is below the specified `walltime`. For example, if the `walltime` is 25 hours
     and you have 100 instances with a `timeout` of 1 hour each and 1 run each, there
     will be 4 groups of 25 runs each, which are dispatched separately.
+- `memout`: (Optional) Sets the memory limit for each benchmark run in MB. The
+default is `15000` MB.
 - `partition`: (Optional) Specifies the cluster partition name. The default is `kr`.
 Other values include `short` and `long`. If `short` is used, the walltime cannot exceed
 24 hours. Note that these values depend on your cluster configuration.
