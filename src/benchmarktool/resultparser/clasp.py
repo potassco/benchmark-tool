@@ -8,7 +8,7 @@ import re
 import sys
 from typing import TYPE_CHECKING, Any
 
-from . import open_results, parse_watcher
+from benchmarktool.resultparser import open_results, parse_watcher
 
 if TYPE_CHECKING:
     from benchmarktool.runscript import runscript  # nocoverage
