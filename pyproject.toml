@@ -25,7 +25,7 @@ keywords = [
 [project.urls]
 Homepage = "https://potassco.org"
 Repository = "https://github.com/potassco/benchmark-tool"
-Documentation = "https://potassco.org/benchmark-tool/"
+Documentation = "https://docs.potassco.org/benchmark-tool/"
 
 [project.optional-dependencies]
 format = ["black", "isort", "autoflake"]
