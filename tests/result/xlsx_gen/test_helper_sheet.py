@@ -569,7 +569,10 @@ class TestHelperSheet(TestSheet):
                             f"SUMPRODUCT({numeric},--({value_j}<{value_i}))"
                             f'+SUMPRODUCT(--ISNUMBER({value_j}),--({value_i}=""))'
                         )
-                        denominator = f"COUNTIFS({solvable_i},1,{solvable_j},1)"
+                        denominator = (
+                            f"(COUNTIF({solvable_i},1)+COUNTIF({solvable_j},1)"
+                            f"-COUNTIFS({solvable_i},1,{solvable_j},1))"
+                        )
                         self.assertEqual(
                             cell,
                             spreadsheet.Formula(f"IF({denominator}=0,0,(({smaller_ij})-({smaller_ji}))/{denominator})"),
