@@ -40,6 +40,16 @@ option. The name of the file will be the same as the specified output, i.e. `-o 
 For large result files, generating the chart-related sheets can take noticeable time.
 Use `--no-charts` to skip creating these sheets.
 
+Existing benchmark classes can be grouped by their first `N` directory components using
+`--class-group-depth N`, where `N` is a positive integer.
+For example, classes `scheduling/small/random` and `scheduling/small/structured`
+are combined into `scheduling/small` at depth 2. At depth 1, both would be combined to
+`scheduling`. The full prefix is retained, so `planning/small` remains a separate
+class at depth 2.
+Shallower classes keep their available path, and the root class (`.`) remains separate.
+Classes from different benchmark sets are never combined. If the option is omitted,
+original classes are retained.
+
 ## Spreadsheet Generation
 
 When generating a spreadsheet in XLSX format, normally five sheets are created:
