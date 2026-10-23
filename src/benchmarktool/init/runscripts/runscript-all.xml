@@ -44,7 +44,7 @@
 		<runtag machine="houat" benchmark="seq-suite" tag="seq"/>
 	</project>
 	<project name="clingo-all-as" job="dist-generic">
-		<runtag machine="houat" benchmark="dist-suite" tag="par one-as"/>
+		<runtag machine="houat" benchmark="dist-suite" tag="all-as"/>
 	</project>
 	<project name="clingo-one-as" job="dist-generic">
 		<runspec machine="hpc" benchmark="dist-suite" system="clingo" version="5.8.0" setting="one-as"/>

@@ -20,7 +20,7 @@ btool conv benchmark-results.xml -m "time:t,choices" -o results.xlsx
 The name of the resulting `.xlsx` file is set using the `-o, --output` option (default `out.xlsx`).
 In cases of a missing or wrong file extension the correct file extension is added.
 
-Which benchmark projects to include in the output can be selected via the `-p, --project`
+Which benchmark projects to include in the output can be selected via the `-p, --projects`
 option. By default all projects are selected.
 
 The `-m, --measures` option specifies which measures to include in the table (default: time:t,timeout:to;

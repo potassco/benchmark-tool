@@ -88,7 +88,7 @@ For more information, see the [template][run template] page.
 Systems are defined as follows:
 
 ```xml
-<system name="clingo" version="5.8.0" measures="clingo" config="seq-generic"
+<system name="clingo" version="5.8.0" measures="clasp" config="seq-generic"
         cmdline="--stats">
     ...
 </system>
@@ -99,7 +99,8 @@ Systems are defined as follows:
 example, the solver referenced by the [run template] in the configuration is  
 `./programs/clingo-5.8.0`. You can freely modify this script as needed.
 - `measures`: The name of the [result parser] used to evaluate benchmark
-results. This does not affect script generation.
+results. Use `clasp` for clasp/clingo text output or `clasp_json` for JSON output.
+This does not affect script generation.
 - `config`: The configuration to use for running this system.
 - `cmdline` (optional): Any string to be passed to the system, regardless of
 the setting. Files should not be passed using the `cmdline`, since file paths
@@ -130,7 +131,7 @@ encodings used by the system.
 ```xml
 <setting name="setting-1" cmdline="--quiet=1,0" tag="basic">
     <encoding file="encodings/default.lp"/>
-    <encoding file="extra.lp" tag="extra"/>
+    <encoding file="extra.lp" encoding_tag="extra"/>
     <variable cmd="--seed={}" value="30,100,30"/>
     <variable cmd="--configuration={}" value="auto;trendy" post="true"/>
 </setting>
@@ -163,10 +164,11 @@ about dist templates can be found on the [templates] page.
 - Each setting can contain any number of `encoding` elements. These encodings
 will be used together with instances when using this setting:
     - `file`: A relative path from the directory where `btool gen` is run to the encoding file.
-    - If no `tag` is given, the encoding is passed to the system for all instances when this
+    - If no `encoding_tag` is given, the encoding is passed to the system for all instances when this
     setting is selected.
-    - If a `tag` is given, encoding usage is instance-dependent. Multiple encodings can
-    be selected by using the same tag.
+    - If an `encoding_tag` is given, the encoding is passed only to instances with a matching
+    encoding tag. Tags are whitespace-separated; matching any one tag selects the encoding.
+    Multiple encodings can be selected by using the same tag.
 - Each setting can also include any number of `variable` elements, which can be used to
 define multiple settings at once. If several `variable` elements are present, settings
 are generated for every possible combination of their values. The names of these
@@ -186,7 +188,7 @@ All attributes (such as cmdline, tag, and encodings) are inherited from the pare
     |                            | --seed=30         | --seed=60           | --seed=90           |
     | -------------------------- | ----------------- | ------------------- | ------------------- |
     | **--configuration=auto**   | setting-1_30_auto | setting-1_60_auto   | setting-1_90_auto |
-    | **--configuration=trendy** | setting-1_30_2048 | setting-1_60_trendy | setting-1_90_trendy |
+    | **--configuration=trendy** | setting-1_30_trendy | setting-1_60_trendy | setting-1_90_trendy |
 
 ## Job
 
@@ -299,10 +301,10 @@ manually add specific files using the `files` element:
 </files>
 ```
 
-The `files` element supports the following optional attributes:
+The `files` element supports the following attributes:
 
-- `path`: Specifies the folder containing the instances to be added.
-- `encoding_tag`: Works the same way as for the `folder` element.
+- `path` (required): Specifies the folder containing the instances to be added.
+- `encoding_tag` (optional): Works the same way as for the `folder` element.
 
 The `files` element can contain any number of `encoding` and `add` elements:
 
@@ -354,6 +356,8 @@ separated by spaces. For example, `tag1 | tag2 tag3` selects instances that eith
 have `tag1` or both `tag2` and `tag3` together. Instances with only `tag2` or `tag3`
 are not included. If the special tag `*all*` is used or `instance_tag` is not set,
 all instances are included regardless of their tags.
+Instances and folders without an `instance_tag` attribute are always included,
+even when a filter is specified.
 
 #### Spec Files
 
@@ -434,10 +438,10 @@ It has the following attributes:
 - `benchmark`: References a previously defined benchmark set.
 - `tag` (optional): Specifies one or more setting tags to use. Only settings with
 matching tag groups are selected. Tag groups are separated by `|`, and tags within
-a group are separated by spaces. For example, `tag1 | tag2 tag3` selects instances
-that either have `tag1` or both `tag2` and `tag3` together. Instances with only
+a group are separated by spaces. For example, `tag1 | tag2 tag3` selects settings
+that either have `tag1` or both `tag2` and `tag3` together. Settings with only
 `tag2` or `tag3` are not included. If the special tag `*all*` is used or `tag` is
-not set, all instances are included regardless of their tags.
+not set, all settings are included regardless of their tags.
 
 In the example above, all instances defined in the `no-pigeons` benchmark are
 run using the `seq-gen` job configuration on machine `hpc`, once for each setting

@@ -20,8 +20,9 @@ name without `.py`. For example, `measures="custom_parser"` loads
 Local parsers take precedence over built-in parsers. A local
 `resultparsers/clasp.py` overrides the built-in `clasp` parser.
 
-You can run `btool init --resultparser-template` to create `rp_tmp.py` in
-the current directory as a copy of the built-in text parser.
+You can run `btool init --resultparser-template` to create
+`resultparsers/rp_tmp.py` relative to the current directory as a copy of the
+built-in text parser.
 
 ## Parser interface
 

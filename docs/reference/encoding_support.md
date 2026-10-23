@@ -9,7 +9,7 @@ icon: "material/file-code"
 Given a basic template:
 
 ```bash
-{run.solver} {sys_cmd} {setting_cmd} {run.file} {runs.encodings}
+{solver} {sys_cmd} {setting_cmd} {files} {encodings}
 ```
 
 The default behaviour of a benchmark is to simply execute the system with each instance:
@@ -65,6 +65,9 @@ Any number of `encoding` elements can be defined. These will be used with all
 instances using the given setting, or—if an `encoding_tag` is given—only with
 instances that have a matching tag.
 
+Tags are whitespace-separated. An encoding is selected if any of its tags matches
+an instance's encoding tags. Tags without matching encodings do not add any files.
+
 Consider the following example settings:
 ```xml
 <system name="clingo" version="1.0.0" measures="clasp" config="seq-generic">
@@ -114,3 +117,5 @@ This results in the following runs:
 
 !!! info
     The examples above use simplified paths for readability.
+    Encoding paths are combined, deduplicated, and sorted before being passed to the
+    system, so their argument order may differ from the examples.
