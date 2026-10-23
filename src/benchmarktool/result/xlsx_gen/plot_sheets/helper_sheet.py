@@ -576,7 +576,11 @@ class HelperSheet(Sheet):
                     f"SUMPRODUCT({numeric},--({value_j}<{value_i}))"
                     f'+SUMPRODUCT(--ISNUMBER({value_j}),--({value_i}=""))'
                 )
-                solvable_ij = f"COUNTIFS({solvable_ranges[setting_i]},1,{solvable_ranges[setting_j]},1)"
+                solvable_i = solvable_ranges[setting_i]
+                solvable_j = solvable_ranges[setting_j]
+                solvable_ij = (
+                    f"(COUNTIF({solvable_i},1)+COUNTIF({solvable_j},1)-COUNTIFS({solvable_i},1,{solvable_j},1))"
+                )
                 self._cell_buffer[(matrix_row + setting_i, matrix_col)] = Formula(
                     f"IF({solvable_ij}=0,0,(({smaller_ij})-({smaller_ji}))/{solvable_ij})"
                 )
