@@ -100,6 +100,46 @@ class TestHelperSheet(TestSheet):
         self.assertDictEqual(table_rows, {"matrix": 3})
         self.assertEqual(inst_n, 3)
 
+    def test_class_lookup_and_filters(self):
+        """
+        Use the same reporting labels for choices, raw rows, and merged rows.
+        """
+        benchmark = result.Benchmark("bench")
+        for index, name in enumerate(('planning/small/a"b', "planning/small/c")):
+            benchclass = result.Class(benchmark, name, index)
+            benchmark.classes[index] = benchclass
+            instance = result.Instance(benchclass, "case01", 0)
+            instance.values["max_runs"] = index + 1
+            benchclass.instances[0] = instance
+        for depth, labels in (
+            (None, ['bench/planning/small/a"b', "bench/planning/small/c"]),
+            (2, ["bench/planning/small"] * 2),
+        ):
+            with self.subTest(depth=depth):
+                helper = HelperSheet(
+                    name="Helper",
+                    benchmark=result.BenchmarkMerge({benchmark}, class_group_depth=depth),
+                    measures=self.measures,
+                    instance_sheet=self.ref_inst_sheet,
+                    merged_run_sheet=self.ref_run_sheet,
+                    chart_sheet=self.ref_chart_sheet,
+                )
+                self.assertEqual(helper._instance_classes, [labels[0], labels[1], labels[1]])
+                self.assertEqual(helper._merged_classes, labels)
+                helper._add_class_lookup(4)
+                choices = list(dict.fromkeys(labels))
+                self.assertEqual(helper.class_range, f"$A$5:$A${5 + len(choices)}")
+                self.assertEqual(
+                    helper._cell_buffer,
+                    {(row, 0): label for row, label in enumerate(["All classes"] + choices, 4)},
+                )
+                for merged, row in ((False, 2), (True, 1), (False, 0)):
+                    label = labels[1 if row else 0].replace('"', '""')
+                    self.assertEqual(
+                        helper._filter_class("A1", row, merged=merged),
+                        f'IF(OR(Charts!$J$3="All classes",Charts!$J$3="{label}"),A1,"")',
+                    )
+
     def test_add_setting_headers(self):
         """
         Test _add_setting_headers method.
@@ -153,6 +193,8 @@ class TestHelperSheet(TestSheet):
         """
         self.sheet.start_cols = {self.sheet.instance_sheet.name: 1, self.sheet.merged_run_sheet.name: 3, "plot": 5}
         self.sheet.merged_run_sheet.run_refs = {3: {"inst_start": 2, "inst_end": 3}}
+        self.sheet._instance_classes = ["bench/a"] * 2
+        self.sheet._merged_classes = ["bench/a"] * 3
 
         self.sheet._add_data_table(
             sheet_ref=self.ref_inst_sheet,
@@ -175,19 +217,21 @@ class TestHelperSheet(TestSheet):
             self.sheet._cell_buffer,
             {
                 (2, 0): spreadsheet.Formula(
-                    '=IF(INDIRECT(ADDRESS($A3+2,A$1+1,,,"Instances"))="","",'
-                    'INDIRECT(ADDRESS($A3+2,A$1+1,,,"Instances")))'
+                    '=IF(OR(Charts!$J$3="All classes",Charts!$J$3="bench/a"),'
+                    'IF(INDIRECT(ADDRESS($A3+2,A$1+1,,,"Instances"))="","",'
+                    'INDIRECT(ADDRESS($A3+2,A$1+1,,,"Instances"))),"")'
                 ),
                 (2, 1): spreadsheet.Formula('=IFERROR(SMALL(A2:A3,ROW()-ROW($B$2)+1),"")'),
                 (2, 3): spreadsheet.Formula('=IFERROR(SUM(B2:B3),"")'),
                 (3, 0): spreadsheet.Formula(
-                    '=SWITCH(Charts!$B$3,"average", AVERAGE(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
+                    '=IF(OR(Charts!$J$3="All classes",Charts!$J$3="bench/a"),'
+                    'SWITCH(Charts!$B$3,"average", AVERAGE(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
                     '& ":" & ADDRESS(3+3,A$1+1))),"median", MEDIAN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
                     '& ":" & ADDRESS(3+3,A$1+1))),"min", MIN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
                     '& ":" & ADDRESS(3+3,A$1+1))),"max", MAX(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
                     '& ":" & ADDRESS(3+3,A$1+1))),"diff", MAX(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
                     '& ":" & ADDRESS(3+3,A$1+1)))-MIN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
-                    '& ":" & ADDRESS(3+3,A$1+1))))'
+                    '& ":" & ADDRESS(3+3,A$1+1)))),"")'
                 ),
                 (3, 1): spreadsheet.Formula('=IFERROR(SMALL(A2:A3,ROW()-ROW($B$2)+1),"")'),
                 (3, 3): spreadsheet.Formula('=IFERROR(SUM(B2:B4),"")'),
@@ -437,7 +481,7 @@ class TestHelperSheet(TestSheet):
         self.assertEqual(self.sheet.setting_n, 2)
         self.assertDictEqual(
             self.sheet._cell_buffer,
-            {(1, 0): "time", (1, 1): 1.0, (2, 0): "timeout", (2, 1): 2.0},
+            {(1, 0): "time", (1, 1): 1.0, (2, 0): "timeout", (2, 1): 2.0, (4, 0): "All classes"},
         )
         self.assertIsInstance(self.sheet.content, pd.DataFrame)
         self.assertEqual(self.sheet.content.at[1, 0], self.sheet._cell_buffer[(1, 0)])
@@ -477,11 +521,11 @@ class TestHelperSheet(TestSheet):
         self.assertEqual(self.sheet.setting_n, 1)
         self.assertDictEqual(
             self.sheet._cell_buffer,
-            {(1, 0): "time", (1, 1): 1.0, (2, 0): "timeout", (2, 1): 2.0},
+            {(1, 0): "time", (1, 1): 1.0, (2, 0): "timeout", (2, 1): 2.0, (4, 0): "All classes"},
         )
         self.assertIsInstance(self.sheet.content, pd.DataFrame)
 
-        # no numeric measures leaves the sparse buffer empty
+        # Class choices remain available without numeric measures.
         self.setUp()
         with (
             patch.object(HelperSheet, "_setup_table_structure", return_value=(ref_tables, ref_inst_n)),
@@ -490,6 +534,21 @@ class TestHelperSheet(TestSheet):
         ):
             self.sheet.finalize()
 
+        self.assertDictEqual(self.sheet._cell_buffer, {(2, 0): "All classes"})
+        self.assertEqual(self.sheet.class_range, "$A$3:$A$3")
+        self.assertIsInstance(self.sheet.content, pd.DataFrame)
+
+    def test_finalize_empty_buffer(self):
+        """
+        Test the defensive empty-buffer branch.
+        """
+        with (
+            patch.object(HelperSheet, "_add_class_lookup"),
+            patch.object(HelperSheet, "_setup_table_structure", return_value=({}, 0)),
+            patch.object(HelperSheet, "_add_solvable_table", return_value=0),
+            patch.object(HelperSheet, "_add_matrix_table"),
+        ):
+            self.sheet.finalize()
         self.assertDictEqual(self.sheet._cell_buffer, {})
         self.assertIsInstance(self.sheet.content, pd.DataFrame)
         self.assertTrue(self.sheet.content.empty)
@@ -506,6 +565,7 @@ class TestHelperSheet(TestSheet):
             instances.add_runspec(spec)
         self.sheet.instance_sheet = instances
         self.sheet.instance_n = 6
+        self.sheet._instance_classes = ["bench/a"] * 6
         self.sheet.start_cols["Instances"] = 4
 
         next_col = self.sheet._add_solvable_table(20, 1)
@@ -520,8 +580,13 @@ class TestHelperSheet(TestSheet):
                 )
             expected = instances.solvable[(block.setting, block.machine)]
             for row in range(6):
-                self.assertEqual(self.sheet._cell_buffer[(4 + row, 21 + setting)], expected[row])
-            self.assertEqual(self.sheet._cell_buffer[(4, 21)], 0)
+                value = expected[row]
+                filtered = (
+                    spreadsheet.Formula(f'=IF(OR(Charts!$J$3="All classes",Charts!$J$3="bench/a"),{value},"")')
+                    if value is not None
+                    else None
+                )
+                self.assertEqual(self.sheet._cell_buffer[(4 + row, 21 + setting)], filtered)
             self.assertIsNone(self.sheet._cell_buffer[(5, 21)])
 
     def test_add_matrix_table(self) -> None:

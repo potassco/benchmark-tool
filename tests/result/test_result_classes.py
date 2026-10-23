@@ -35,7 +35,10 @@ class TestResult(TestCase):
 
         with mock.patch("benchmarktool.result.result.BenchmarkMerge", return_value="bench_merge") as bm:
             self.assertEqual(self.res.merge([p]), "bench_merge")
-            bm.assert_called_once_with({bench})
+            bm.assert_called_once_with({bench}, None)
+            bm.reset_mock()
+            self.assertEqual(self.res.merge([p], class_group_depth=2), "bench_merge")
+            bm.assert_called_once_with({bench}, 2)
         self.assertEqual(ins.values["max_runs"], 2)
 
     def test_gen_spreadsheet(self):
@@ -64,7 +67,7 @@ class TestResult(TestCase):
         ):
             ex_file = self.res.gen_spreadsheet("out", "p1", [("time", "to")])
             self.assertIsNone(ex_file)
-            bm.assert_called_once_with([p1])
+            bm.assert_called_once_with([p1], None)
             xlsx_init.assert_called_once_with("bench_merge", [("time", "to")], 300, True)
             xlsx_doc.add_runspec.assert_called_once_with(run)
             xlsx_doc.finalize.assert_called_once()
@@ -75,6 +78,23 @@ class TestResult(TestCase):
             self.assertIn("out.parquet", ex_file)
             xlsx_doc.inst_sheet.export_values.assert_called_once()
             self.assertIn({"_to_test_system-1.0/test_setting": [10]}, xlsx_doc.inst_sheet.export_values.call_args.args)
+
+    def test_gen_spreadsheet_class_group_depth(self):
+        """
+        Test forwarding the depth and using the grouped reporting view.
+        """
+        run = mock.Mock(spec=result.Runspec)
+        project = result.Project("p", "job", [run])
+        self.res.projects["p"] = project
+        benchmark = mock.Mock(spec=result.BenchmarkMerge)
+        with (
+            mock.patch.object(self.res, "merge", return_value=benchmark) as merge,
+            mock.patch("benchmarktool.result.result.XLSXDoc") as doc,
+        ):
+            self.res.gen_spreadsheet("out", {"p"}, {"time": "t"}, class_group_depth=2)
+        merge.assert_called_once_with([project], 2)
+        benchmark.group_runspec.assert_called_once_with(run)
+        doc.return_value.add_runspec.assert_called_once_with(benchmark.group_runspec.return_value)
 
 
 class TestBenchmarkMerge(TestCase):
@@ -97,6 +117,91 @@ class TestBenchmarkMerge(TestCase):
         bm = result.BenchmarkMerge({bench})
         self.assertEqual(list(bm.benchmarks)[0].classes[0].instances[1].values["row"], 1)
         self.assertEqual(list(bm.benchmarks)[0].classes[0].values["inst_end"], 1)
+        self.assertIsNone(bm.class_group_depth)
+        self.assertEqual(ins.values["merged_row"], 0)
+        self.assertEqual(ins2.values["merged_row"], 1)
+        runspec = mock.Mock(spec=result.Runspec)
+        self.assertIs(bm.group_runspec(runspec), runspec)
+
+    def test_invalid_class_group_depth(self):
+        """
+        Test that nonpositive grouping depths are rejected.
+        """
+        for depth in (0, -1):
+            with self.subTest(depth=depth):
+                with self.assertRaisesRegex(ValueError, "Class group depth must be a positive integer"):
+                    result.BenchmarkMerge(set(), class_group_depth=depth)
+
+    def test_init_with_class_group_depth(self):
+        """
+        Test that prefixes, benchmark boundaries, identities, and row ranges are preserved.
+        """
+        benchmarks = [result.Benchmark("a"), result.Benchmark("b")]
+        names = [".", "flat", "planning/small/random", "planning/small/structured", r"scheduling\small\random"]
+        originals = []
+        for benchmark in benchmarks:
+            for index, name in enumerate(names):
+                benchclass = result.Class(benchmark, name, index)
+                benchmark.classes[index] = benchclass
+                instance = result.Instance(benchclass, "case01", 0)
+                instance.values["max_runs"] = index
+                benchclass.instances[0] = instance
+                originals.append(instance)
+
+        for depth, expected in (
+            (1, [".", "flat", "planning", "scheduling"]),
+            (2, [".", "flat", "planning/small", "scheduling/small"]),
+            (5, [".", "flat", "planning/small/random", "planning/small/structured", "scheduling/small/random"]),
+        ):
+            with self.subTest(depth=depth):
+                merged = result.BenchmarkMerge(set(benchmarks), class_group_depth=depth)
+                self.assertEqual(merged.class_group_depth, depth)
+                self.assertEqual([group.name for group in merged], expected * 2)
+                row = 0
+                merged_row = 0
+                for class_row, group in enumerate(merged):
+                    self.assertEqual(group.values["row"], class_row)
+                    self.assertEqual(group.values["inst_start"], row)
+                    for instance in group:
+                        self.assertIs(instance, originals[merged_row])
+                        self.assertIs(instance.benchclass.instances[instance.id], instance)
+                        self.assertEqual(instance.values["row"], row)
+                        self.assertEqual(instance.values["merged_row"], merged_row)
+                        row += max(instance.values["max_runs"], 1)
+                        merged_row += 1
+                    self.assertEqual(group.values["inst_end"], row - 1)
+                self.assertEqual(merged_row, len(originals))
+        self.assertEqual([instance.benchclass.name for instance in originals], names * 2)
+
+    def test_group_runspec(self):
+        """
+        Test regrouping of results without copying instances, runs, or source containers.
+        """
+        benchmark = result.Benchmark("bench")
+        classes = []
+        for index, name in enumerate(("planning/small/a", "planning/small/b", "planning/large/a")):
+            benchclass = result.Class(benchmark, name, index)
+            benchmark.classes[index] = benchclass
+            instance = result.Instance(benchclass, "case01", 0)
+            benchclass.instances[0] = instance
+            instresult = result.InstanceResult(instance)
+            instresult.runs.append(result.Run(instresult, 1, {"time": ("float", "1")}))
+            classes.append(result.ClassResult(benchclass, [instresult]))
+        runspec = result.Runspec(mock.Mock(), mock.Mock(), benchmark, mock.Mock(), classes)
+        merged = result.BenchmarkMerge({benchmark}, class_group_depth=2)
+        grouped = merged.group_runspec(runspec)
+        self.assertIsNot(grouped, runspec)
+        self.assertIs(grouped.system, runspec.system)
+        self.assertIs(grouped.machine, runspec.machine)
+        self.assertIs(grouped.setting, runspec.setting)
+        self.assertIs(grouped.benchmark, benchmark)
+        self.assertEqual([group.benchclass.name for group in grouped], ["planning/large", "planning/small"])
+        self.assertIs(grouped.classresults[0].instresults[0], classes[2].instresults[0])
+        for index in (0, 1):
+            self.assertIs(grouped.classresults[1].instresults[index], classes[index].instresults[0])
+        self.assertIs(runspec.classresults, classes)
+        self.assertEqual(len(classes), 3)
+        self.assertTrue(all(len(group.instresults) == 1 for group in classes))
 
 
 class TestMachine(TestCase):
