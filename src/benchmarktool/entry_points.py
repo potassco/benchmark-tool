@@ -43,7 +43,15 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         else:
             res = p.parse(sys.stdin)
         export: bool = args.export
-        res.gen_spreadsheet(args.output, args.projects, args.measures, export, args.max_col_width, args.charts)
+        res.gen_spreadsheet(
+            args.output, args.projects, args.measures, export, args.max_col_width, args.charts, args.class_group_depth
+        )
+
+    def parse_class_group_depth(s: str) -> int:
+        depth = int(s)
+        if depth < 1:
+            raise ArgumentTypeError("Class group depth must be a positive integer.")
+        return depth
 
     def parse_set(s: str) -> set[str]:
         return set(filter(None, (x.strip() for x in s.split(","))))
@@ -112,6 +120,13 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
             """
         ),
         metavar="<measure[:{t,to,-}][,measure[:{t,to,-}],...]>",
+    )
+    conv_parser.add_argument(
+        "--class-group-depth",
+        type=parse_class_group_depth,
+        default=None,
+        help="Group reporting classes by the first n directory components (default: keep original classes)",
+        metavar="<n>",
     )
     conv_parser.add_argument(
         "--no-charts",

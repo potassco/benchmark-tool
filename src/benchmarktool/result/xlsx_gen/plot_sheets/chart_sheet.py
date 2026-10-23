@@ -55,6 +55,9 @@ class ChartSheet(Sheet):
         self.content.loc[1, 5] = "Select measure:"
         self.content.loc[2, 5] = "PLACEHOLDER: Measure select"
         self.measure_select = get_cell_index(5, 2, True, True)
+        self.content.loc[1, 9] = "Select class:"
+        self.content.loc[2, 9] = "PLACEHOLDER: Class select"
+        self.class_select = get_cell_index(9, 2, True, True)
         self.content = self.content.astype(object)
 
     def finalize(self, helper_sheet: Optional["HelperSheet"] = None) -> None:
@@ -75,6 +78,16 @@ class ChartSheet(Sheet):
                 "input_message": "Select measure to display.",
             },
             measures[0] if measures else "",
+            "input",
+        )
+        # class select
+        self.content.loc[2, 9] = DataValidation(
+            {
+                "validate": "list",
+                "source": f"=Helper!{helper_sheet.class_range}",
+                "input_message": "Select a reporting class or all classes.",
+            },
+            "All classes",
             "input",
         )
 

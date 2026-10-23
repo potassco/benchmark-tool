@@ -50,6 +50,28 @@ class HelperSheet(Sheet):
         self.plot_row = 0
         self.matrix_row = 0
         self._cell_buffer: dict[tuple[int, int], Any] = {}
+        self.class_range = ""
+        self._instance_classes: list[str] = []
+        self._merged_classes: list[str] = []
+        for benchclass in self.benchmark:
+            label = f"{benchclass.benchmark.name}/{benchclass.name}"
+            for instance in benchclass:
+                self._instance_classes.extend([label] * max(instance.values["max_runs"], 1))
+                self._merged_classes.append(label)
+
+    def _filter_class(self, value: str, row: int, merged: bool = False) -> str:
+        """
+        Exclude unselected classes before chart sorting, aggregation, and comparisons.
+
+        Attributes:
+            value (str): The value to be filtered.
+            row (int): The row index of the value.
+            merged (bool): Whether to use merged classes or instance classes.
+        """
+        labels = self._merged_classes if merged else self._instance_classes
+        label = labels[row].replace('"', '""')
+        selection = f"Charts!{self.chart_sheet.class_select}"
+        return f'IF(OR({selection}="All classes",{selection}="{label}"),{value},"")'
 
     def _setup_table_structure(
         self, sheet: str, sheet_ref: ResultSheet, col: int, setting_ref_row: int
@@ -213,7 +235,8 @@ class HelperSheet(Sheet):
                 ")"
             )
             # get values from instance sheet, empty if no value
-            self._cell_buffer[(value_data_row + row, col)] = Formula(f'=IF({ref}="","",{ref})')
+            value = f'IF({ref}="","",{ref})'
+            self._cell_buffer[(value_data_row + row, col)] = Formula(self._filter_class(value, row))
         elif isinstance(sheet_ref, MergedRunSheet):
             ref = (
                 "INDIRECT("
@@ -225,7 +248,7 @@ class HelperSheet(Sheet):
                 ")"
             )
             # merge values from instance sheet based on merge_select from ChartSheet
-            self._cell_buffer[(value_data_row + row, col)] = Formula(
+            value = (
                 "SWITCH("
                 f"Charts!{self.chart_sheet.merge_select},"
                 f'"average", AVERAGE({ref}),'
@@ -235,6 +258,7 @@ class HelperSheet(Sheet):
                 f'"diff", MAX({ref})-MIN({ref})'
                 ")"
             )
+            self._cell_buffer[(value_data_row + row, col)] = Formula(self._filter_class(value, row, merged=True))
         # sorted
         # sort values from values column, empty if no value
         self._cell_buffer[(value_data_row + row, col + 1)] = Formula(
@@ -497,7 +521,10 @@ class HelperSheet(Sheet):
                 self._cell_buffer[(header_row, col)] = Formula(f"={get_cell_index(source_col, header_row)}")
             values = self.instance_sheet.solvable[(block.setting, block.machine)]
             for row in range(instance_n):
-                self._cell_buffer[(table_rows["solvable"] + row, col)] = values.get(row)
+                value = values.get(row)
+                self._cell_buffer[(table_rows["solvable"] + row, col)] = (
+                    Formula(self._filter_class(str(value), row)) if value is not None else None
+                )
             col += 1
         return col + 1
 
@@ -554,6 +581,21 @@ class HelperSheet(Sheet):
                     f"IF({solvable_ij}=0,0,(({smaller_ij})-({smaller_ji}))/{solvable_ij})"
                 )
 
+    def _add_class_lookup(self, first_row: int) -> None:
+        """
+        Store class choices in cells rather than an inline validation list.
+
+        Attributes:
+            first_row (int): The first row to start storing class choices.
+        """
+        labels = ["All classes"] + [f"{benchclass.benchmark.name}/{benchclass.name}" for benchclass in self.benchmark]
+        for row, label in enumerate(labels, first_row):
+            self._cell_buffer[(row, 0)] = label
+        self.class_range = (
+            f"{get_cell_index(0, first_row, True, True)}:"
+            f"{get_cell_index(0, first_row + len(labels) - 1, True, True)}"
+        )
+
     def finalize(self) -> None:
         """
         Finalize sheet.
@@ -576,6 +618,8 @@ class HelperSheet(Sheet):
             self._cell_buffer[(lookup_row, 0)] = measure
             self._cell_buffer[(lookup_row, 1)] = min(ref)
             lookup_row += 1
+        # use lookup to avoid char limit
+        self._add_class_lookup(lookup_row + 1)
 
         start_col = 3
         setting_ref_row = 1

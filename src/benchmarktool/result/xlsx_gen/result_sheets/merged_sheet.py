@@ -130,7 +130,7 @@ class MergedRunSheet(ResultSheet):
             if value:
                 # value just to signal non empty cell
                 block.add_cell(
-                    (inst_val["row"] + inst_val["max_runs"]) // inst_val["max_runs"] - 1,
+                    inst_val["merged_row"],
                     name,
                     "merged_runs",
                     {
@@ -140,9 +140,7 @@ class MergedRunSheet(ResultSheet):
                     },
                 )
             else:
-                block.add_cell(
-                    (inst_val["row"] + inst_val["max_runs"]) // inst_val["max_runs"] - 1, name, "None", np.nan
-                )
+                block.add_cell(inst_val["merged_row"], name, "None", np.nan)
 
     def _finalize_results(self) -> None:
         """
