@@ -64,6 +64,13 @@ When generating a spreadsheet in XLSX format, normally five sheets are created:
     by the user.
     - For additional fine-tuning, such as using log-scale or disabling certain series,
     the charts have to be adjusted manually.
+    - The win difference matrix shows the normalized net win rate:
+    `(wins(i, j) - wins(j, i)) / solved(i or j)`. A win means a smaller value
+    for the selected measure, including instances solved only by the winning solver.
+    The denominator counts instances solved by at least one solver, counting instances
+    solved by both only once. Scores range from -1 to 1; a score of 0.5 means
+    50 more wins than losses per 100 included instances.
+    If neither solver solves any instance, the displayed score is 0.
 5. **Helper Sheet**
     - The helper sheet contains all data and calculations used for the charts and is
     by default hidden.
