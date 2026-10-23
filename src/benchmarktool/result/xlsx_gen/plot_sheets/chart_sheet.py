@@ -255,12 +255,14 @@ class ChartSheet(Sheet):
                 *self.matrix_range,
                 {
                     "type": "3_color_scale",
-                    "min_type": "min",
+                    "min_type": "num",
+                    "min_value": -1,
                     "min_color": "#F8696B",
                     "mid_type": "num",
                     "mid_value": 0,
                     "mid_color": "#FFFFFF",
-                    "max_type": "max",
+                    "max_type": "num",
+                    "max_value": 1,
                     "max_color": "#2F8FDF",
                 },
             )
