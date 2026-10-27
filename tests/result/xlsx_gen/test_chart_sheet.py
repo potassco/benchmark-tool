@@ -168,6 +168,7 @@ class TestChartSheet(TestSheet):
             any_order=True,
         )
         mock_worksheet.conditional_format.assert_not_called()
+        mock_worksheet.merge_range.assert_not_called()
         mock_worksheet.set_column_pixels.assert_not_called()
         mock_worksheet.insert_chart.assert_called_once()
         self.assertFalse(any(args.args[:2] in ((0, 2), (1, 2)) for args in mock_worksheet.write.call_args_list))
@@ -185,7 +186,8 @@ class TestChartSheet(TestSheet):
         doc.workbook = MagicMock(spec=xlsxwriter.Workbook)
         matrix_format = MagicMock()
         matrix_header_format = MagicMock()
-        doc.workbook.add_format.side_effect = [matrix_format, matrix_header_format]
+        matrix_description_format = MagicMock()
+        doc.workbook.add_format.side_effect = [matrix_format, matrix_header_format, matrix_description_format]
 
         mock_worksheet = MagicMock(spec=xlsxwriter.worksheet.Worksheet)
         doc.workbook.add_worksheet.return_value = mock_worksheet
@@ -223,3 +225,17 @@ class TestChartSheet(TestSheet):
                 "max_color": "#2F8FDF",
             },
         )
+        mock_worksheet.merge_range.assert_called_once_with(
+            8,
+            19,
+            14,
+            24,
+            "Each value is (row wins - column wins) / instances solved by either setting/solver.\n"
+            "Smaller values of the selected measure win. Solving alone also counts as a win.\n"
+            "Blue (positive) favors the row. Red (negative) favors the column.\n"
+            "Stronger colors mean a larger advantage.\n"
+            "Values range from -1 to 1 e.g., +0.5 means 50 more row wins than column wins per 100 "
+            "included instances.",
+            matrix_description_format,
+        )
+        doc.workbook.add_format.assert_any_call({"text_wrap": True, "valign": "top", "font_size": 10})
