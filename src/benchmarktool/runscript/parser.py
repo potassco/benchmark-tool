@@ -429,7 +429,7 @@ class Parser:
         kwargs["template_options"] = template_options
 
         if job_type == "distjob":
-            attr = self._filter_attr(node, attr_filter + ["script_mode", "walltime", "cpt", "partition"])
+            attr = self._filter_attr(node, attr_filter + ["script_mode", "walltime", "cpt", "partition", "membuffer"])
             keys = list(attr.keys())
             if keys:
                 sys.stderr.write(
@@ -446,6 +446,9 @@ class Parser:
             partition = node.get("partition")
             if partition is not None:
                 kwargs["partition"] = partition
+            membuffer = node.get("membuffer")
+            if membuffer is not None:
+                kwargs["membuffer"] = int(membuffer)
             return DistJob(**kwargs)  # pylint: disable=missing-kwoa
         if job_type == "seqjob":
             attr = self._filter_attr(node, attr_filter + ["parallel"])
