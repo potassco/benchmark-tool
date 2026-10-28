@@ -587,7 +587,7 @@ class TestDistScript(TestCase):
             x,
             "#SBATCH --time=00-00:01:40\n"
             "#SBATCH --cpus-per-task=1\n"
-            "#SBATCH --mem=15100M\n"
+            "#SBATCH --mem=15500M\n"
             "#SBATCH --partition=all\n"
             "#SBATCH --test=1\n"
             "#SBATCH --opt=test\n"

@@ -235,7 +235,12 @@ interpreted as seconds.
     and you have 100 instances with a `timeout` of 1 hour each and 1 run each, there
     will be 4 groups of 25 runs each, which are dispatched separately.
 - `memout`: (Optional) Sets the memory limit for each benchmark run in MB. The
-default is `15000` MB.
+default is `15000` MB. The generated distributed script receives a memory reservation
+of `memout + 500` MB. The additional 500 MB covers runlim and other job overhead and provides
+headroom for memory growth between runlim checks. It does not change runlim's limit or guarantee
+that runlim terminates the solver before SLURM does. In such cases the runlim sampling rate and
+kill delay can be adjusted in the [run templates][run template] using the `--sample-rate` and
+`--kill-delay` options.
 - `partition`: (Optional) Specifies the cluster partition name. The default is `kr`.
 Other values include `short` and `long`. If `short` is used, the walltime cannot exceed
 24 hours. Note that these values depend on your cluster configuration.

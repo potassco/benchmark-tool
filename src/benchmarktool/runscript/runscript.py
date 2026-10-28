@@ -598,8 +598,8 @@ class DistScriptGen(ScriptGen):
                             walltime=tools.seconds_to_slurm_time(self.runspec.project.job.walltime),
                             jobs=self.startscripts,
                             cpt=self.runspec.project.job.cpt,
-                            # 100 MB extra for runlim etc.
-                            mem=self.runspec.project.job.memout + 100,
+                            # 500 MB extra for runlim etc.
+                            mem=self.runspec.project.job.memout + 500,
                             partition=self.runspec.project.job.partition,
                             dist_options=dist_options,
                         )
