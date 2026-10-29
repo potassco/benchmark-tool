@@ -6,6 +6,8 @@ Created on Mar 20, 2026
 
 from typing import TYPE_CHECKING, Any
 
+import pandas as pd  # type: ignore[import-untyped]
+
 from benchmarktool.result.xlsx_gen.plot_sheets.chart_sheet import ChartSheet
 from benchmarktool.result.xlsx_gen.result_sheets.instance_sheet import InstanceSheet
 from benchmarktool.result.xlsx_gen.result_sheets.merged_sheet import MergedRunSheet
@@ -46,6 +48,8 @@ class HelperSheet(Sheet):
         self.start_cols: dict[str, int] = {}
         self.clean_rows: dict[str, int] = {}
         self.plot_row = 0
+        self.matrix_row = 0
+        self._cell_buffer: dict[tuple[int, int], Any] = {}
 
     def _setup_table_structure(
         self, sheet: str, sheet_ref: ResultSheet, col: int, setting_ref_row: int
@@ -59,38 +63,50 @@ class HelperSheet(Sheet):
             col (int): Column index.
             setting_ref_row (int): Row index for setting reference.
         """
-        # support mixed columns -> object dtype
-        if col not in self.content.columns:
-            self.content[col] = None
-
         table_rows: dict[str, int] = {}
         if sheet == "plot":
             instance_n = self.instance_n
             plot_row = setting_ref_row + 3
-            self.content.loc[plot_row - 1, col] = "plot"
+            self._cell_buffer[(plot_row - 1, col)] = "plot"
             self.plot_row = plot_row
 
             table_rows["plot"] = plot_row
+        elif sheet == "solvable":
+            instance_n = self.instance_n
+            solvable_row = setting_ref_row + 3
+            self._cell_buffer[(solvable_row - 2, col)] = "solvable"
+            self._cell_buffer[(solvable_row - 1, col)] = "index"
+            for row in range(instance_n):
+                self._cell_buffer[(solvable_row + row, col)] = row + 1
+
+            table_rows["solvable"] = solvable_row
+        elif sheet == "matrix":
+            instance_n = self.instance_n
+            matrix_row = setting_ref_row + 3
+            self._cell_buffer[(matrix_row - 2, col)] = "matrix"
+            self._cell_buffer[(matrix_row - 1, col)] = "i\\j"
+
+            table_rows["matrix"] = matrix_row
         else:
             instance_n = sheet_ref.result_offset - 2
             if sheet == self.instance_sheet.name:
                 self.instance_n = instance_n
             # get values + sorted + aggregated
             data_row = setting_ref_row + 3
-            self.content.loc[data_row - 2, col] = "data"
+            self._cell_buffer[(data_row - 2, col)] = "data"
             # index
-            self.content.loc[data_row - 1, col] = "index"
+            self._cell_buffer[(data_row - 1, col)] = "index"
             for row in range(instance_n):
-                self.content.loc[data_row + row, col] = row + 1
+                self._cell_buffer[(data_row + row, col)] = row + 1
             # add step
             step_row = data_row + instance_n + 2
-            self.content.loc[step_row - 1, col] = "step"
+            self._cell_buffer[(step_row - 1, col)] = "step"
             # sort data
             sort_row = step_row + 2 * instance_n + 3
-            self.content.loc[sort_row - 1, col] = "sort"
+            self._cell_buffer[(sort_row - 1, col)] = "sort"
             # clean data
             clean_row = sort_row + 2 * instance_n + 2
-            self.content.loc[clean_row - 1, col] = "clean"
+            self._cell_buffer[(clean_row - 1, col)] = "clean"
             self.clean_rows[sheet] = clean_row
 
             table_rows = {
@@ -126,7 +142,7 @@ class HelperSheet(Sheet):
             # first setting
             # get initial column from lookup table
             if setting_idx == 0:
-                self.content.loc[setting_ref_row, col] = Formula(
+                self._cell_buffer[(setting_ref_row, col)] = Formula(
                     "VLOOKUP("
                     f"Charts!{self.chart_sheet.measure_select},{get_cell_index(0, setting_ref_row)}"
                     f":{get_cell_index(1, last_lookup_row - 1)},2,FALSE"
@@ -135,21 +151,18 @@ class HelperSheet(Sheet):
             # other settings
             # get column from first setting + offset
             else:
-                self.content.loc[setting_ref_row, col] = Formula(
+                self._cell_buffer[(setting_ref_row, col)] = Formula(
                     f"={get_cell_index(self.start_cols[sheet_ref.name], setting_ref_row)}"
                     f"+{setting_idx * setting_offset}"
                 )
             # get setting name
-            self.content.loc[setting_ref_row + 1, col] = Formula(
+            self._cell_buffer[(setting_ref_row + 1, col)] = Formula(
                 f"={sheet_ref.name}!{get_cell_index(1 + setting_idx * setting_offset, 0)}"
             )
         elif isinstance(sheet_ref, MergedRunSheet):
-            self.content.loc[setting_ref_row, col] = Formula(
-                f"={get_cell_index(self.start_cols[self.instance_sheet.name] + setting_idx * 4, setting_ref_row)}"
-            )
-            self.content.loc[setting_ref_row + 1, col] = Formula(
-                f"={get_cell_index(self.start_cols[self.instance_sheet.name] + setting_idx * 4, setting_ref_row + 1)}"
-            )
+            source_col = self.start_cols[self.instance_sheet.name] + setting_idx * 4
+            for header_row in (setting_ref_row, setting_ref_row + 1):
+                self._cell_buffer[(header_row, col)] = Formula(f"={get_cell_index(source_col, header_row)}")
 
     def _add_table_headers(self, sheet: str, table_rows: dict[str, int], col: int) -> None:
         """
@@ -162,14 +175,14 @@ class HelperSheet(Sheet):
         """
         for table, row in table_rows.items():
             if table == "data":
-                self.content.loc[row - 1, col] = "values"
+                self._cell_buffer[(row - 1, col)] = "values"
             elif table == "plot" and sheet != "plot":
                 continue
             else:
-                self.content.loc[row - 1, col] = "index"
-                self.content.loc[row - 1, col + 2] = "index"
-            self.content.loc[row - 1, col + 1] = "sorted"
-            self.content.loc[row - 1, col + 3] = "aggregated"
+                self._cell_buffer[(row - 1, col)] = "index"
+                self._cell_buffer[(row - 1, col + 2)] = "index"
+            self._cell_buffer[(row - 1, col + 1)] = "sorted"
+            self._cell_buffer[(row - 1, col + 3)] = "aggregated"
 
     def _add_data_table(
         self,
@@ -192,8 +205,6 @@ class HelperSheet(Sheet):
             value_rows (int): Number of rows for values.
             value_data_row (int): Row index for first row of values.
         """
-        # values
-        # if sheet == self.instance_sheet.name:
         if isinstance(sheet_ref, InstanceSheet):
             ref = (
                 "INDIRECT("
@@ -202,7 +213,7 @@ class HelperSheet(Sheet):
                 ")"
             )
             # get values from instance sheet, empty if no value
-            self.content.loc[value_data_row + row, col] = Formula(f'=IF({ref}="","",{ref})')
+            self._cell_buffer[(value_data_row + row, col)] = Formula(f'=IF({ref}="","",{ref})')
         elif isinstance(sheet_ref, MergedRunSheet):
             ref = (
                 "INDIRECT("
@@ -214,7 +225,7 @@ class HelperSheet(Sheet):
                 ")"
             )
             # merge values from instance sheet based on merge_select from ChartSheet
-            self.content.loc[value_data_row + row, col] = Formula(
+            self._cell_buffer[(value_data_row + row, col)] = Formula(
                 "SWITCH("
                 f"Charts!{self.chart_sheet.merge_select},"
                 f'"average", AVERAGE({ref}),'
@@ -226,7 +237,7 @@ class HelperSheet(Sheet):
             )
         # sorted
         # sort values from values column, empty if no value
-        self.content.loc[value_data_row + row, col + 1] = Formula(
+        self._cell_buffer[(value_data_row + row, col + 1)] = Formula(
             "IFERROR("
             f"SMALL({get_cell_index(col, value_data_row)}"
             f":{get_cell_index(col, value_data_row + value_rows - 1)},"
@@ -235,9 +246,9 @@ class HelperSheet(Sheet):
         )
         # aggregated
         # aggregate values from sorted column, empty if no value
-        self.content.loc[value_data_row + row, col + 3] = Formula(
+        self._cell_buffer[(value_data_row + row, col + 3)] = Formula(
             "IFERROR("
-            f"SUM({get_cell_index(col + 1, value_data_row,)}"
+            f"SUM({get_cell_index(col + 1, value_data_row)}"
             f':{get_cell_index(col + 1, value_data_row + row)}),""'
             ")"
         )
@@ -255,31 +266,31 @@ class HelperSheet(Sheet):
         """
         # copy values from value table
         # sorted
-        self.content.loc[step_data_row + row, col + 1] = Formula(f"={get_cell_index(col + 1, value_data_row + row)}")
+        self._cell_buffer[(step_data_row + row, col + 1)] = Formula(f"={get_cell_index(col + 1, value_data_row + row)}")
         # aggregated
-        self.content.loc[step_data_row + row, col + 3] = Formula(f"={get_cell_index(col + 3, value_data_row + row)}")
+        self._cell_buffer[(step_data_row + row, col + 3)] = Formula(f"={get_cell_index(col + 3, value_data_row + row)}")
 
         # add step index
         for col_offset in (0, 2):
-            self.content.loc[step_data_row + row, col + col_offset] = row + 1
+            self._cell_buffer[(step_data_row + row, col + col_offset)] = row + 1
             if row != 0:
-                self.content.loc[step_data_row + row + value_rows - 1, col + col_offset] = row + 1
+                self._cell_buffer[(step_data_row + row + value_rows - 1, col + col_offset)] = row + 1
             # add 0 step
             else:
-                self.content.loc[step_data_row + 2 * value_rows, col + col_offset] = 1
-                self.content.loc[step_data_row + 2 * value_rows, col + col_offset + 1] = 0
-                self.content.loc[step_data_row + 2 * value_rows - 1, col + col_offset] = 0
-                self.content.loc[step_data_row + 2 * value_rows - 1, col + col_offset + 1] = 0
+                self._cell_buffer[(step_data_row + 2 * value_rows, col + col_offset)] = 1
+                self._cell_buffer[(step_data_row + 2 * value_rows, col + col_offset + 1)] = 0
+                self._cell_buffer[(step_data_row + 2 * value_rows - 1, col + col_offset)] = 0
+                self._cell_buffer[(step_data_row + 2 * value_rows - 1, col + col_offset + 1)] = 0
 
         # add step values
         if row != value_rows - 1:
             # sorted
-            self.content.loc[step_data_row + row + value_rows, col + 1] = Formula(
+            self._cell_buffer[(step_data_row + row + value_rows, col + 1)] = Formula(
                 f'=IF({get_cell_index(col + 1, value_data_row + row + 1)}="","",'
                 f"{get_cell_index(col + 1, value_data_row + row)})"
             )
             # aggregated
-            self.content.loc[step_data_row + row + value_rows, col + 3] = Formula(
+            self._cell_buffer[(step_data_row + row + value_rows, col + 3)] = Formula(
                 f"={get_cell_index(col + 3, value_data_row + row)}"
             )
 
@@ -310,7 +321,7 @@ class HelperSheet(Sheet):
         # sorted
         # sort values/indices from step table, empty if no value
         # index-value pairs stay coherent since step table columns are sorted
-        self.content.loc[sorted_data_row + row + row_offset, c] = Formula(
+        self._cell_buffer[(sorted_data_row + row + row_offset, c)] = Formula(
             "IFERROR("
             "SMALL("
             f"{get_cell_index(c, step_data_row)}:"
@@ -351,7 +362,7 @@ class HelperSheet(Sheet):
         if col_offset in (0, 2):
             # if corresponding value is NA, return NA,
             # else return index from sorted table
-            self.content.loc[clean_row_ref, c] = Formula(
+            self._cell_buffer[(clean_row_ref, c)] = Formula(
                 "IF("
                 f"ISNA({get_cell_index(c + 1, clean_row_ref)}),"
                 f"NA(),"
@@ -363,13 +374,13 @@ class HelperSheet(Sheet):
             # edges (first and last row)
             if (row == 0 and row_offset == 0) or (row == value_rows - 1 and row_offset != 0):
                 # if value in sorted table is empty return NA, else copy value
-                self.content.loc[clean_row_ref, c] = Formula(
+                self._cell_buffer[(clean_row_ref, c)] = Formula(
                     "IF(" f'{get_cell_index(c, sorted_row_ref)}="",' f"NA()," f"{get_cell_index(c, sorted_row_ref)}" ")"
                 )
             else:
                 # if adjacent values in sorted table are the same or value is empty, return NA,
                 # else copy value
-                self.content.loc[clean_row_ref, c] = Formula(
+                self._cell_buffer[(clean_row_ref, c)] = Formula(
                     "IF("
                     "OR("
                     f'{get_cell_index(c, sorted_row_ref)}="",'
@@ -403,12 +414,13 @@ class HelperSheet(Sheet):
             merged_col + col_offset,
             self.clean_rows[self.merged_run_sheet.name] + plot_row_offset,
         )
-        self.content.loc[self.plot_row + plot_row_offset, c] = Formula(
+        clean_instance_ref = get_cell_index(
+            instances_col + col_offset,
+            self.clean_rows[self.instance_sheet.name] + plot_row_offset,
+        )
+        self._cell_buffer[(self.plot_row + plot_row_offset, c)] = Formula(
             f'=IF(Charts!{self.chart_sheet.merge_select}="none",'
-            f"""{get_cell_index(
-                instances_col + col_offset,
-                self.clean_rows[self.instance_sheet.name] + plot_row_offset,
-            )},"""
+            f"{clean_instance_ref},"
             f'IF({clean_merged_ref}="",NA(),{clean_merged_ref}))'
         )
 
@@ -468,10 +480,89 @@ class HelperSheet(Sheet):
                     merged_col=self.start_cols[self.merged_run_sheet.name] + setting_idx * 4,
                 )
 
+    def _add_solvable_table(self, col: int, setting_ref_row: int) -> int:
+        """
+        Add solvability table, returning the next table's starting column.
+
+        Attributes:
+            col (int): Starting column.
+            setting_ref_row (int): Reference row for the settings headers.
+        """
+        table_rows, instance_n = self._setup_table_structure("solvable", self.instance_sheet, col, setting_ref_row)
+        col += 1
+        self.start_cols["solvable"] = col
+        for setting, block in enumerate(sorted(self.instance_sheet.system_blocks.values())):
+            source_col = self.start_cols[self.instance_sheet.name] + setting * 4
+            for header_row in (setting_ref_row, setting_ref_row + 1):
+                self._cell_buffer[(header_row, col)] = Formula(f"={get_cell_index(source_col, header_row)}")
+            values = self.instance_sheet.solvable[(block.setting, block.machine)]
+            for row in range(instance_n):
+                self._cell_buffer[(table_rows["solvable"] + row, col)] = values.get(row)
+            col += 1
+        return col + 1
+
+    def _add_matrix_table(self, col: int, setting_ref_row: int) -> None:
+        """
+        Add setting-pair comparison formulas and headers using values and solvability.
+
+        Attributes:
+            col (int): Starting column.
+            setting_ref_row (int): Reference row for the settings headers.
+        """
+        table_rows, instance_n = self._setup_table_structure("matrix", self.instance_sheet, col, setting_ref_row)
+        matrix_row = table_rows["matrix"]
+        self.matrix_row = matrix_row
+        self.start_cols["matrix"] = col + 1
+        data_row = setting_ref_row + 3
+        last_data_row = data_row + instance_n - 1
+        value_ranges: list[str] = []
+        solvable_ranges: list[str] = []
+        for setting in range(self.setting_n):
+            matrix_col = col + 1 + setting
+            source_col = self.start_cols[self.instance_sheet.name] + setting * 4
+            header = Formula(f"={get_cell_index(source_col, setting_ref_row + 1)}")
+            self._cell_buffer[(matrix_row + setting, col)] = header
+            self._cell_buffer[(matrix_row - 1, matrix_col)] = header
+            value_ranges.append(
+                f"{get_cell_index(source_col, data_row, True, True)}:"
+                f"{get_cell_index(source_col, last_data_row, True, True)}"
+            )
+            solvable_col = self.start_cols["solvable"] + setting
+            solvable_ranges.append(
+                f"{get_cell_index(solvable_col, data_row, True, True)}:"
+                f"{get_cell_index(solvable_col, last_data_row, True, True)}"
+            )
+
+        for setting_i, value_i in enumerate(value_ranges):
+            for setting_j, value_j in enumerate(value_ranges):
+                matrix_col = col + 1 + setting_j
+                if setting_i == setting_j:
+                    self._cell_buffer[(matrix_row + setting_i, matrix_col)] = 0
+                    continue
+                numeric = f"--ISNUMBER({value_i}),--ISNUMBER({value_j})"
+                # A numeric value also wins when the other setting has no value.
+                smaller_ij = (
+                    f"SUMPRODUCT({numeric},--({value_i}<{value_j}))"
+                    f'+SUMPRODUCT(--ISNUMBER({value_i}),--({value_j}=""))'
+                )
+                smaller_ji = (
+                    f"SUMPRODUCT({numeric},--({value_j}<{value_i}))"
+                    f'+SUMPRODUCT(--ISNUMBER({value_j}),--({value_i}=""))'
+                )
+                solvable_i = solvable_ranges[setting_i]
+                solvable_j = solvable_ranges[setting_j]
+                solvable_ij = (
+                    f"(COUNTIF({solvable_i},1)+COUNTIF({solvable_j},1)-COUNTIFS({solvable_i},1,{solvable_j},1))"
+                )
+                self._cell_buffer[(matrix_row + setting_i, matrix_col)] = Formula(
+                    f"IF({solvable_ij}=0,0,(({smaller_ij})-({smaller_ji}))/{solvable_ij})"
+                )
+
     def finalize(self) -> None:
         """
         Finalize sheet.
         """
+        setting_offset = 0
         for measure, cols in self.instance_sheet.float_occur.items():
             s_cols = sorted(cols)
             self.float_occur[measure] = s_cols
@@ -481,13 +572,13 @@ class HelperSheet(Sheet):
                 setting_offset = s_cols[1] - s_cols[0]
             else:
                 setting_offset = 0
-        self.content[0] = None
+        self._cell_buffer.clear()
 
         # lookup table, col 0,1
         lookup_row = 1
         for measure, ref in self.float_occur.items():
-            self.content.loc[lookup_row, 0] = measure
-            self.content.loc[lookup_row, 1] = min(ref)
+            self._cell_buffer[(lookup_row, 0)] = measure
+            self._cell_buffer[(lookup_row, 1)] = min(ref)
             lookup_row += 1
 
         start_col = 3
@@ -504,10 +595,6 @@ class HelperSheet(Sheet):
             col += 1
             self.start_cols[sheet] = col
             for setting in range(self.setting_n):
-                # pre-create all columns of the current table block with object dtype.
-                for block_col in range(col, col + 4):
-                    if block_col not in self.content.columns:
-                        self.content[block_col] = None
                 # setting refs
                 self._add_setting_headers(
                     sheet_ref=sheet_ref,
@@ -541,16 +628,22 @@ class HelperSheet(Sheet):
                     self._add_stepped_tables(
                         sheet=sheet, col=col, row=row, setting_idx=setting, value_rows=instance_n, table_rows=table_rows
                     )
-                # defragmentation (temporary workaround)
-                self.content = self.content.copy()
                 col += 4
             col += 1
 
-        self.content = self.content.reindex(
-            index=list(range(self.content.index.max() + 1)), columns=list(range(self.content.columns.max() + 1))
-        )
-        # replace all undefined cells with None (empty cell)
-        self.content = self.content.astype(object).where(self.content.notna(), None)
+        col = self._add_solvable_table(col, setting_ref_row)
+        self._add_matrix_table(col, setting_ref_row)
+
+        if self._cell_buffer:
+            row_count = max(row for row, _ in self._cell_buffer) + 1
+            col_count = max(col for _, col in self._cell_buffer) + 1
+            content = [[None] * col_count for _ in range(row_count)]
+            for (row, col), value in self._cell_buffer.items():
+                content[row][col] = value
+            self.content = pd.DataFrame(content, dtype=object)
+        else:
+            self.content = pd.DataFrame(dtype=object)
+        self.content = self.content.where(self.content.notna(), None)
 
     def write_sheet(self, xlsxdoc: "XLSXDoc") -> None:
         """
@@ -564,10 +657,10 @@ class HelperSheet(Sheet):
         sheet = xlsxdoc.workbook.add_worksheet(self.name)
         # hide sheet, can be unhidden via UI
         sheet.hide()
-        for col in range(len(self.content.columns)):
-            for row, cell in enumerate(list(self.content.iloc[:, col])):
-                val = cell
-                if isinstance(val, Formula):
-                    val = str(val)
-                if isinstance(val, (int, float, str, bool)) or val is None:
-                    sheet.write(row, col, val)
+        # write from sparse cell buffer
+        for (row, col), cell in self._cell_buffer.items():
+            val = cell
+            if isinstance(val, Formula):
+                val = str(val)
+            if isinstance(val, (int, float, str, bool)) or val is None:
+                sheet.write(row, col, val)

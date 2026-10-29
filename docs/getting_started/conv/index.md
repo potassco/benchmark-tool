@@ -20,7 +20,7 @@ btool conv benchmark-results.xml -m "time:t,choices" -o results.xlsx
 The name of the resulting `.xlsx` file is set using the `-o, --output` option (default `out.xlsx`).
 In cases of a missing or wrong file extension the correct file extension is added.
 
-Which benchmark projects to include in the output can be selected via the `-p, --project`
+Which benchmark projects to include in the output can be selected via the `-p, --projects`
 option. By default all projects are selected.
 
 The `-m, --measures` option specifies which measures to include in the table (default: time:t,timeout:to;
@@ -64,6 +64,15 @@ When generating a spreadsheet in XLSX format, normally five sheets are created:
     by the user.
     - For additional fine-tuning, such as using log-scale or disabling certain series,
     the charts have to be adjusted manually.
+    - The win difference matrix shows the normalized net win rate:
+    `(wins(i, j) - wins(j, i)) / solved(i or j)`. A win means a smaller value
+    for the selected measure, including instances solved only by the winning setting/solver.
+    The denominator counts instances solved by at least one setting/solver, counting
+    instances solved by both only once. Scores range from -1 to 1; a score of 0.5 means
+    50 more wins than losses per 100 included instances.
+    If neither setting/solver solves any instance, the displayed score is 0.
+    Blue favors the row, red favors the column, and white indicates zero.
+    Stronger colors indicate a larger advantage.
 5. **Helper Sheet**
     - The helper sheet contains all data and calculations used for the charts and is
     by default hidden.

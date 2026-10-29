@@ -2,7 +2,7 @@
 
 ## Installation
 
-The benchmark tool can be installed with any Python version newer than 3.10 using pip:
+The benchmark tool can be installed with Python 3.10 or newer using pip:
 
 ```bash
 pip install potassco-benchmark-tool
@@ -68,8 +68,8 @@ can be found in the [glossary].
 
     For single-process systems under test (SUT), this issue can be avoided by
     using the `runlim` option `--single` in the `template_options` attribute of
-    the corresponding job element. In that case, `{run.solver}` should either
-    be the SUT executable or you should use `exec` if `{run.solver}` refers
+    the corresponding job element. In that case, `{solver}` should either
+    be the SUT executable or you should use `exec` if `{solver}` refers
     to a shell script.
 
     If you cannot use `--single`, the `verify` subcommand can

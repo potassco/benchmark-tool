@@ -2,7 +2,7 @@
 Test cases for ChartSheet.
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
@@ -48,6 +48,7 @@ class TestChartSheet(TestSheet):
         self.assertEqual(self.sheet.merge_select, "$B$3")
         self.assertEqual(self.sheet.measure_select, "$F$3")
         self.assertEqual(self.sheet.instance_sheet, self.ref_inst_sheet)
+        self.assertIsNone(self.sheet.matrix_range)
 
         pd.testing.assert_frame_equal(
             self.sheet.content,
@@ -83,8 +84,9 @@ class TestChartSheet(TestSheet):
         self.ref_inst_sheet.float_occur = {"time": {1, 4}, "timeout": {2, 5}, "models": {3, 6}}
         self.ref_help_sheet.setting_n = 2
         self.ref_help_sheet.instance_n = 4
-        self.ref_help_sheet.start_cols = {"plot": 1}
+        self.ref_help_sheet.start_cols = {"plot": 1, "matrix": 12}
         self.ref_help_sheet.plot_row = 2
+        self.ref_help_sheet.matrix_row = 4
 
         self.sheet.finalize(self.ref_help_sheet)
 
@@ -107,15 +109,35 @@ class TestChartSheet(TestSheet):
         self.assertEqual(self.sheet.content.loc[4, 1].chart_subtype, "straight")
         self.assertEqual(len(self.sheet.content.loc[4, 1].series), 2)
 
-        self.assertEqual(self.sheet.content.loc[4, 10].title, "Cactus")
+        self.assertEqual(self.sheet.content.loc[4, 10].title, "CDF")
         self.assertEqual(self.sheet.content.loc[4, 10].chart_type, "scatter")
         self.assertEqual(self.sheet.content.loc[4, 10].chart_subtype, "straight")
         self.assertEqual(len(self.sheet.content.loc[4, 10].series), 2)
 
-        self.assertEqual(self.sheet.content.loc[4, 19].title, "CDF")
-        self.assertEqual(self.sheet.content.loc[4, 19].chart_type, "scatter")
-        self.assertEqual(self.sheet.content.loc[4, 19].chart_subtype, "straight")
-        self.assertEqual(len(self.sheet.content.loc[4, 19].series), 2)
+        self.assertEqual(self.sheet.content.loc[20, 1].title, "Cactus")
+        self.assertEqual(self.sheet.content.loc[20, 1].chart_type, "scatter")
+        self.assertEqual(self.sheet.content.loc[20, 1].chart_subtype, "straight")
+        self.assertEqual(len(self.sheet.content.loc[20, 1].series), 2)
+        self.assertEqual(self.sheet.content.at[4, 19], "Win-Difference-Matrix")
+        self.assertIsNone(self.sheet.content.at[3, 19])
+        self.assertEqual(self.sheet.matrix_range, (5, 20, 6, 21))
+        for row in range(3):
+            for col in range(3):
+                if row == 0 and col == 0:
+                    continue
+                self.assertIsInstance(self.sheet.content.at[4 + row, 19 + col], spreadsheet.Formula)
+                self.assertEqual(
+                    self.sheet.content.at[4 + row, 19 + col],
+                    spreadsheet.Formula(f"='Helper'!{spreadsheet.get_cell_index(11 + col, 3 + row)}"),
+                )
+
+    def test_finalize_without_numeric_measures(self) -> None:
+        """Keep a matrix title but no heatmap range when there are no settings to plot."""
+        self.ref_help_sheet.start_cols["matrix"] = 12
+        self.ref_help_sheet.matrix_row = 4
+        self.sheet.finalize(self.ref_help_sheet)
+        self.assertIsNone(self.sheet.matrix_range)
+        self.assertEqual(self.sheet.content.at[4, 19], "Win-Difference-Matrix")
 
     def test_write_sheet(self) -> None:
         """
@@ -135,13 +157,85 @@ class TestChartSheet(TestSheet):
             {
                 0: [1, "test", 3.0, True],
                 1: pd.Series([None, spreadsheet.Formula("=F3"), chart, spreadsheet.DataValidation()], dtype=object),
+                2: pd.Series([object(), spreadsheet.Chart("Empty", "scatter"), None, None], dtype=object),
             }
         )
         mock_worksheet = MagicMock(spec=xlsxwriter.worksheet.Worksheet)
         doc.workbook.add_worksheet.return_value = mock_worksheet
         self.sheet.write_sheet(doc)
+        mock_worksheet.write.assert_has_calls(
+            [call(0, 0, 1, None), call(1, 0, "test", None), call(1, 1, "=F3", None)],
+            any_order=True,
+        )
+        mock_worksheet.conditional_format.assert_not_called()
+        mock_worksheet.merge_range.assert_not_called()
+        mock_worksheet.set_column_pixels.assert_not_called()
+        mock_worksheet.insert_chart.assert_called_once()
+        self.assertFalse(any(args.args[:2] in ((0, 2), (1, 2)) for args in mock_worksheet.write.call_args_list))
 
         # # invalid workbook
         doc.workbook = None
         with self.assertRaises(ValueError):
             self.sheet.write_sheet(doc)
+
+    def test_write_sheet_with_matrix(self) -> None:
+        """
+        Test writing of the win-diff- matrix and formatting.
+        """
+        doc = xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), {})
+        doc.workbook = MagicMock(spec=xlsxwriter.Workbook)
+        matrix_format = MagicMock()
+        matrix_header_format = MagicMock()
+        matrix_description_format = MagicMock()
+        doc.workbook.add_format.side_effect = [matrix_format, matrix_header_format, matrix_description_format]
+
+        mock_worksheet = MagicMock(spec=xlsxwriter.worksheet.Worksheet)
+        doc.workbook.add_worksheet.return_value = mock_worksheet
+        self.sheet.content = pd.DataFrame(None, index=range(7), columns=range(22), dtype=object)
+        self.sheet.content.at[4, 19] = "Header"
+        self.sheet.content.at[6, 21] = 0.5
+        self.sheet.matrix_range = (5, 20, 6, 21)
+        self.ref_inst_sheet.system_blocks = {
+            0: spreadsheet.SystemBlock(None, None),
+            1: spreadsheet.SystemBlock(None, None),
+        }
+        self.ref_inst_sheet.machines = set()
+
+        self.sheet.write_sheet(doc)
+
+        mock_worksheet.write.assert_any_call(4, 19, "Header", matrix_header_format)
+        mock_worksheet.write.assert_any_call(6, 21, 0.5, matrix_format)
+        mock_worksheet.set_row_pixels.assert_called_once_with(4, 80)
+        mock_worksheet.set_column_pixels.assert_has_calls([call(20, 20, 80), call(21, 21, 80), call(19, 19, 80)])
+        mock_worksheet.conditional_format.assert_called_once_with(
+            5,
+            20,
+            6,
+            21,
+            {
+                "type": "3_color_scale",
+                "min_type": "num",
+                "min_value": -1,
+                "min_color": "#F8696B",
+                "mid_type": "num",
+                "mid_value": 0,
+                "mid_color": "#FFFFFF",
+                "max_type": "num",
+                "max_value": 1,
+                "max_color": "#2F8FDF",
+            },
+        )
+        mock_worksheet.merge_range.assert_called_once_with(
+            8,
+            19,
+            14,
+            24,
+            "Each value is (row wins - column wins) / instances solved by either setting/solver.\n"
+            "Smaller values of the selected measure win. Solving alone also counts as a win.\n"
+            "Blue (positive) favors the row. Red (negative) favors the column.\n"
+            "Stronger colors mean a larger advantage.\n"
+            "Values range from -1 to 1 e.g., +0.5 means 50 more row wins than column wins per 100 "
+            "included instances.",
+            matrix_description_format,
+        )
+        doc.workbook.add_format.assert_any_call({"text_wrap": True, "valign": "top", "font_size": 10})

@@ -19,8 +19,10 @@ redirect the output to a file.
 
 !!!info
     The evaluation of results is controlled by the `measures` attribute of the
-    [system element] in the runscript. This attribute should reference a Python
-    file located in `src/benchmarktool/resultparser`.
+    [system element] in the runscript. Use a module name without `.py`, such as
+    `clasp` or `clasp_json` for a built-in parser, or `custom_parser` for a file
+    named `resultparsers/custom_parser.py` in your current working directory.
+    Local parsers take precedence over built-in parsers with the same name.
 
     For more details, see the [result parser documentation][result parser].
 

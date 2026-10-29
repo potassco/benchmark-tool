@@ -177,7 +177,7 @@ class Job:
     Attributes:
         name (str):    A unique name for a job.
         timeout (int): A timeout in seconds for individual benchmark runs.
-        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
+        memout (int):  A memory limit in MB for individual benchmark runs (15GB).
         runs (int):    The number of runs per benchmark.
         template_options (str): Template options.
         attr (dict[str, Any]): A dictionary of arbitrary attributes.
@@ -187,7 +187,7 @@ class Job:
     timeout: int = field(compare=False)
     runs: int = field(compare=False)
     attr: dict[str, Any] = field(compare=False)
-    memout: int = field(compare=False, default=20000)
+    memout: int = field(compare=False, default=15000)
     template_options: str = field(compare=False, default="")
 
     def __eq__(self, other: Any) -> bool:
@@ -598,6 +598,7 @@ class DistScriptGen(ScriptGen):
                             walltime=tools.seconds_to_slurm_time(self.runspec.project.job.walltime),
                             jobs=self.startscripts,
                             cpt=self.runspec.project.job.cpt,
+                            mem=self.runspec.project.job.memout + self.runspec.project.job.membuffer,
                             partition=self.runspec.project.job.partition,
                             dist_options=dist_options,
                         )
@@ -691,7 +692,7 @@ class SeqJob(Job):
     Attributes:
         name (str):    A unique name for a job.
         timeout (int): A timeout in seconds for individual benchmark runs.
-        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
+        memout (int):  A memory limit in MB for individual benchmark runs (15GB).
         runs (int):    The number of runs per benchmark.
         template_options (str): Template options.
         attr (dict[str, Any]): A dictionary of arbitrary attributes.
@@ -727,7 +728,7 @@ class DistJob(Job):
     Attributes:
         name (str):    A unique name for a job.
         timeout (int): A timeout in seconds for individual benchmark runs.
-        memout (int):  A memory limit in MB for individual benchmark runs (20GB).
+        memout (int):  A memory limit in MB for individual benchmark runs (15GB).
         runs (int):    The number of runs per benchmark.
         template_options (str): Template options.
         attr (dict[str, Any]): A dictionary of arbitrary attributes.
@@ -735,12 +736,14 @@ class DistJob(Job):
         walltime (int):  The walltime for a distributed job.
         cpt (int):       Number of cpus per task for distributed jobs.
         partition (str): Partition to be used in the clusters (kr by default).
+        membuffer (int): Extra memory in MB reserved for distributed jobs (500 by default).
     """
 
     script_mode: str = field(compare=False)
     walltime: int = field(compare=False)
     cpt: int = field(compare=False)
     partition: str = field(compare=False, default="kr")
+    membuffer: int = field(compare=False, default=500)
 
     def to_xml(self, out: Any, indent: str) -> None:
         """
@@ -752,7 +755,7 @@ class DistJob(Job):
         """
         extra = (
             f' script_mode="{self.script_mode}" walltime="{self.walltime}" cpt="{self.cpt}" '
-            f'partition="{self.partition}"'
+            f'partition="{self.partition}" membuffer="{self.membuffer}"'
         )
         Job._to_xml(self, out, indent, "distjob", extra)
 

@@ -16,7 +16,7 @@ the `-f, --force` option.
 
 You can use the `--resultparser-template` option to create a copy of the `clasp` resultparser
 called `rp_tmp.py`, which you can use as a base to create your own. You can overwrite the
-default `clasp` resultparser by providing `claps.py` inside the resultparsers folder.
+default `clasp` resultparser by providing `clasp.py` inside the resultparsers folder.
 More information on how to modify resultparsers can be found in the corresponding
 section[resultparsers]
 

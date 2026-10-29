@@ -4,7 +4,6 @@ Test cases for HelperSheet.
 
 from unittest.mock import MagicMock, call, patch
 
-import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 import xlsxwriter  # type: ignore[import-untyped]
 
@@ -44,13 +43,17 @@ class TestHelperSheet(TestSheet):
         """
         Test class initialization.
         """
-        super().test_init()
+        self.assertEqual(self.sheet.name, "TestSheet")
+        self.assertEqual(self.sheet.benchmark, self.bm)
+        self.assertDictEqual(self.sheet.measures, self.measures)
         self.assertEqual(self.sheet.setting_n, 0)
         self.assertEqual(self.sheet.instance_n, 0)
         self.assertDictEqual(self.sheet.float_occur, {})
         self.assertDictEqual(self.sheet.start_cols, {})
         self.assertDictEqual(self.sheet.clean_rows, {})
         self.assertEqual(self.sheet.plot_row, 0)
+        self.assertEqual(self.sheet.matrix_row, 0)
+        self.assertDictEqual(self.sheet._cell_buffer, {})
 
     def test_setup_table_structure(self):
         """
@@ -60,10 +63,9 @@ class TestHelperSheet(TestSheet):
 
         table_rows, inst_n = self.sheet._setup_table_structure(self.ref_inst_sheet.name, self.ref_inst_sheet, 0, 0)
 
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame({0: ["data", "index", 1, 2, "step", "sort", "clean"]}, index=[1, 2, 3, 4, 6, 13, 19]),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {(1, 0): "data", (2, 0): "index", (3, 0): 1, (4, 0): 2, (6, 0): "step", (13, 0): "sort", (19, 0): "clean"},
         )
         self.assertDictEqual(table_rows, {"data": 3, "step": 7, "sort": 14, "clean": 20})
         self.assertEqual(inst_n, 2)
@@ -73,8 +75,29 @@ class TestHelperSheet(TestSheet):
 
         table_rows, inst_n = self.sheet._setup_table_structure("plot", self.ref_inst_sheet, 0, 0)
 
-        pd.testing.assert_frame_equal(self.sheet.content, pd.DataFrame({0: ["plot"]}, index=[2]), check_dtype=False)
+        self.assertDictEqual(self.sheet._cell_buffer, {(2, 0): "plot"})
         self.assertDictEqual(table_rows, {"plot": 3})
+        self.assertEqual(inst_n, 3)
+
+        self.setUp()  # reset sheet
+        self.sheet.instance_n = 3
+
+        table_rows, inst_n = self.sheet._setup_table_structure("solvable", self.ref_inst_sheet, 0, 0)
+
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {(1, 0): "solvable", (2, 0): "index", (3, 0): 1, (4, 0): 2, (5, 0): 3},
+        )
+        self.assertDictEqual(table_rows, {"solvable": 3})
+        self.assertEqual(inst_n, 3)
+
+        self.setUp()  # reset sheet
+        self.sheet.instance_n = 3
+
+        table_rows, inst_n = self.sheet._setup_table_structure("matrix", self.ref_inst_sheet, 0, 0)
+
+        self.assertDictEqual(self.sheet._cell_buffer, {(1, 0): "matrix", (2, 0): "i\\j"})
+        self.assertDictEqual(table_rows, {"matrix": 3})
         self.assertEqual(inst_n, 3)
 
     def test_add_setting_headers(self):
@@ -92,19 +115,16 @@ class TestHelperSheet(TestSheet):
             sheet_ref=self.ref_run_sheet, col=3, setting_idx=0, setting_ref_row=0, setting_offset=1, last_lookup_row=2
         )
 
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    1: [
-                        spreadsheet.Formula("=VLOOKUP(Charts!m_select,A1:B2,2,FALSE)"),
-                        spreadsheet.Formula("=Instances!B1"),
-                    ],
-                    2: [spreadsheet.Formula("=B1+1"), spreadsheet.Formula("=Instances!C1")],
-                    3: [spreadsheet.Formula("=B1"), spreadsheet.Formula("=B2")],
-                }
-            ),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {
+                (0, 1): spreadsheet.Formula("=VLOOKUP(Charts!m_select,A1:B2,2,FALSE)"),
+                (1, 1): spreadsheet.Formula("=Instances!B1"),
+                (0, 2): spreadsheet.Formula("=B1+1"),
+                (1, 2): spreadsheet.Formula("=Instances!C1"),
+                (0, 3): spreadsheet.Formula("=B1"),
+                (1, 3): spreadsheet.Formula("=B2"),
+            },
         )
 
     def test_add_table_headers(self):
@@ -114,18 +134,17 @@ class TestHelperSheet(TestSheet):
         table_rows = {"data": 3, "step": 7, "plot": 14}
         self.sheet._add_table_headers(table_rows=table_rows, sheet=self.ref_inst_sheet.name, col=0)
 
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    0: ["values", "index"],
-                    1: ["sorted", "sorted"],
-                    3: ["aggregated", "aggregated"],
-                    2: [np.nan, "index"],
-                },
-                index=[2, 6],
-            ),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {
+                (2, 0): "values",
+                (2, 1): "sorted",
+                (2, 3): "aggregated",
+                (6, 0): "index",
+                (6, 1): "sorted",
+                (6, 2): "index",
+                (6, 3): "aggregated",
+            },
         )
 
     def test_add_data_table(self):
@@ -152,34 +171,27 @@ class TestHelperSheet(TestSheet):
             value_data_row=1,
         )
 
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    0: [
-                        spreadsheet.Formula(
-                            '=IF(INDIRECT(ADDRESS($A3+2,A$1+1,,,"Instances"))="","",'
-                            'INDIRECT(ADDRESS($A3+2,A$1+1,,,"Instances")))'
-                        ),
-                        spreadsheet.Formula(
-                            '=SWITCH(Charts!$B$3,"average", AVERAGE(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
-                            '& ":" & ADDRESS(3+3,A$1+1))),"median", MEDIAN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
-                            '& ":" & ADDRESS(3+3,A$1+1))),"min", MIN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
-                            '& ":" & ADDRESS(3+3,A$1+1))),"max", MAX(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
-                            '& ":" & ADDRESS(3+3,A$1+1))),"diff", MAX(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
-                            '& ":" & ADDRESS(3+3,A$1+1)))-MIN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
-                            '& ":" & ADDRESS(3+3,A$1+1))))'
-                        ),
-                    ],
-                    1: [
-                        spreadsheet.Formula('=IFERROR(SMALL(A2:A3,ROW()-ROW($B$2)+1),"")'),
-                        spreadsheet.Formula('=IFERROR(SMALL(A2:A3,ROW()-ROW($B$2)+1),"")'),
-                    ],
-                    3: [spreadsheet.Formula('=IFERROR(SUM(B2:B3),"")'), spreadsheet.Formula('=IFERROR(SUM(B2:B4),"")')],
-                },
-                index=[2, 3],
-            ),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {
+                (2, 0): spreadsheet.Formula(
+                    '=IF(INDIRECT(ADDRESS($A3+2,A$1+1,,,"Instances"))="","",'
+                    'INDIRECT(ADDRESS($A3+2,A$1+1,,,"Instances")))'
+                ),
+                (2, 1): spreadsheet.Formula('=IFERROR(SMALL(A2:A3,ROW()-ROW($B$2)+1),"")'),
+                (2, 3): spreadsheet.Formula('=IFERROR(SUM(B2:B3),"")'),
+                (3, 0): spreadsheet.Formula(
+                    '=SWITCH(Charts!$B$3,"average", AVERAGE(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
+                    '& ":" & ADDRESS(3+3,A$1+1))),"median", MEDIAN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
+                    '& ":" & ADDRESS(3+3,A$1+1))),"min", MIN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
+                    '& ":" & ADDRESS(3+3,A$1+1))),"max", MAX(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
+                    '& ":" & ADDRESS(3+3,A$1+1))),"diff", MAX(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
+                    '& ":" & ADDRESS(3+3,A$1+1)))-MIN(INDIRECT(ADDRESS(2+3,A$1+1,,,"Instances") '
+                    '& ":" & ADDRESS(3+3,A$1+1))))'
+                ),
+                (3, 1): spreadsheet.Formula('=IFERROR(SMALL(A2:A3,ROW()-ROW($B$2)+1),"")'),
+                (3, 3): spreadsheet.Formula('=IFERROR(SUM(B2:B4),"")'),
+            },
         )
 
     def test_add_step_table(self):
@@ -189,24 +201,30 @@ class TestHelperSheet(TestSheet):
         self.sheet._add_step_table(col=0, row=0, value_rows=2, value_data_row=0, step_data_row=3)
         self.sheet._add_step_table(col=0, row=1, value_rows=2, value_data_row=0, step_data_row=3)
 
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    1: [
-                        spreadsheet.Formula("=B1"),
-                        0,
-                        0,
-                        spreadsheet.Formula('=IF(B2="","",B1)'),
-                        spreadsheet.Formula("=B2"),
-                    ],
-                    3: [spreadsheet.Formula("=D1"), 0, 0, spreadsheet.Formula("=D1"), spreadsheet.Formula("=D2")],
-                    0: [1.0, 1.0, 0.0, 2.0, 2.0],
-                    2: [1.0, 1.0, 0.0, 2.0, 2.0],
-                },
-                index=[3, 7, 6, 5, 4],
-            ),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {
+                (3, 1): spreadsheet.Formula("=B1"),
+                (3, 3): spreadsheet.Formula("=D1"),
+                (3, 0): 1,
+                (3, 2): 1,
+                (7, 0): 1,
+                (7, 1): 0,
+                (7, 2): 1,
+                (7, 3): 0,
+                (6, 0): 0,
+                (6, 1): 0,
+                (6, 2): 0,
+                (6, 3): 0,
+                (5, 1): spreadsheet.Formula('=IF(B2="","",B1)'),
+                (5, 3): spreadsheet.Formula("=D1"),
+                (4, 1): spreadsheet.Formula("=B2"),
+                (4, 3): spreadsheet.Formula("=D2"),
+                (4, 0): 2,
+                (4, 2): 2,
+                (5, 0): 2,
+                (5, 2): 2,
+            },
         )
 
     def test_add_sorted_table(self):
@@ -217,17 +235,9 @@ class TestHelperSheet(TestSheet):
             col=0, col_offset=1, row=0, row_offset=1, value_rows=2, step_data_row=2, sorted_data_row=5
         )
 
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    1: [
-                        spreadsheet.Formula('=IFERROR(SMALL(B3:B7,ROW()-ROW($B$6)+1),"")'),
-                    ],
-                },
-                index=[6],
-            ),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {(6, 1): spreadsheet.Formula('=IFERROR(SMALL(B3:B7,ROW()-ROW($B$6)+1),"")')},
         )
 
     def test_add_clean_table(self):
@@ -247,24 +257,14 @@ class TestHelperSheet(TestSheet):
             col=0, col_offset=1, row=1, row_offset=2, value_rows=2, sorted_data_row=5, clean_data_row=8
         )
 
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    0: [
-                        spreadsheet.Formula("=IF(ISNA(B9),NA(),A6)"),
-                        np.nan,
-                        np.nan,
-                    ],
-                    1: [
-                        spreadsheet.Formula('=IF(B6="",NA(),B6)'),
-                        spreadsheet.Formula('=IF(OR(B7="",AND(B7=B6,B7=B8)),NA(), B7)'),
-                        spreadsheet.Formula('=IF(B9="",NA(),B9)'),
-                    ],
-                },
-                index=[8, 9, 11],
-            ),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {
+                (8, 0): spreadsheet.Formula("=IF(ISNA(B9),NA(),A6)"),
+                (8, 1): spreadsheet.Formula('=IF(B6="",NA(),B6)'),
+                (9, 1): spreadsheet.Formula('=IF(OR(B7="",AND(B7=B6,B7=B8)),NA(), B7)'),
+                (11, 1): spreadsheet.Formula('=IF(B9="",NA(),B9)'),
+            },
         )
 
     def test_add_plot_table(self):
@@ -276,17 +276,9 @@ class TestHelperSheet(TestSheet):
         self.sheet.clean_rows = {self.ref_inst_sheet.name: 8, self.ref_run_sheet.name: 5}
         self.sheet._add_plot_table(col=0, col_offset=1, row=0, row_offset=1, instances_col=0, merged_col=1)
 
-        pd.testing.assert_frame_equal(
-            self.sheet.content,
-            pd.DataFrame(
-                {
-                    1: [
-                        spreadsheet.Formula('=IF(Charts!m_select="none",B10,IF(C7="",NA(),C7))'),
-                    ],
-                },
-                index=[4],
-            ),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {(4, 1): spreadsheet.Formula('=IF(Charts!m_select="none",B10,IF(C7="",NA(),C7))')},
         )
 
     def test_add_stepped_tables(self):
@@ -421,6 +413,8 @@ class TestHelperSheet(TestSheet):
             patch.object(HelperSheet, "_add_data_table") as mock_data,
             patch.object(HelperSheet, "_add_step_table") as mock_step,
             patch.object(HelperSheet, "_add_stepped_tables") as mock_stepped,
+            patch.object(HelperSheet, "_add_solvable_table", return_value=40) as mock_solvable,
+            patch.object(HelperSheet, "_add_matrix_table") as mock_matrix,
         ):
             mock_setup.return_value = (ref_tables, ref_inst_n)
             self.sheet.finalize()
@@ -436,19 +430,18 @@ class TestHelperSheet(TestSheet):
             self.assertEqual(mock_step.call_count, 8)
             # stepped tables for inst and merged sheet + plot table for each setting, for each instance -> 3*2*2 = 12
             self.assertEqual(mock_stepped.call_count, 12)
+            mock_solvable.assert_called_once_with(33, 1)
+            mock_matrix.assert_called_once_with(40, 1)
 
         self.assertDictEqual(self.sheet.float_occur, {"time": [1, 3], "timeout": [2, 4]})
         self.assertEqual(self.sheet.setting_n, 2)
-        pd.testing.assert_series_equal(
-            self.sheet.content[0],
-            pd.Series([None, "time", "timeout"], dtype=object, name=0),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {(1, 0): "time", (1, 1): 1.0, (2, 0): "timeout", (2, 1): 2.0},
         )
-        pd.testing.assert_series_equal(
-            self.sheet.content[1],
-            pd.Series([None, 1.0, 2.0], dtype=object, name=1),
-            check_dtype=False,
-        )
+        self.assertIsInstance(self.sheet.content, pd.DataFrame)
+        self.assertEqual(self.sheet.content.at[1, 0], self.sheet._cell_buffer[(1, 0)])
+        self.assertEqual(self.sheet.content.at[2, 1], self.sheet._cell_buffer[(2, 1)])
 
         # single setting
         self.setUp()
@@ -460,6 +453,8 @@ class TestHelperSheet(TestSheet):
             patch.object(HelperSheet, "_add_data_table") as mock_data,
             patch.object(HelperSheet, "_add_step_table") as mock_step,
             patch.object(HelperSheet, "_add_stepped_tables") as mock_stepped,
+            patch.object(HelperSheet, "_add_solvable_table", return_value=40) as mock_solvable,
+            patch.object(HelperSheet, "_add_matrix_table") as mock_matrix,
         ):
             mock_setup.return_value = (ref_tables, ref_inst_n)
             self.sheet.finalize()
@@ -475,19 +470,113 @@ class TestHelperSheet(TestSheet):
             self.assertEqual(mock_step.call_count, 4)
             # stepped tables for inst and merged sheet + plot table for each setting, for each instance -> 3*1*2 = 6
             self.assertEqual(mock_stepped.call_count, 6)
+            mock_solvable.assert_called_once_with(21, 1)
+            mock_matrix.assert_called_once_with(40, 1)
 
         self.assertDictEqual(self.sheet.float_occur, {"time": [1], "timeout": [2]})
         self.assertEqual(self.sheet.setting_n, 1)
-        pd.testing.assert_series_equal(
-            self.sheet.content[0],
-            pd.Series([None, "time", "timeout"], dtype=object, name=0),
-            check_dtype=False,
+        self.assertDictEqual(
+            self.sheet._cell_buffer,
+            {(1, 0): "time", (1, 1): 1.0, (2, 0): "timeout", (2, 1): 2.0},
         )
-        pd.testing.assert_series_equal(
-            self.sheet.content[1],
-            pd.Series([None, 1.0, 2.0], dtype=object, name=1),
-            check_dtype=False,
-        )
+        self.assertIsInstance(self.sheet.content, pd.DataFrame)
+
+        # no numeric measures leaves the sparse buffer empty
+        self.setUp()
+        with (
+            patch.object(HelperSheet, "_setup_table_structure", return_value=(ref_tables, ref_inst_n)),
+            patch.object(HelperSheet, "_add_solvable_table", return_value=40),
+            patch.object(HelperSheet, "_add_matrix_table"),
+        ):
+            self.sheet.finalize()
+
+        self.assertDictEqual(self.sheet._cell_buffer, {})
+        self.assertIsInstance(self.sheet.content, pd.DataFrame)
+        self.assertTrue(self.sheet.content.empty)
+
+    def test_add_solvable_table(self) -> None:
+        """
+        Test _add_solvable_table method.
+        """
+        benchmark = self.res.merge(self.res.projects.values())
+        instances = InstanceSheet("Instances", benchmark, {"time": "t"})
+        specs = self.res.projects["test_proj0"].runspecs
+        specs[0].classresults[0].instresults[0].runs[0].measures["timeout"] = ("int", "1")
+        for spec in reversed(specs):
+            instances.add_runspec(spec)
+        self.sheet.instance_sheet = instances
+        self.sheet.instance_n = 6
+        self.sheet.start_cols["Instances"] = 4
+
+        next_col = self.sheet._add_solvable_table(20, 1)
+
+        self.assertEqual(next_col, 24)
+        self.assertEqual(self.sheet.start_cols["solvable"], 21)
+        for setting, block in enumerate(sorted(instances.system_blocks.values())):
+            for row in (1, 2):
+                self.assertEqual(
+                    self.sheet._cell_buffer[(row, 21 + setting)],
+                    spreadsheet.Formula(f"={spreadsheet.get_cell_index(4 + setting * 4, row)}"),
+                )
+            expected = instances.solvable[(block.setting, block.machine)]
+            for row in range(6):
+                self.assertEqual(self.sheet._cell_buffer[(4 + row, 21 + setting)], expected[row])
+            self.assertEqual(self.sheet._cell_buffer[(4, 21)], 0)
+            self.assertIsNone(self.sheet._cell_buffer[(5, 21)])
+
+    def test_add_matrix_table(self) -> None:
+        """
+        Test _add_matrix_table method.
+        """
+        for setting_count in (0, 1, 3):
+            with self.subTest(settings=setting_count):
+                self.setUp()
+                self.sheet.setting_n = setting_count
+                self.sheet.instance_n = 2
+                self.sheet.start_cols = {"Instances": 4, "solvable": 20}
+
+                self.sheet._add_matrix_table(25, 1)
+
+                self.assertEqual(self.sheet.matrix_row, 4)
+                self.assertEqual(self.sheet.start_cols["matrix"], 26)
+                for setting in range(setting_count):
+                    header = spreadsheet.Formula(f"={spreadsheet.get_cell_index(4 + setting * 4, 2)}")
+                    self.assertEqual(self.sheet._cell_buffer[(4 + setting, 25)], header)
+                    self.assertEqual(self.sheet._cell_buffer[(3, 26 + setting)], header)
+                for setting_i in range(setting_count):
+                    for setting_j in range(setting_count):
+                        cell = self.sheet._cell_buffer[(4 + setting_i, 26 + setting_j)]
+                        if setting_i == setting_j:
+                            self.assertIsInstance(cell, int)
+                            self.assertEqual(cell, 0)
+                            continue
+                        value_i, value_j = [
+                            f"{spreadsheet.get_cell_index(4 + setting * 4, 4, True, True)}:"
+                            f"{spreadsheet.get_cell_index(4 + setting * 4, 5, True, True)}"
+                            for setting in (setting_i, setting_j)
+                        ]
+                        solvable_i, solvable_j = [
+                            f"{spreadsheet.get_cell_index(20 + setting, 4, True, True)}:"
+                            f"{spreadsheet.get_cell_index(20 + setting, 5, True, True)}"
+                            for setting in (setting_i, setting_j)
+                        ]
+                        numeric = f"--ISNUMBER({value_i}),--ISNUMBER({value_j})"
+                        smaller_ij = (
+                            f"SUMPRODUCT({numeric},--({value_i}<{value_j}))"
+                            f'+SUMPRODUCT(--ISNUMBER({value_i}),--({value_j}=""))'
+                        )
+                        smaller_ji = (
+                            f"SUMPRODUCT({numeric},--({value_j}<{value_i}))"
+                            f'+SUMPRODUCT(--ISNUMBER({value_j}),--({value_i}=""))'
+                        )
+                        denominator = (
+                            f"(COUNTIF({solvable_i},1)+COUNTIF({solvable_j},1)"
+                            f"-COUNTIFS({solvable_i},1,{solvable_j},1))"
+                        )
+                        self.assertEqual(
+                            cell,
+                            spreadsheet.Formula(f"IF({denominator}=0,0,(({smaller_ij})-({smaller_ji}))/{denominator})"),
+                        )
 
     def test_write_sheet(self) -> None:
         """
@@ -496,20 +585,14 @@ class TestHelperSheet(TestSheet):
         doc = xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), {})
         doc.workbook = MagicMock(spec=xlsxwriter.Workbook)
 
-        self.sheet.content = pd.DataFrame(
-            {
-                0: [1, 2.0, True],
-                1: pd.Series(
-                    [
-                        spreadsheet.Formula("=IF(ISNA(B9),NA(),A6)"),
-                        "test",
-                        None,
-                    ],
-                    dtype=object,
-                ),
-            },
-            dtype=object,
-        )
+        self.sheet._cell_buffer = {
+            (0, 0): 1,
+            (1, 0): 2.0,
+            (2, 0): True,
+            (0, 1): spreadsheet.Formula("=IF(ISNA(B9),NA(),A6)"),
+            (1, 1): "test",
+            (2, 1): None,
+        }
 
         mock_worksheet = MagicMock(spec=xlsxwriter.worksheet.Worksheet)
         doc.workbook.add_worksheet.return_value = mock_worksheet

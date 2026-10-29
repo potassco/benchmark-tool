@@ -5,68 +5,115 @@ icon: "material/text-box-check-outline"
 
 # Modifying the Resultparser
 
-The default resultparsers provided are [clasp][clasp] and [clasp_json[clasp_json]], which supports many of
-clingo's statistics. However, sometimes we will need access to other statistics that
-the script doesn't retrieve. We could also be running a program that has its
-own set of statistics.
+The built-in [clasp][clasp] and [clasp_json][clasp_json] resultparsers extract
+statistics from clasp/clingo text and JSON output, respectively. You can extend
+these parsers or write a custom parser for another program.
 
-While the `clasp` resultparser is included in the benchmarktool package, custom resultparsers
-have to be placed inside the resultparser folder created by `btool init`. You can use the
-`--resultparser-template` option to create a copy of the `clasp` resultparser called `rp_tmp.py`,
-which you can use as a base to create your own. You can overwrite the default `clasp`
-resultparser by providing `claps.py` inside the resultparsers folder.
+## Selecting a parser
 
-We will now take a look at how the scripts work, how to change them to fit your own goals and
-how to write your own.
+Run `btool init` to create the `resultparsers/` directory. Save custom parsers
+there and set the `measures` attribute of the [system element] to the module
+name without `.py`. For example, `measures="custom_parser"` loads
+`resultparsers/custom_parser.py` relative to the directory where you run
+`btool eval`.
 
-Lets look at the [clasp][clasp_py] resultparser as an example. All resultparser **must** define
-a `parse()`function, which takes 3 arguments. The first argument is the path to the root directory
-of the benchmark and where the results are saved. The second argument, runspec, gives us access to
-the data that we defined in the runscript file. The third argument is an instance class that includes
-information such as the location and the name of the instance.
+Local parsers take precedence over built-in parsers. A local
+`resultparsers/clasp.py` overrides the built-in `clasp` parser.
 
-The function is applied to every benchmark 'run' individually. It gathers the data for a particular
-run in three steps:
+You can run `btool init --resultparser-template` to create
+`resultparsers/rp_tmp.py` relative to the current directory as a copy of the
+built-in text parser.
 
-- Read the relevant input files
-- Extract the data using regular expressions
-- Do some post-processing on the data if needed
+## Parser interface
 
-The `parse()` function always has to return a list of triples where each triple has the
-type `tuple[str, str, Any]` and the format `(<name>, <data type>, <value>)`.
+Every parser must define a callable with this signature:
+
+```text
+parse(path, runspec, instance, run) -> dict[str, tuple[str, Any]]
+```
+
+The function is called once per run of each benchmark instance:
+
+| Argument | Meaning |
+| --- | --- |
+| `path` | Directory containing the output of this individual run, not the benchmark root. |
+| `runspec` | A `benchmarktool.runscript.runscript.Runspec` describing the system, setting, project, and job. For example, `runspec.project.job.timeout` is the time limit in seconds. |
+| `instance` | A `benchmarktool.runscript.runscript.Benchmark.Instance` describing the benchmark instance, including its name and input paths. |
+| `run` | Run number, starting at **1**. |
+
+The function should return a dictionary mapping each measure name to a `(data_type, value)` pair.
+Use `"float"` for numeric measures and `"string"` for text measures. For example:
+
+```text
+{"time": ("float", 40.0), "timeout": ("float", 0), "status": ("string", "SATISFIABLE")}
+```
+
+The built-in parsers also report numeric `error` and `memout` flags. Reuse a
+built-in parser when extending clasp/clingo output to retain its handling of
+errors, timeouts, and memory limits. When both `time` and `timeout` are present,
+`btool eval` adds the PAR score using the factor selected by `--par-x`.
 
 ## Adding your own statistics
 
-Adding more statistics to parse is fairly simple. We will illustrate how, with an example.
-Suppose that our output includes the following line: `Time to run function: 20.23s`.
+Suppose your program produces normal clasp/clingo text output plus this line
+in `runsolver.solver`:
 
-The first step is to add an entry to the regex dictionary:
-
-```python
-"function_time" : ("float", re.compile(r"^Time to run function:[ ]*(?P<val>[0-9]+(\.[0-9]+)?)$"))
+```text
+Time to run function: 20.23s
 ```
 
-The second step would be to read the entry from the *res* variable as save it into the *result*
-variable in the correct format. For standard float values this is already done.
-
-Suppose that we don't really care about how long the function runs, we only care that the time
-it takes is less than half of the total clingo runtime. In this case, we have to do some extra
-processing. After the regular expressions are applied to the files, we will have a 'function_time'
-entry in the *res* variable. We can now compare the values by referencing the *res* dictionary:
+Save the following complete parser as `resultparsers/custom_parser.py`. It
+keeps the built-in measures, adds a numeric `function_time`, and labels it
+`"acceptable"` only when it is less than half the total runtime:
 
 ```python
-if (res["time"][1] / res["function_time"][1]) < 2:
-	result.append("function_time", "string", "acceptable")
-else:
-	result.append("function_time", "string", "unacceptable")
+import re
+from typing import Any
+
+from benchmarktool.resultparser import open_results
+from benchmarktool.resultparser.clasp import parse as parse_clasp
+from benchmarktool.runscript import runscript
+
+FUNCTION_TIME = re.compile(r"^Time to run function:\s*(?P<val>[0-9]+(?:\.[0-9]+)?)s\s*$")
+
+
+def parse(
+    path: str,
+    runspec: runscript.Runspec,
+    instance: runscript.Benchmark.Instance,
+    run: int,
+) -> dict[str, tuple[str, Any]]:
+    result = parse_clasp(path, runspec, instance, run)
+    with open_results(path, "runsolver.solver") as output:
+        for line in output:
+            match = FUNCTION_TIME.match(line)
+            if match:
+                function_time = float(match.group("val"))
+                result["function_time"] = ("float", function_time)
+                result["function_time_status"] = (
+                    "string",
+                    "acceptable" if function_time < result["time"][1] / 2 else "unacceptable",
+                )
+                return result
+    raise ValueError(f"Missing or invalid function time for instance {instance.name!r}, run {run}: {path}")
 ```
 
-Afterwards, we have to delete the 'function_time' entry from *res* so that it is not added to
-*result* later on:
+`open_results` supports both plain output files and files compressed with gzip
+(`runsolver.solver.gz`). The example expects the custom statistic to be present;
+it raises an explicit error rather than inventing a value if the line is missing
+or malformed. If you add this statistic to a copied parser's regex dictionary
+instead, remember to match the trailing `s` and store results using dictionary
+assignment, for example `result["function_time"] = ("float", value)`.
 
-```python
-del res["function_time"]
+In your existing runscript, set `measures="custom_parser"` on the relevant
+`<system>` element. After running the benchmark, collect and display the new
+measures:
+
+```bash
+btool eval ./runscripts/runscript-example.xml > benchmark-results.xml
+btool conv -m time:t,timeout:to,function_time,function_time_status -o result.xlsx benchmark-results.xml
 ```
 
+[system element]: ../getting_started/gen/runscript.md#system
 [clasp]: https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp.py
 [clasp_json]: https://github.com/potassco/benchmark-tool/blob/master/src/benchmarktool/resultparser/clasp_json.py

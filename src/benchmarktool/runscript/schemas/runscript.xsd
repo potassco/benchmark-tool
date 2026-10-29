@@ -114,6 +114,7 @@
         <xs:attribute name="walltime" type="timeType" use="required"/>
         <xs:attribute name="cpt" type="xs:positiveInteger" use="required"/>
         <xs:attribute name="partition" type="xs:string"/>
+        <xs:attribute name="membuffer" type="xs:nonNegativeInteger"/>
     </xs:complexType>
 
     <!-- a config -->
