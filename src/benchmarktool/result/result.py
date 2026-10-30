@@ -4,8 +4,8 @@ Created on Jan 19, 2010
 @author: Roland Kaminski
 """
 
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass, field, replace
+from pathlib import Path, PurePosixPath
 from typing import Any, Iterator, Optional
 
 from benchmarktool.result.xlsx_gen.xlsx_gen import XLSXDoc
@@ -27,12 +27,13 @@ class Result:
         self.benchmarks: dict[str, Benchmark] = {}
         self.projects: dict[str, Project] = {}
 
-    def merge(self, projects: list["Project"]) -> "BenchmarkMerge":
+    def merge(self, projects: list["Project"], class_group_depth: Optional[int] = None) -> "BenchmarkMerge":
         """
         Concatenates the benchmarks in the given projects into one benchmark set.
 
         Attributes:
             projects (list[Project]): The projects to merge with.
+            class_group_depth (Optional[int]): Directory depth for reporting classes, or None to retain classes.
         """
         benchmarks: set[Benchmark] = set()
         for project in projects:
@@ -43,7 +44,7 @@ class Result:
                             instresult.instance.values["max_runs"], len(instresult.runs)
                         )
                 benchmarks.add(runspec.benchmark)
-        return BenchmarkMerge(benchmarks)
+        return BenchmarkMerge(benchmarks, class_group_depth)
 
     # pylint: disable=too-many-positional-arguments
     def gen_spreadsheet(
@@ -54,6 +55,7 @@ class Result:
         export: bool = False,
         max_col_width: int = 300,
         charts: bool = True,
+        class_group_depth: Optional[int] = None,
     ) -> Optional[str]:
         """
         Prints the current result in Microsoft Excel Spreadsheet format (XLSX).
@@ -66,17 +68,18 @@ class Result:
             export (bool):                    Whether to export the raw values as parquet file.
             max_col_width (int):              The maximum column width for spreadsheet.
             charts (bool):                    Whether to add charts to the spreadsheet.
+            class_group_depth (Optional[int]): Directory depth for reporting classes, or None to retain classes.
         """
         projects: list[Project] = []
         for project in self.projects.values():
             if len(sel_projects) == 0 or project.name in sel_projects:
                 projects.append(project)
-        benchmark_merge = self.merge(projects)
+        benchmark_merge = self.merge(projects, class_group_depth)
 
         doc = XLSXDoc(benchmark_merge, measures, max_col_width, charts)
         for project in projects:
             for runspec in project:
-                doc.add_runspec(runspec)
+                doc.add_runspec(benchmark_merge.group_runspec(runspec) if class_group_depth is not None else runspec)
         doc.finalize()
         if not out.lower().endswith(".xlsx"):
             out += ".xlsx"
@@ -106,22 +109,46 @@ class BenchmarkMerge:
     Represents an (ordered) set of benchmark sets.
     """
 
-    def __init__(self, benchmarks: set["Benchmark"]):
+    def __init__(self, benchmarks: set["Benchmark"], class_group_depth: Optional[int] = None):
         """
         Initializes using the given set of benchmarks.
 
         Attributes:
             benchmarks (set[Benchmark]): Benchmarks to merge.
+            class_group_depth (Optional[int]): Directory depth for reporting classes, or None to retain classes.
         """
+        if class_group_depth is not None and class_group_depth < 1:
+            raise ValueError("Class group depth must be a positive integer.")
         self.benchmarks = benchmarks
+        self.class_group_depth = class_group_depth
+        self._classes: list[Class] = []
+        self._class_groups: dict[Class, Class] = {}
+        for benchmark in sorted(benchmarks):
+            if class_group_depth is None:
+                self._classes.extend(benchmark)
+                continue
+            groups: dict[str, Class] = {}
+            for benchclass in benchmark:
+                parts = PurePosixPath(benchclass.name.replace("\\", "/")).parts
+                name = "/".join(parts[:class_group_depth]) or "."
+                if name not in groups:
+                    groups[name] = Class(benchmark, name, len(groups))
+                group = groups[name]
+                self._class_groups[benchclass] = group
+                for instance in benchclass:
+                    group.instances[len(group.instances)] = instance
+            self._classes.extend(sorted(groups.values()))
         inst_num = 0
+        merged_row = 0
         class_num = 0
         for benchclass in self:
             benchclass.values["row"] = class_num
             benchclass.values["inst_start"] = inst_num
             for instance in benchclass:
                 instance.values["row"] = inst_num
+                instance.values["merged_row"] = merged_row
                 inst_num += max(instance.values["max_runs"], 1)
+                merged_row += 1
             benchclass.values["inst_end"] = inst_num - 1
             class_num += 1
 
@@ -129,8 +156,24 @@ class BenchmarkMerge:
         """
         Creates an interator over all benchmark classes in all benchmarks.
         """
-        for benchmark in sorted(self.benchmarks):
-            yield from benchmark
+        yield from self._classes
+
+    def group_runspec(self, runspec: "Runspec") -> "Runspec":
+        """
+        Return a reporting view without changing original class or instance identities.
+
+        Attributes:
+            runspec (Runspec): The runspec to group.
+        """
+        if self.class_group_depth is None:
+            return runspec
+        groups: dict[Class, ClassResult] = {}
+        for classresult in runspec:
+            group = self._class_groups[classresult.benchclass]
+            if group not in groups:
+                groups[group] = ClassResult(group)
+            groups[group].instresults.extend(classresult.instresults)
+        return replace(runspec, classresults=sorted(groups.values()))
 
 
 @dataclass(order=True, frozen=True)

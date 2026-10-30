@@ -14,6 +14,7 @@ from benchmarktool.result.xlsx_gen.plot_sheets.helper_sheet import HelperSheet
 from benchmarktool.result.xlsx_gen.result_sheets.class_sheet import ClassSheet
 from benchmarktool.result.xlsx_gen.result_sheets.instance_sheet import InstanceSheet
 from benchmarktool.result.xlsx_gen.result_sheets.merged_sheet import MergedRunSheet
+from benchmarktool.result.xlsx_gen.result_sheets.result_sheet import ResultSheet
 
 if TYPE_CHECKING:
     from benchmarktool.result import result  # nocoverage
@@ -44,8 +45,13 @@ class XLSXDoc:
         self.charts = charts
 
         self.inst_sheet: InstanceSheet = InstanceSheet("Instances", benchmark, measures)
-        self.merged_sheet: MergedRunSheet = MergedRunSheet("Merged Runs", benchmark, measures, self.inst_sheet)
+        self.merged_sheet: Optional[MergedRunSheet] = None
+        if any(instance.values["max_runs"] > 1 for benchclass in benchmark for instance in benchclass):
+            self.merged_sheet = MergedRunSheet("Merged Runs", benchmark, measures, self.inst_sheet)
         self.class_sheet: ClassSheet = ClassSheet("Classes", benchmark, measures, self.inst_sheet)
+        self._result_sheets: tuple[ResultSheet, ...] = tuple(
+            sheet for sheet in (self.inst_sheet, self.merged_sheet, self.class_sheet) if sheet is not None
+        )
 
         self.chart_sheet: Optional[ChartSheet]
         self.helper_sheet: Optional[HelperSheet]
@@ -85,17 +91,15 @@ class XLSXDoc:
         Attributes:
             runspec (Runspec): Run specification.
         """
-        self.inst_sheet.add_runspec(runspec)
-        self.merged_sheet.add_runspec(runspec)
-        self.class_sheet.add_runspec(runspec)
+        for sheet in self._result_sheets:
+            sheet.add_runspec(runspec)
 
     def finalize(self) -> None:
         """
         Finalize the sheet, e.g., by collecting content and adding summaries.
         """
-        self.inst_sheet.finalize()
-        self.merged_sheet.finalize()
-        self.class_sheet.finalize()
+        for sheet in self._result_sheets:
+            sheet.finalize()
 
         helper = self.helper_sheet
         chart = self.chart_sheet
@@ -112,7 +116,7 @@ class XLSXDoc:
         """
         self.workbook = Workbook(out)
 
-        for sheet in (self.inst_sheet, self.merged_sheet, self.class_sheet):
+        for sheet in self._result_sheets:
             sheet.write_sheet(self)
 
         helper = self.helper_sheet

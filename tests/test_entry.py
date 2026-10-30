@@ -47,6 +47,7 @@ class TestParser(TestCase):
         self.assertSetEqual(args.projects, set())
         self.assertEqual(args.measures, {"time": "t", "timeout": "to"})
         self.assertFalse(args.export)
+        self.assertIsNone(args.class_group_depth)
         self.assertIsInstance(args.func, Callable)
 
         # resultfile
@@ -72,6 +73,13 @@ class TestParser(TestCase):
         args = self.parser.parse_args(["conv", "-e", "rs.xml"])
         self.assertTrue(args.export)
 
+        args = self.parser.parse_args(["conv", "--class-group-depth=2"])
+        self.assertEqual(args.class_group_depth, 2)
+        for depth in ("0", "-1", "abc", "1.5"):
+            with self.subTest(depth=depth):
+                with self.assertRaises(SystemExit), mock.patch("sys.stderr", new=StringIO()):
+                    self.parser.parse_args(["conv", f"--class-group-depth={depth}"])
+
         # run function
         result_mock = mock.MagicMock()
         with (
@@ -84,7 +92,7 @@ class TestParser(TestCase):
             args.func(args)
             parse_mock.assert_called_once_with(sys.stdin)
             result_mock.gen_spreadsheet.assert_called_once_with(
-                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300, True
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300, True, None
             )
 
             parse_mock.reset_mock()
@@ -92,7 +100,7 @@ class TestParser(TestCase):
             args = self.parser.parse_args(["conv", "-e"])
             args.func(args)
             result_mock.gen_spreadsheet.assert_called_once_with(
-                "out.xlsx", set(), {"time": "t", "timeout": "to"}, True, 300, True
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, True, 300, True, None
             )
 
             parse_mock.reset_mock()
@@ -100,7 +108,7 @@ class TestParser(TestCase):
             args = self.parser.parse_args(["conv", "--no-charts"])
             args.func(args)
             result_mock.gen_spreadsheet.assert_called_once_with(
-                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300, False
+                "out.xlsx", set(), {"time": "t", "timeout": "to"}, False, 300, False, None
             )
 
             parse_mock.reset_mock()
@@ -116,11 +124,12 @@ class TestParser(TestCase):
                     "-m",
                     "all",
                     "--max-col-width=50",
+                    "--class-group-depth=2",
                 ]
             )
             args.func(args)
             parse_mock.assert_called_once()
-            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, {}, False, 50, True)
+            result_mock.gen_spreadsheet.assert_called_once_with("test.xlsx", {"p1", "p2"}, {}, False, 50, True, 2)
 
             ex_file = mock.Mock()
             result_mock.gen_spreadsheet.return_value = ex_file

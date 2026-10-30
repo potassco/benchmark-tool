@@ -47,6 +47,7 @@ class TestChartSheet(TestSheet):
         super().test_init()
         self.assertEqual(self.sheet.merge_select, "$B$3")
         self.assertEqual(self.sheet.measure_select, "$F$3")
+        self.assertEqual(self.sheet.class_select, "$J$3")
         self.assertEqual(self.sheet.instance_sheet, self.ref_inst_sheet)
         self.assertIsNone(self.sheet.matrix_range)
 
@@ -55,19 +56,9 @@ class TestChartSheet(TestSheet):
             pd.DataFrame(
                 {
                     0: [np.nan, np.nan],
-                    1: [
-                        "Select merge criteria:",
-                        spreadsheet.DataValidation(
-                            {
-                                "validate": "list",
-                                "source": ["none", "average", "median", "min", "max"],
-                                "input_message": "Select how runs should be merged. 'none' means no merging.",
-                            },
-                            "none",
-                            "input",
-                        ),
-                    ],
+                    1: [np.nan, np.nan],
                     5: ["Select measure:", "PLACEHOLDER: Measure select"],
+                    9: ["Select class:", "PLACEHOLDER: Class select"],
                 },
                 index=[1, 2],
             ),
@@ -87,9 +78,35 @@ class TestChartSheet(TestSheet):
         self.ref_help_sheet.start_cols = {"plot": 1, "matrix": 12}
         self.ref_help_sheet.plot_row = 2
         self.ref_help_sheet.matrix_row = 4
+        self.ref_help_sheet.class_range = "$A$5:$A$7"
 
         self.sheet.finalize(self.ref_help_sheet)
+        self.assertEqual(
+            self.sheet.content.loc[2, 9],
+            spreadsheet.DataValidation(
+                {
+                    "validate": "list",
+                    "source": "=Helper!$A$5:$A$7",
+                    "input_message": "Select a reporting class or all classes.",
+                },
+                "All classes",
+                "input",
+            ),
+        )
 
+        self.assertEqual(self.sheet.content.loc[1, 1], "Select merge criteria:")
+        self.assertEqual(
+            self.sheet.content.loc[2, 1],
+            spreadsheet.DataValidation(
+                {
+                    "validate": "list",
+                    "source": ["none", "average", "median", "min", "max"],
+                    "input_message": "Select how runs should be merged. 'none' means no merging.",
+                },
+                "none",
+                "input",
+            ),
+        )
         # measure select
         self.assertEqual(
             self.sheet.content.loc[2, 5],

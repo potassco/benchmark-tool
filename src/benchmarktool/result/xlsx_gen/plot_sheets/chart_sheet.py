@@ -40,21 +40,14 @@ class ChartSheet(Sheet):
         """
         self.content[0] = None
         self.content[1] = None
-        self.content.loc[1, 1] = "Select merge criteria:"
-        self.content.loc[2, 1] = DataValidation(
-            {
-                "validate": "list",
-                "source": ["none", "average", "median", "min", "max"],
-                "input_message": "Select how runs should be merged. 'none' means no merging.",
-            },
-            "none",
-            "input",
-        )
         self.merge_select = get_cell_index(1, 2, True, True)
 
         self.content.loc[1, 5] = "Select measure:"
         self.content.loc[2, 5] = "PLACEHOLDER: Measure select"
         self.measure_select = get_cell_index(5, 2, True, True)
+        self.content.loc[1, 9] = "Select class:"
+        self.content.loc[2, 9] = "PLACEHOLDER: Class select"
+        self.class_select = get_cell_index(9, 2, True, True)
         self.content = self.content.astype(object)
 
     def finalize(self, helper_sheet: Optional["HelperSheet"] = None) -> None:
@@ -66,6 +59,17 @@ class ChartSheet(Sheet):
         """
         if helper_sheet is None:
             raise ValueError("Helper sheet is required to finalize chart sheet.")
+        if helper_sheet.merged_run_sheet is not None:
+            self.content.loc[1, 1] = "Select merge criteria:"
+            self.content.loc[2, 1] = DataValidation(
+                {
+                    "validate": "list",
+                    "source": ["none", "average", "median", "min", "max"],
+                    "input_message": "Select how runs should be merged. 'none' means no merging.",
+                },
+                "none",
+                "input",
+            )
         # measure select
         measures = sorted(self.instance_sheet.float_occur.keys())
         self.content.loc[2, 5] = DataValidation(
@@ -75,6 +79,16 @@ class ChartSheet(Sheet):
                 "input_message": "Select measure to display.",
             },
             measures[0] if measures else "",
+            "input",
+        )
+        # class select
+        self.content.loc[2, 9] = DataValidation(
+            {
+                "validate": "list",
+                "source": f"=Helper!{helper_sheet.class_range}",
+                "input_message": "Select a reporting class or all classes.",
+            },
+            "All classes",
             "input",
         )
 

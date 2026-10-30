@@ -40,9 +40,19 @@ option. The name of the file will be the same as the specified output, i.e. `-o 
 For large result files, generating the chart-related sheets can take noticeable time.
 Use `--no-charts` to skip creating these sheets.
 
+Existing benchmark classes can be grouped by their first `N` directory components using
+`--class-group-depth N`, where `N` is a positive integer.
+For example, classes `scheduling/small/random` and `scheduling/small/structured`
+are combined into `scheduling/small` at depth 2. At depth 1, both would be combined to
+`scheduling`. The full prefix is retained, so `planning/small` remains a separate
+class at depth 2.
+Shallower classes keep their available path, and the root class (`.`) remains separate.
+Classes from different benchmark sets are never combined. If the option is omitted,
+original classes are retained.
+
 ## Spreadsheet Generation
 
-When generating a spreadsheet in XLSX format, normally five sheets are created:
+When generating a spreadsheet in XLSX format, up to five sheets are created:
 
 1. **Instance Sheet**
     - The instance sheet lists all runs for each benchmark instance (rows) and
@@ -55,6 +65,7 @@ When generating a spreadsheet in XLSX format, normally five sheets are created:
 2. **Merged Run Sheet**
     - The merged run sheet merges all runs of a single instance depending on
     a selectable criteria
+    - This sheet is included only if at least one instance has multiple runs.
 3. **Class Sheet**
     - The class sheet summarizes all runs for each benchmark class, enabling
     comparisons between classes.

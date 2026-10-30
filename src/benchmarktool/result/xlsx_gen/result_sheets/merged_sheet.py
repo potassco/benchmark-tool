@@ -26,6 +26,7 @@ class MergedRunSheet(ResultSheet):
     ):
         self.ref_sheet = ref_sheet
         self.run_refs: dict[int, dict[str, Any]] = {}
+        self.instance_rows: dict[int, int] = {}
         super().__init__(name, benchmark, measures)
 
     def prepare(self) -> None:
@@ -48,6 +49,7 @@ class MergedRunSheet(ResultSheet):
         for benchclass in self.benchmark:
             for instance in benchclass:
                 self.content.loc[row] = instance.benchclass.name + "/" + instance.name
+                self.instance_rows[instance.values["row"]] = row - 2
                 row += 1
 
         self.result_offset = row
@@ -130,7 +132,7 @@ class MergedRunSheet(ResultSheet):
             if value:
                 # value just to signal non empty cell
                 block.add_cell(
-                    (inst_val["row"] + inst_val["max_runs"]) // inst_val["max_runs"] - 1,
+                    self.instance_rows[inst_val["row"]],
                     name,
                     "merged_runs",
                     {
@@ -140,9 +142,7 @@ class MergedRunSheet(ResultSheet):
                     },
                 )
             else:
-                block.add_cell(
-                    (inst_val["row"] + inst_val["max_runs"]) // inst_val["max_runs"] - 1, name, "None", np.nan
-                )
+                block.add_cell(self.instance_rows[inst_val["row"]], name, "None", np.nan)
 
     def _finalize_results(self) -> None:
         """
