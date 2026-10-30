@@ -286,7 +286,7 @@ class TestDistJob(TestJob):
         """
         o = io.StringIO()
         o2 = io.StringIO()
-        self.j._to_xml(o, "\t", "distjob", ' script_mode="mode" walltime="100" cpt="2" partition="all"')
+        self.j._to_xml(o, "\t", "distjob", ' script_mode="mode" walltime="100" cpt="2" partition="all" membuffer="500"')
         self.j.to_xml(o2, "\t")
         self.assertEqual(o2.getvalue(), o.getvalue())
 
@@ -575,6 +575,7 @@ class TestDistScript(TestCase):
         ps.runspec.project.job.walltime = 100
         ps.runspec.project.job.cpt = 1
         ps.runspec.project.job.memout = 15000
+        ps.runspec.project.job.membuffer = 200
         ps.runspec.project.job.partition = "all"
         ps.write()
 
@@ -587,7 +588,7 @@ class TestDistScript(TestCase):
             x,
             "#SBATCH --time=00-00:01:40\n"
             "#SBATCH --cpus-per-task=1\n"
-            "#SBATCH --mem=15100M\n"
+            f"#SBATCH --mem={15000 + 200}M\n"
             "#SBATCH --partition=all\n"
             "#SBATCH --test=1\n"
             "#SBATCH --opt=test\n"
@@ -645,6 +646,7 @@ class TestDistScriptGen(TestScriptGen):
         self.runspec.setting.dist_template = "tests/ref/test_disttemplate.dist"
         self.runspec.project.job.walltime = 20
         self.runspec.project.job.cpt = 4
+        self.runspec.project.job.membuffer = 500
         self.runspec.project.job.partition = "all"
 
         self.sg.startfiles = [(self.runspec, "tests/ref", "s1.sh"), (self.runspec, "tests/ref", "s2.sh")]

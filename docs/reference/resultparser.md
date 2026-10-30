@@ -32,17 +32,17 @@ Every parser must define a callable with this signature:
 parse(path, runspec, instance, run) -> dict[str, tuple[str, Any]]
 ```
 
-The function is called once per repetition of each benchmark instance:
+The function is called once per run of each benchmark instance:
 
 | Argument | Meaning |
 | --- | --- |
 | `path` | Directory containing the output of this individual run, not the benchmark root. |
 | `runspec` | A `benchmarktool.runscript.runscript.Runspec` describing the system, setting, project, and job. For example, `runspec.project.job.timeout` is the time limit in seconds. |
 | `instance` | A `benchmarktool.runscript.runscript.Benchmark.Instance` describing the benchmark instance, including its name and input paths. |
-| `run` | Repetition number, starting at **1**. |
+| `run` | Run number, starting at **1**. |
 
-Return a dictionary mapping each measure name to a `(data_type, value)` pair. Use `"float"` for numeric measures and `"string"` for
-text measures. For example:
+The function should return a dictionary mapping each measure name to a `(data_type, value)` pair.
+Use `"float"` for numeric measures and `"string"` for text measures. For example:
 
 ```text
 {"time": ("float", 40.0), "timeout": ("float", 0), "status": ("string", "SATISFIABLE")}

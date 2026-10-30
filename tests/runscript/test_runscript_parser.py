@@ -84,6 +84,7 @@ class TestParser(TestCase):
         self.assertEqual(dist_job.timeout, 120)
         self.assertEqual(dist_job.runs, 1)
         self.assertEqual(dist_job.memout, 1000)
+        self.assertEqual(dist_job.membuffer, 200)
         self.assertEqual(dist_job.template_options, "--single")
         self.assertDictEqual(dist_job.attr, {"extra": "test"})
         self.assertEqual(dist_job.script_mode, "timeout")

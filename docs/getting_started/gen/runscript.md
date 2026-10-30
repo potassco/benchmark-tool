@@ -213,11 +213,11 @@ attribute. `template_options` expects a comma-separated string of options, e.g.
 ### Distributed Jobs
 
 A distributed job is also identified by its `name` and defines a `timeout`, the number
-of `runs`, and an optional `memout` and `template_options`:
+of `runs`, and an optional `memout`, `membuffer` and `template_options`:
 
 ```xml
-<distjob name="dist-gen" timeout="900" runs="1" memout="1000" template_options="--single"
-        script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
+<distjob name="dist-gen" timeout="900" runs="1" memout="1000" membuffer="200"
+        template_options="--single" script_mode="timeout" walltime="23h 59m 59s" cpt="4"/>
 ```
 
 Additionally, a distributed job has the following attributes:
@@ -236,6 +236,13 @@ interpreted as seconds.
     will be 4 groups of 25 runs each, which are dispatched separately.
 - `memout`: (Optional) Sets the memory limit for each benchmark run in MB. The
 default is `15000` MB.
+- `membuffer`: (Optional) Sets the additional memory reservation in MB.The default is `500` MB.
+Set it to `0` to disable the buffer. The generated distributed script receives a memory
+reservation of `memout + membuffer` MB. The buffer covers runlim and other job overhead and provides
+headroom for memory growth between runlim checks. It does not change runlim's limit or guarantee
+that runlim terminates the solver before SLURM does. In such cases the runlim sampling rate and
+kill delay can be adjusted in the [run templates][run template] using the `--sample-rate` and
+`--kill-delay` options.
 - `partition`: (Optional) Specifies the cluster partition name. The default is `kr`.
 Other values include `short` and `long`. If `short` is used, the walltime cannot exceed
 24 hours. Note that these values depend on your cluster configuration.

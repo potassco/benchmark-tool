@@ -255,7 +255,7 @@ class ChartSheet(Sheet):
                 sheet.write(row, col, val, cell_format)
 
         if self.matrix_range is not None:
-            first_row, first_col, _, last_col = self.matrix_range
+            first_row, first_col, last_row, last_col = self.matrix_range
             sheet.set_row_pixels(first_row - 1, 80)
             label_width = xlsxdoc.header_width
             for col, block in zip(range(first_col, last_col + 1), sorted(self.instance_sheet.system_blocks.values())):
@@ -278,4 +278,17 @@ class ChartSheet(Sheet):
                     "max_value": 1,
                     "max_color": "#2F8FDF",
                 },
+            )
+            sheet.merge_range(
+                last_row + 2,
+                first_col - 1,
+                last_row + 8,
+                max(last_col, first_col + 4),
+                "Each value is (row wins - column wins) / instances solved by either setting/solver.\n"
+                "Smaller values of the selected measure win. Solving alone also counts as a win.\n"
+                "Blue (positive) favors the row. Red (negative) favors the column.\n"
+                "Stronger colors mean a larger advantage.\n"
+                "Values range from -1 to 1 e.g., +0.5 means 50 more row wins than column wins per 100 "
+                "included instances.",
+                workbook.add_format({"text_wrap": True, "valign": "top", "font_size": 10}),
             )
