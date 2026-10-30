@@ -52,7 +52,7 @@ original classes are retained.
 
 ## Spreadsheet Generation
 
-When generating a spreadsheet in XLSX format, normally five sheets are created:
+When generating a spreadsheet in XLSX format, up to five sheets are created:
 
 1. **Instance Sheet**
     - The instance sheet lists all runs for each benchmark instance (rows) and
@@ -65,6 +65,7 @@ When generating a spreadsheet in XLSX format, normally five sheets are created:
 2. **Merged Run Sheet**
     - The merged run sheet merges all runs of a single instance depending on
     a selectable criteria
+    - This sheet is included only if at least one instance has multiple runs.
 3. **Class Sheet**
     - The class sheet summarizes all runs for each benchmark class, enabling
     comparisons between classes.

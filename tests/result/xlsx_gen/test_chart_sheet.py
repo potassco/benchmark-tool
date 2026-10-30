@@ -56,18 +56,7 @@ class TestChartSheet(TestSheet):
             pd.DataFrame(
                 {
                     0: [np.nan, np.nan],
-                    1: [
-                        "Select merge criteria:",
-                        spreadsheet.DataValidation(
-                            {
-                                "validate": "list",
-                                "source": ["none", "average", "median", "min", "max"],
-                                "input_message": "Select how runs should be merged. 'none' means no merging.",
-                            },
-                            "none",
-                            "input",
-                        ),
-                    ],
+                    1: [np.nan, np.nan],
                     5: ["Select measure:", "PLACEHOLDER: Measure select"],
                     9: ["Select class:", "PLACEHOLDER: Class select"],
                 },
@@ -105,6 +94,19 @@ class TestChartSheet(TestSheet):
             ),
         )
 
+        self.assertEqual(self.sheet.content.loc[1, 1], "Select merge criteria:")
+        self.assertEqual(
+            self.sheet.content.loc[2, 1],
+            spreadsheet.DataValidation(
+                {
+                    "validate": "list",
+                    "source": ["none", "average", "median", "min", "max"],
+                    "input_message": "Select how runs should be merged. 'none' means no merging.",
+                },
+                "none",
+                "input",
+            ),
+        )
         # measure select
         self.assertEqual(
             self.sheet.content.loc[2, 5],

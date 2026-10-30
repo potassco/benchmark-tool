@@ -325,6 +325,12 @@ class TestHelperSheet(TestSheet):
             {(4, 1): spreadsheet.Formula('=IF(Charts!m_select="none",B10,IF(C7="",NA(),C7))')},
         )
 
+        self.sheet.merged_run_sheet = None
+        self.sheet.clean_rows = {self.ref_inst_sheet.name: 8}
+        self.sheet._cell_buffer.clear()
+        self.sheet._add_plot_table(col=0, col_offset=1, row=0, row_offset=1, instances_col=0, merged_col=0)
+        self.assertDictEqual(self.sheet._cell_buffer, {(4, 1): spreadsheet.Formula("=B10")})
+
     def test_add_stepped_tables(self):
         """
         Test _add_stepped_tables method.

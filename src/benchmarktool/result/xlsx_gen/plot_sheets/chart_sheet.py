@@ -40,16 +40,6 @@ class ChartSheet(Sheet):
         """
         self.content[0] = None
         self.content[1] = None
-        self.content.loc[1, 1] = "Select merge criteria:"
-        self.content.loc[2, 1] = DataValidation(
-            {
-                "validate": "list",
-                "source": ["none", "average", "median", "min", "max"],
-                "input_message": "Select how runs should be merged. 'none' means no merging.",
-            },
-            "none",
-            "input",
-        )
         self.merge_select = get_cell_index(1, 2, True, True)
 
         self.content.loc[1, 5] = "Select measure:"
@@ -69,6 +59,17 @@ class ChartSheet(Sheet):
         """
         if helper_sheet is None:
             raise ValueError("Helper sheet is required to finalize chart sheet.")
+        if helper_sheet.merged_run_sheet is not None:
+            self.content.loc[1, 1] = "Select merge criteria:"
+            self.content.loc[2, 1] = DataValidation(
+                {
+                    "validate": "list",
+                    "source": ["none", "average", "median", "min", "max"],
+                    "input_message": "Select how runs should be merged. 'none' means no merging.",
+                },
+                "none",
+                "input",
+            )
         # measure select
         measures = sorted(self.instance_sheet.float_occur.keys())
         self.content.loc[2, 5] = DataValidation(

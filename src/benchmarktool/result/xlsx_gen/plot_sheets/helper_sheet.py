@@ -32,7 +32,7 @@ class HelperSheet(Sheet):
         benchmark: "result.BenchmarkMerge",
         measures: dict[str, Any],
         instance_sheet: InstanceSheet,
-        merged_run_sheet: MergedRunSheet,
+        merged_run_sheet: MergedRunSheet | None,
         chart_sheet: "ChartSheet",
     ):
         super().__init__(name, benchmark, measures)
@@ -434,13 +434,16 @@ class HelperSheet(Sheet):
         """
         c = col + col_offset
         plot_row_offset = row + row_offset
-        clean_merged_ref = get_cell_index(
-            merged_col + col_offset,
-            self.clean_rows[self.merged_run_sheet.name] + plot_row_offset,
-        )
         clean_instance_ref = get_cell_index(
             instances_col + col_offset,
             self.clean_rows[self.instance_sheet.name] + plot_row_offset,
+        )
+        if self.merged_run_sheet is None:
+            self._cell_buffer[(self.plot_row + plot_row_offset, c)] = Formula(f"={clean_instance_ref}")
+            return
+        clean_merged_ref = get_cell_index(
+            merged_col + col_offset,
+            self.clean_rows[self.merged_run_sheet.name] + plot_row_offset,
         )
         self._cell_buffer[(self.plot_row + plot_row_offset, c)] = Formula(
             f'=IF(Charts!{self.chart_sheet.merge_select}="none",'
@@ -501,7 +504,11 @@ class HelperSheet(Sheet):
                     row=row,
                     row_offset=row_mult * value_rows,
                     instances_col=self.start_cols[self.instance_sheet.name] + setting_idx * 4,
-                    merged_col=self.start_cols[self.merged_run_sheet.name] + setting_idx * 4,
+                    merged_col=(
+                        self.start_cols[self.merged_run_sheet.name] + setting_idx * 4
+                        if self.merged_run_sheet is not None
+                        else 0
+                    ),
                 )
 
     def _add_solvable_table(self, col: int, setting_ref_row: int) -> int:
@@ -628,11 +635,11 @@ class HelperSheet(Sheet):
         start_col = 3
         setting_ref_row = 1
         col = start_col
-        for sheet, sheet_ref in (
-            (self.instance_sheet.name, self.instance_sheet),
-            (self.merged_run_sheet.name, self.merged_run_sheet),
-            ("plot", self.instance_sheet),
-        ):
+        sheets: list[tuple[str, ResultSheet]] = [
+            (sheet.name, sheet) for sheet in (self.instance_sheet, self.merged_run_sheet) if sheet is not None
+        ]
+        sheets.append(("plot", self.instance_sheet))
+        for sheet, sheet_ref in sheets:
             # labels for tables
             table_rows, instance_n = self._setup_table_structure(sheet, sheet_ref, col, setting_ref_row)
 

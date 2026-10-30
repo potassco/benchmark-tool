@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 import pandas as pd  # type: ignore[import-untyped]
 import xlsxwriter
 
-from benchmarktool.result import result
+from benchmarktool.result import parser, result
 from benchmarktool.result.xlsx_gen import spreadsheet, xlsx_gen
 from benchmarktool.result.xlsx_gen.plot_sheets.chart_sheet import ChartSheet
 from benchmarktool.result.xlsx_gen.plot_sheets.helper_sheet import HelperSheet
@@ -367,8 +367,12 @@ class TestXLSXDoc(TestCase):
     Test cases for XLSXDoc class.
     """
 
+    # pylint: disable=protected-access
+
     def setUp(self):
-        self.doc = xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)])
+        res = parser.Parser().parse("./tests/ref/test_eval.xml")
+        self.benchmark = res.merge(list(res.projects.values()))
+        self.doc = xlsx_gen.XLSXDoc(self.benchmark, {"test": None})
 
     def test_init(self) -> None:
         """
@@ -381,8 +385,9 @@ class TestXLSXDoc(TestCase):
         self.assertIsInstance(self.doc.chart_sheet, ChartSheet)
         self.assertEqual(self.doc.max_col_width, 300)
         self.assertTrue(self.doc.charts)
+        self.assertEqual(self.doc._result_sheets, (self.doc.inst_sheet, self.doc.merged_sheet, self.doc.class_sheet))
 
-        doc = xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)], 50, False)
+        doc = xlsx_gen.XLSXDoc(self.benchmark, {"test": None}, 50, False)
         self.assertIsInstance(doc.inst_sheet, InstanceSheet)
         self.assertIsInstance(doc.class_sheet, ClassSheet)
         self.assertIsInstance(doc.merged_sheet, MergedRunSheet)
@@ -390,6 +395,17 @@ class TestXLSXDoc(TestCase):
         self.assertIsNone(doc.chart_sheet)
         self.assertEqual(doc.max_col_width, 50)
         self.assertFalse(doc.charts)
+
+    def test_init_without_merged_runs(self) -> None:
+        """
+        Do not create a merged run sheet for single-run instances.
+        """
+        for benchclass in self.benchmark:
+            for instance in benchclass:
+                instance.values["max_runs"] = 1
+        doc = xlsx_gen.XLSXDoc(self.benchmark, {"test": None})
+        self.assertIsNone(doc.merged_sheet)
+        self.assertEqual(doc._result_sheets, (doc.inst_sheet, doc.class_sheet))
 
     def test_add_runspec(self) -> None:
         """
@@ -410,7 +426,7 @@ class TestXLSXDoc(TestCase):
         """
         cases = [
             (self.doc, True),
-            (xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)], charts=False), False),
+            (xlsx_gen.XLSXDoc(self.benchmark, {"test": None}, charts=False), False),
         ]
 
         for doc, charts_enabled in cases:
@@ -440,7 +456,7 @@ class TestXLSXDoc(TestCase):
         """
         cases = [
             (self.doc, True),
-            (xlsx_gen.XLSXDoc(MagicMock(spec=result.BenchmarkMerge), [("test", None)], charts=False), False),
+            (xlsx_gen.XLSXDoc(self.benchmark, {"test": None}, charts=False), False),
         ]
 
         for doc, charts_enabled in cases:
