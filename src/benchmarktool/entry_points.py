@@ -125,7 +125,7 @@ def btool_conv(subparsers: "_SubParsersAction[ArgumentParser]") -> None:
         "--class-group-depth",
         type=parse_class_group_depth,
         default=None,
-        help="Group reporting classes by the first n directory components (default: keep original classes)",
+        help="Group classes by the first n directory components (default: keep original classes)",
         metavar="<n>",
     )
     conv_parser.add_argument(

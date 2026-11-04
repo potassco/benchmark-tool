@@ -44,11 +44,10 @@ Existing benchmark classes can be grouped by their first `N` directory component
 `--class-group-depth N`, where `N` is a positive integer.
 For example, classes `scheduling/small/random` and `scheduling/small/structured`
 are combined into `scheduling/small` at depth 2. At depth 1, both would be combined to
-`scheduling`. The full prefix is retained, so `planning/small` remains a separate
+`scheduling`. The full prefix is retained, so `planning/small` would remain a separate
 class at depth 2.
-Shallower classes keep their available path, and the root class (`.`) remains separate.
-Classes from different benchmark sets are never combined. If the option is omitted,
-original classes are retained.
+Classes shallower than the given depth remain unchanged and classes from different benchmark
+sets are never combined. If the option is omitted, original classes are retained.
 
 ## Spreadsheet Generation
 
